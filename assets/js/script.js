@@ -99,18 +99,30 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  // ===== Календарь записи (по неделям) =====
+  // ===== Безопасный fetch->json: не падает, если сервер вернул не-JSON =====
+  function fetchJSON(url, options) {
+    return fetch(url, options).then(function (r) {
+      return r.text().then(function (text) {
+        var data;
+        try {
+          data = JSON.parse(text);
+        } catch (e) {
+          data = { success: false, error: 'bad_response' };
+        }
+        return data;
+      });
+    });
+  }
+
+  // ===== Календарь записи: текущая неделя Пн–Вс, без переключения =====
   var calendarGrid = document.getElementById('calendarGrid');
   if (calendarGrid) {
     var calEmpty = document.getElementById('calendarEmpty');
-    var prevBtn = document.getElementById('calPrev');
-    var nextBtn = document.getElementById('calNext');
     var selectedText = document.getElementById('selectedSlotText');
     var bookingCta = document.getElementById('bookingCta');
     var bookingContacts = document.getElementById('bookingContacts');
     var labels = window.SITE_BOOKING_LABELS || { none: 'Время не выбрано', selected: 'Вы выбрали: ', booked: 'занято', noSlots: 'Свободного времени нет' };
 
-    var currentWeekStart = null;
     var selectedSlot = null; // { id, dateLabel, time }
 
     function fmtDateLabel(day) {
@@ -118,39 +130,49 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function renderWeek(data) {
-      currentWeekStart = data.week_start;
       calendarGrid.innerHTML = '';
+
+      if (!data || data.success === false || !data.days) {
+        calEmpty.style.display = 'block';
+        calEmpty.textContent = labels.noSlots;
+        return;
+      }
+
       var anySlots = false;
 
       data.days.forEach(function (day) {
-        var col = document.createElement('div');
-        col.className = 'cal-day';
+        var row = document.createElement('div');
+        row.className = 'cal-day-row' + (day.is_past ? ' is-past' : '');
 
-        var head = document.createElement('div');
-        head.className = 'cal-day-head';
-        head.innerHTML = day.weekday + '<span class="num">' + day.day + '</span>';
-        col.appendChild(head);
+        var dateBox = document.createElement('div');
+        dateBox.className = 'cal-day-date';
+        dateBox.innerHTML = '<span class="wd">' + day.weekday + '</span><span class="num">' + day.day + '</span>';
+        row.appendChild(dateBox);
+
+        var slotsWrap = document.createElement('div');
+        slotsWrap.className = 'cal-day-slots';
 
         if (!day.slots.length) {
-          var empty = document.createElement('div');
+          var empty = document.createElement('span');
           empty.className = 'cal-day-empty';
           empty.textContent = '—';
-          col.appendChild(empty);
+          slotsWrap.appendChild(empty);
         } else {
           day.slots.forEach(function (slot) {
             anySlots = true;
             var btn = document.createElement('button');
             btn.type = 'button';
+            var isDisabled = slot.booked || day.is_past;
             btn.className = 'cal-slot' + (slot.booked ? ' booked' : '');
             btn.textContent = slot.booked ? (slot.time + ' (' + labels.booked + ')') : slot.time;
-            btn.disabled = slot.booked;
+            btn.disabled = isDisabled;
 
             if (selectedSlot && selectedSlot.id === slot.id) {
               btn.classList.add('selected');
             }
 
             btn.addEventListener('click', function () {
-              if (slot.booked) return;
+              if (isDisabled) return;
               calendarGrid.querySelectorAll('.cal-slot.selected').forEach(function (el) {
                 el.classList.remove('selected');
               });
@@ -160,41 +182,20 @@ document.addEventListener('DOMContentLoaded', function () {
               bookingContacts.style.display = 'none';
             });
 
-            col.appendChild(btn);
+            slotsWrap.appendChild(btn);
           });
         }
 
-        calendarGrid.appendChild(col);
+        row.appendChild(slotsWrap);
+        calendarGrid.appendChild(row);
       });
 
       calEmpty.style.display = anySlots ? 'none' : 'block';
       if (!anySlots) calEmpty.textContent = labels.noSlots;
     }
 
-    function loadWeek(weekStart) {
-      var url = 'get_slots.php' + (weekStart ? '?week_start=' + encodeURIComponent(weekStart) : '');
-      fetch(url)
-        .then(function (r) { return r.json(); })
-        .then(renderWeek)
-        .catch(function () {
-          calEmpty.style.display = 'block';
-        });
-    }
-
-    if (prevBtn) {
-      prevBtn.addEventListener('click', function () {
-        fetch('get_slots.php' + (currentWeekStart ? '?week_start=' + encodeURIComponent(currentWeekStart) : ''))
-          .then(function (r) { return r.json(); })
-          .then(function (data) { loadWeek(data.week_prev); });
-      });
-    }
-
-    if (nextBtn) {
-      nextBtn.addEventListener('click', function () {
-        fetch('get_slots.php' + (currentWeekStart ? '?week_start=' + encodeURIComponent(currentWeekStart) : ''))
-          .then(function (r) { return r.json(); })
-          .then(function (data) { loadWeek(data.week_next); });
-      });
+    function loadWeek() {
+      fetchJSON('get_slots.php').then(renderWeek);
     }
 
     if (bookingCta) {
@@ -211,25 +212,39 @@ document.addEventListener('DOMContentLoaded', function () {
         body.set('slot_id', selectedSlot.id);
         body.set('visitor_name', localStorage.getItem('visitor_name') || '');
 
-        fetch('select_slot.php', {
+        fetchJSON('select_slot.php', {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
           body: body.toString()
-        })
-          .then(function (r) { return r.json(); })
-          .then(function (res) {
-            bookingContacts.style.display = 'block';
-            if (res.success) {
-              // Обновляем календарь, чтобы слот стал отмечен как занятый
-              loadWeek(currentWeekStart);
-            }
-          })
-          .catch(function () {
-            bookingContacts.style.display = 'block';
-          });
+        }).then(function (res) {
+          bookingContacts.style.display = 'block';
+          if (res && res.success) {
+            // Обновляем календарь, чтобы слот стал отмечен как занятый
+            loadWeek();
+          }
+        });
       });
     }
 
     loadWeek();
+  }
+
+  // ===== Плавающая кнопка связи =====
+  var fabBtn = document.getElementById('fabContactBtn');
+  var fabOverlay = document.getElementById('fabOverlay');
+  var fabClose = document.getElementById('fabCloseBtn');
+
+  if (fabBtn && fabOverlay) {
+    fabBtn.addEventListener('click', function () {
+      fabOverlay.classList.add('open');
+    });
+    if (fabClose) {
+      fabClose.addEventListener('click', function () {
+        fabOverlay.classList.remove('open');
+      });
+    }
+    fabOverlay.addEventListener('click', function (ev) {
+      if (ev.target === fabOverlay) fabOverlay.classList.remove('open');
+    });
   }
 });

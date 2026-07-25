@@ -89,25 +89,28 @@ require __DIR__ . '/includes/header.php';
   <!-- ===== ПРАЙС ===== -->
   <section class="panel" id="price" data-panel="price">
     <h2 class="section-title"><?= e(t('price_title')) ?></h2>
+    <div class="section-sub"><?= e(t('price_subtitle')) ?></div>
 
     <?php if (!$priceByCategory): ?>
       <p><?= e(t('price_empty')) ?></p>
     <?php endif; ?>
 
-    <div class="card">
-      <?php foreach ($priceByCategory as $cat): ?>
-        <div class="price-category"><?= e($cat['label']) ?></div>
+    <?php foreach ($priceByCategory as $catKey => $cat): ?>
+      <?php $isFramed = in_array($catKey, ['Наращивание / Коррекция'], true); ?>
+      <div class="price-block<?= $isFramed ? ' price-block--framed' : '' ?>">
+        <div class="price-category"><?= e($cat['label']) ?> <span class="heart">♡</span></div>
         <?php foreach ($cat['items'] as $item): ?>
           <?php $title = ($lang === 'ua' && !empty($item['title_ua'])) ? $item['title_ua'] : $item['title']; ?>
           <div class="price-row">
             <span class="name"><?= e($title) ?></span>
+            <span class="leader"></span>
             <span class="amount"><?= e($item['price']) ?></span>
           </div>
         <?php endforeach; ?>
-      <?php endforeach; ?>
-    </div>
+      </div>
+    <?php endforeach; ?>
 
-    <div class="card price-note">
+    <div class="price-note">
       <p class="price-note-designs">♡ <?= e(t('price_designs')) ?></p>
       <p class="price-note-location">📍 <?= e(t('price_location')) ?></p>
     </div>
@@ -124,13 +127,9 @@ require __DIR__ . '/includes/header.php';
     <div class="card">
       <p style="color:var(--ink-soft); margin-top:0;"><?= e(t('booking_intro')) ?></p>
 
-      <div class="calendar" id="bookingCalendar" data-week-start="">
-        <div class="calendar-nav">
-          <button type="button" class="btn ghost" id="calPrev" style="padding:8px 14px;font-size:13px;"><?= e(t('booking_week_prev')) ?></button>
-          <button type="button" class="btn ghost" id="calNext" style="padding:8px 14px;font-size:13px;"><?= e(t('booking_week_next')) ?></button>
-        </div>
+      <div class="calendar" id="bookingCalendar">
         <div class="calendar-grid" id="calendarGrid">
-          <!-- заполняется через JS (get_slots.php) -->
+          <!-- заполняется через JS (get_slots.php): блоки Пн–Вс -->
         </div>
         <p class="calendar-empty" id="calendarEmpty" style="display:none;"><?= e(t('booking_no_slots')) ?></p>
       </div>
