@@ -11,6 +11,7 @@
   </div>
 </footer>
 
+<script>window.SITE_LANG = <?= json_encode(currentLang()) ?>;</script>
 <script src="assets/js/script.js"></script>
 </body>
 </html>

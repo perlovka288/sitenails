@@ -9,12 +9,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrfCheck()) {
     $action = $_POST['action'] ?? '';
 
     if ($action === 'add') {
-        $category = trim($_POST['category'] ?? '');
-        $title    = trim($_POST['title'] ?? '');
-        $price    = trim($_POST['price'] ?? '');
+        $category    = trim($_POST['category'] ?? '');
+        $categoryUa  = trim($_POST['category_ua'] ?? '');
+        $title       = trim($_POST['title'] ?? '');
+        $titleUa     = trim($_POST['title_ua'] ?? '');
+        $price       = trim($_POST['price'] ?? '');
         if ($category !== '' && $title !== '' && $price !== '') {
-            $pdo->prepare('INSERT INTO price_items (category, title, price, sort_order) VALUES (?, ?, ?, 0)')
-                ->execute([$category, $title, $price]);
+            $pdo->prepare('INSERT INTO price_items (category, category_ua, title, title_ua, price, sort_order) VALUES (?, ?, ?, ?, ?, 0)')
+                ->execute([$category, $categoryUa ?: null, $title, $titleUa ?: null, $price]);
         }
     } elseif ($action === 'delete') {
         $id = (int)($_POST['id'] ?? 0);
@@ -45,12 +47,20 @@ $items = $pdo->query('SELECT * FROM price_items ORDER BY category, sort_order')-
       <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
       <input type="hidden" name="action" value="add">
       <div class="form-field">
-        <label>Категория (например, «Маникюр»)</label>
+        <label>Категория, рус. (например, «Маникюр»)</label>
         <input type="text" name="category" required>
       </div>
       <div class="form-field">
-        <label>Название услуги</label>
+        <label>Категория, укр. (необязательно, например «Манікюр»)</label>
+        <input type="text" name="category_ua">
+      </div>
+      <div class="form-field">
+        <label>Название услуги, рус.</label>
         <input type="text" name="title" required>
+      </div>
+      <div class="form-field">
+        <label>Название услуги, укр. (необязательно)</label>
+        <input type="text" name="title_ua">
       </div>
       <div class="form-field">
         <label>Цена (например, «450 грн»)</label>
@@ -61,12 +71,15 @@ $items = $pdo->query('SELECT * FROM price_items ORDER BY category, sort_order')-
   </div>
 
   <table class="admin-table">
-    <thead><tr><th>Категория</th><th>Услуга</th><th>Цена</th><th></th></tr></thead>
+    <thead><tr><th>Категория</th><th>Услуга</th><th>Укр. перевод</th><th>Цена</th><th></th></tr></thead>
     <tbody>
       <?php foreach ($items as $item): ?>
         <tr>
           <td><?= e($item['category']) ?></td>
           <td><?= e($item['title']) ?></td>
+          <td style="color:var(--ink-soft);">
+            <?= e($item['category_ua'] ?: '—') ?> / <?= e($item['title_ua'] ?: '—') ?>
+          </td>
           <td><?= e($item['price']) ?></td>
           <td>
             <form method="post" onsubmit="return confirm('Удалить позицию?');">
@@ -79,7 +92,7 @@ $items = $pdo->query('SELECT * FROM price_items ORDER BY category, sort_order')-
         </tr>
       <?php endforeach; ?>
       <?php if (!$items): ?>
-        <tr><td colspan="4">Прайс пуст.</td></tr>
+        <tr><td colspan="5">Прайс пуст.</td></tr>
       <?php endif; ?>
     </tbody>
   </table>

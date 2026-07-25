@@ -7,6 +7,7 @@ $pdo = getDB();
 $newBookings   = $pdo->query("SELECT COUNT(*) FROM bookings WHERE status = 'new'")->fetchColumn();
 $pendingReviews = $pdo->query("SELECT COUNT(*) FROM reviews WHERE is_approved = 0")->fetchColumn();
 $priceCount    = $pdo->query("SELECT COUNT(*) FROM price_items")->fetchColumn();
+$freeSlots     = $pdo->query("SELECT COUNT(*) FROM available_slots WHERE is_booked = 0 AND slot_date >= date('now')")->fetchColumn();
 ?>
 <!DOCTYPE html>
 <html lang="ru">
@@ -36,6 +37,11 @@ $priceCount    = $pdo->query("SELECT COUNT(*) FROM price_items")->fetchColumn();
       <div style="font-size:13px;color:var(--ink-soft);">Позиций в прайсе</div>
       <div style="font-size:32px;font-family:'Manrope',sans-serif;font-weight:800;"><?= (int)$priceCount ?></div>
       <a href="prices.php">Редактировать →</a>
+    </div>
+    <div class="card">
+      <div style="font-size:13px;color:var(--ink-soft);">Свободных слотов (будущих)</div>
+      <div style="font-size:32px;font-family:'Manrope',sans-serif;font-weight:800;"><?= (int)$freeSlots ?></div>
+      <a href="slots.php">Настроить →</a>
     </div>
   </div>
 </div>

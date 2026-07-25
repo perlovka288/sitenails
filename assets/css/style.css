@@ -164,6 +164,11 @@ a { color: inherit; }
   width: calc(100% / 3);
   flex-shrink: 0;
   padding: 0 2px;
+  visibility: hidden;
+}
+
+.panel.is-active {
+  visibility: visible;
 }
 
 /* ===== Секции / карточки ===== */
@@ -270,6 +275,135 @@ footer .admin-dot {
   height: 8px;
   opacity: 0;
 }
+
+/* Прайс — примечание (дизайны/локация) */
+.price-note { text-align: center; }
+.price-note p { margin: 6px 0; font-weight: 600; }
+.price-note-designs { color: var(--primary); }
+.price-note-location { color: var(--ink-soft); font-size: 14px; }
+
+/* ===== Календарь записи ===== */
+.calendar { margin-bottom: 18px; }
+
+.calendar-nav {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+@media (max-width: 480px) {
+  .calendar-grid { grid-template-columns: repeat(4, 1fr); }
+}
+
+.cal-day {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 8px 4px;
+  text-align: center;
+}
+
+.cal-day-head {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  margin-bottom: 6px;
+  line-height: 1.3;
+}
+
+.cal-day-head .num { display: block; font-size: 14px; color: var(--ink); }
+
+.cal-slot {
+  display: block;
+  width: 100%;
+  border: none;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 6px 2px;
+  margin-bottom: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: inherit;
+  color: var(--ink);
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease, transform .1s ease;
+}
+
+.cal-slot:hover { background: var(--line); }
+.cal-slot:active { transform: scale(.96); }
+
+.cal-slot.selected {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+.cal-slot.booked {
+  background: transparent;
+  border-style: dashed;
+  color: var(--ink-soft);
+  cursor: not-allowed;
+  text-decoration: line-through;
+  opacity: .6;
+}
+
+.cal-day-empty { font-size: 11px; color: var(--ink-soft); }
+
+.calendar-empty {
+  text-align: center;
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+.booking-selected {
+  text-align: center;
+  font-weight: 700;
+  padding: 10px 0;
+  color: var(--primary);
+}
+
+.booking-contacts {
+  margin-top: 16px;
+  border-top: 1px dashed var(--line);
+  padding-top: 16px;
+  text-align: center;
+}
+
+.booking-contacts h3 { font-size: 17px; }
+
+.contact-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.contact-tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 10px;
+  border-radius: 14px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--ink);
+  transition: background .15s ease, transform .1s ease;
+}
+
+.contact-tile:hover { background: var(--line); }
+.contact-tile:active { transform: scale(.97); }
+.contact-icon { font-size: 18px; }
 
 /* ===== Модалка "как к вам обращаться" ===== */
 .greet-overlay {

@@ -41,7 +41,7 @@ $bookings = $pdo->query('SELECT * FROM bookings ORDER BY created_at DESC')->fetc
         <tr>
           <td><span class="badge <?= $b['status'] === 'done' ? 'done' : 'new' ?>"><?= $b['status'] === 'done' ? 'Выполнено' : 'Новая' ?></span></td>
           <td><?= e($b['client_name']) ?></td>
-          <td><?= e($b['phone']) ?></td>
+          <td><?= e($b['phone'] ?: '—') ?></td>
           <td><?= e($b['service'] ?: '—') ?></td>
           <td><?= e($b['wanted_date'] ?: '—') ?></td>
           <td><?= e($b['comment'] ?: '—') ?></td>

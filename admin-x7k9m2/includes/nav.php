@@ -7,6 +7,7 @@
   <a href="dashboard.php" class="<?= $current === 'dashboard.php' ? 'active' : '' ?>">Главная</a>
   <a href="reviews.php" class="<?= $current === 'reviews.php' ? 'active' : '' ?>">Отзывы</a>
   <a href="prices.php" class="<?= $current === 'prices.php' ? 'active' : '' ?>">Прайс</a>
+  <a href="slots.php" class="<?= $current === 'slots.php' ? 'active' : '' ?>">Свободное время</a>
   <a href="bookings.php" class="<?= $current === 'bookings.php' ? 'active' : '' ?>">Записи</a>
   <a href="settings.php" class="<?= $current === 'settings.php' ? 'active' : '' ?>">Настройки</a>
   <a href="../index.php" target="_blank">Открыть сайт ↗</a>
