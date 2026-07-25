@@ -84,6 +84,25 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  // ===== Модалка "Оставить отзыв" =====
+  var reviewOverlay = document.getElementById('reviewModalOverlay');
+  var openReviewBtn = document.getElementById('openReviewModalBtn');
+  var closeReviewBtn = document.getElementById('closeReviewModalBtn');
+
+  if (reviewOverlay && openReviewBtn) {
+    openReviewBtn.addEventListener('click', function () {
+      reviewOverlay.classList.add('open');
+    });
+    if (closeReviewBtn) {
+      closeReviewBtn.addEventListener('click', function () {
+        reviewOverlay.classList.remove('open');
+      });
+    }
+    reviewOverlay.addEventListener('click', function (ev) {
+      if (ev.target === reviewOverlay) reviewOverlay.classList.remove('open');
+    });
+  }
+
   // ===== Выбор рейтинга звёздами в форме отзыва =====
   var starWrap = document.getElementById('starPicker');
   if (starWrap) {

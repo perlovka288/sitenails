@@ -2,9 +2,11 @@
 /**
  * select_slot.php
  * Клиент выбрал время в календаре и нажал "Записаться".
- * Помечаем слот занятым и сохраняем заявку в "Записи" панели администратора,
- * чтобы мама видела, какое время забронировано (клиент подтверждает детали
- * лично в Instagram/Viber/Telegram/по телефону).
+ * Слот НЕ помечается занятым автоматически — заявка просто сохраняется
+ * в "Записи" панели администратора. Мама сама решает, отметить ли это
+ * время занятым (в разделе «Записи» или «Свободное время» панели),
+ * после того как договорится с клиентом лично в Instagram/Viber/Telegram/
+ * по телефону.
  */
 header('Content-Type: application/json; charset=utf-8');
 ini_set('display_errors', '0');
@@ -42,21 +44,15 @@ try {
         exit;
     }
 
-    // Атомарно помечаем занятым (защита от двойного клика/гонки)
-    $update = $pdo->prepare('UPDATE available_slots SET is_booked = 1 WHERE id = ? AND is_booked = 0');
-    $update->execute([$slotId]);
-
-    if ($update->rowCount() === 0) {
-        echo json_encode(['success' => false, 'error' => 'already_booked']);
-        exit;
-    }
-
     $greetName = trim((string)($_POST['visitor_name'] ?? ''));
     $clientName = $greetName !== '' ? $greetName : 'Клиент (через сайт)';
 
+    // Слот остаётся видимым как свободный в календаре — заявка попадает
+    // в "Записи" панели со ссылкой на этот слот (slot_id), чтобы мама
+    // одним кликом отметила время занятым, когда договорится с клиентом.
     $pdo->prepare(
-        "INSERT INTO bookings (client_name, phone, service, wanted_date, comment) VALUES (?, '', '', ?, ?)"
-    )->execute([$clientName, $slot['slot_date'] . ' ' . $slot['slot_time'], 'Слот выбран через календарь на сайте']);
+        "INSERT INTO bookings (client_name, phone, service, wanted_date, comment, slot_id) VALUES (?, '', '', ?, ?, ?)"
+    )->execute([$clientName, $slot['slot_date'] . ' ' . $slot['slot_time'], 'Слот выбран через календарь на сайте', $slotId]);
 
     echo json_encode([
         'success' => true,

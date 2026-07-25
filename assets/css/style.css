@@ -1,20 +1,20 @@
 /* =========================================================
-   Nails by Mama — тёмный элегантный стиль в духе прайс-карточки
+   Чёрно-белый элегантный стиль
    ========================================================= */
 
 :root {
-  --bg: #0d0b0b;
-  --bg-soft: #161213;
-  --surface: #191516;
-  --surface-2: #211b1c;
-  --ink: #f3ece3;
-  --ink-soft: #b6a89b;
-  --ink-faint: #8a7c72;
-  --primary: #c9a15a;       /* тёплое золото — акцент, как на прайсе */
-  --primary-soft: rgba(201, 161, 90, .14);
-  --primary-dark: #a3803f;
-  --line: rgba(243, 236, 227, .14);
-  --line-strong: rgba(243, 236, 227, .28);
+  --bg: #0b0b0b;
+  --bg-soft: #141414;
+  --surface: #171717;
+  --surface-2: #1f1f1f;
+  --ink: #f5f5f5;
+  --ink-soft: #ababab;
+  --ink-faint: #7d7d7d;
+  --primary: #ffffff;       /* белый акцент вместо золота */
+  --primary-soft: rgba(255, 255, 255, .12);
+  --primary-dark: #d6d6d6;
+  --line: rgba(245, 245, 245, .14);
+  --line-strong: rgba(245, 245, 245, .28);
   --radius: 16px;
   --radius-sm: 10px;
   --shadow: 0 16px 40px rgba(0, 0, 0, .5);
@@ -28,8 +28,8 @@ body {
   margin: 0;
   background: var(--bg);
   background-image:
-    radial-gradient(circle at 15% 0%, rgba(201, 161, 90, .07), transparent 45%),
-    radial-gradient(circle at 100% 20%, rgba(201, 161, 90, .05), transparent 40%);
+    radial-gradient(circle at 15% 0%, rgba(255, 255, 255, .06), transparent 45%),
+    radial-gradient(circle at 100% 20%, rgba(255, 255, 255, .04), transparent 40%);
   color: var(--ink);
   font-family: 'Jost', -apple-system, sans-serif;
   font-weight: 300;
@@ -317,6 +317,16 @@ section.block { padding: 28px 0; }
 /* Отзывы */
 .review .stars { color: var(--primary); letter-spacing: 2px; margin-bottom: 8px; font-size: 15px; }
 .review .author { font-weight: 600; margin-top: 10px; color: var(--ink-soft); font-style: italic; }
+.review-photo {
+  display: block;
+  max-width: 100%;
+  max-height: 260px;
+  width: auto;
+  border-radius: var(--radius-sm);
+  margin-bottom: 10px;
+  border: 1px solid var(--line);
+  object-fit: cover;
+}
 
 /* Форма */
 .form-field { margin-bottom: 14px; }
@@ -365,7 +375,7 @@ section.block { padding: 28px 0; }
   transition: background .15s ease, transform .1s ease;
 }
 
-.btn:hover { background: #dcb56d; }
+.btn:hover { background: #e2e2e2; }
 .btn:active { transform: scale(.98); }
 .btn.full { width: 100%; text-align: center; }
 .btn.ghost { background: transparent; color: var(--primary); border: 1px solid var(--primary); }
@@ -412,6 +422,15 @@ footer {
   transition: background .15s ease, border-color .15s ease, transform .15s ease;
 }
 .footer-social a:hover { background: var(--primary-soft); border-color: var(--primary); transform: translateY(-2px); }
+
+/* Иконки соцсетей (файлы: assets/img/social/inst.png, viber.png, tg.png) */
+.social-icon-img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  display: block;
+}
+.contact-icon .social-icon-img { width: 18px; height: 18px; }
 
 footer .admin-dot {
   display: inline-block;
@@ -479,6 +498,46 @@ footer .admin-dot {
   cursor: pointer;
   text-decoration: underline;
 }
+
+/* ===== Универсальное всплывающее окно для анкет (напр. форма отзыва) ===== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, .55);
+  display: none;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 100;
+}
+.modal-overlay.open { display: flex; }
+
+.modal-box {
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 22px 22px 0 0;
+  padding: 26px 22px 30px;
+  width: 100%;
+  max-width: 480px;
+  max-height: 88vh;
+  overflow-y: auto;
+  box-shadow: 0 -10px 30px rgba(0,0,0,.5);
+}
+@media (min-width: 560px) {
+  .modal-overlay { align-items: center; }
+  .modal-box { border-radius: 22px; }
+}
+.modal-box h3 { font-size: 19px; text-align: center; }
+.modal-close {
+  display: block;
+  margin: 14px auto 0;
+  background: transparent;
+  border: none;
+  color: var(--ink-soft);
+  font-size: 13px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.open-modal-btn { margin-top: 6px; }
 
 /* ===== Календарь записи (Пн–Вс, без переключения недель) ===== */
 .calendar { margin-bottom: 18px; }
@@ -662,6 +721,6 @@ table.admin-table { width: 100%; border-collapse: collapse; background: var(--su
 table.admin-table th, table.admin-table td { padding: 12px 14px; border-bottom: 1px solid var(--line); text-align:left; font-size:14px; vertical-align: top;}
 table.admin-table th { background: var(--surface-2); font-size: 11px; text-transform:uppercase; letter-spacing:.05em; color: var(--ink-soft);}
 .badge { display:inline-block; padding:3px 10px; border-radius:999px; font-size:11px; font-weight:700;}
-.badge.new { background: rgba(201,161,90,.18); color: var(--primary);}
+.badge.new { background: rgba(255,255,255,.16); color: var(--primary);}
 .badge.done { background: rgba(120,180,130,.18); color: #9fd6a8;}
 .login-box { max-width: 380px; margin: 90px auto; }

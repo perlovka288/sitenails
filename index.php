@@ -35,7 +35,7 @@ require __DIR__ . '/includes/header.php';
 
   <section class="hero">
     <span class="eyebrow"><?= e(t('hero_eyebrow')) ?></span>
-    <h1 data-greet><?= e(SITE_NAME) ?></h1>
+    <h1 data-greet><?= e(getSetting('site_name', '')) ?: '&nbsp;' ?></h1>
     <p><?= e(t('hero_text')) ?></p>
   </section>
 
@@ -57,33 +57,15 @@ require __DIR__ . '/includes/header.php';
     <?php foreach ($reviews as $r): ?>
       <div class="card review">
         <div class="stars"><?= str_repeat('★', (int)$r['rating']) . str_repeat('☆', 5 - (int)$r['rating']) ?></div>
+        <?php if (!empty($r['photo_path'])): ?>
+          <img src="<?= e($r['photo_path']) ?>" alt="" class="review-photo">
+        <?php endif; ?>
         <div><?= nl2br(e($r['message'])) ?></div>
         <div class="author">— <?= e($r['author_name']) ?></div>
       </div>
     <?php endforeach; ?>
 
-    <div class="card">
-      <h3><?= e(t('reviews_leave')) ?></h3>
-      <form action="submit_review.php" method="post">
-        <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
-        <div class="form-field">
-          <label><?= e(t('reviews_name')) ?></label>
-          <input type="text" name="author_name" required maxlength="60">
-        </div>
-        <div class="form-field">
-          <label><?= e(t('reviews_rating')) ?></label>
-          <input type="hidden" name="rating" id="ratingInput" value="5">
-          <div id="starPicker" style="font-size:26px; color:var(--accent); cursor:pointer;">
-            <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
-          </div>
-        </div>
-        <div class="form-field">
-          <label><?= e(t('reviews_text')) ?></label>
-          <textarea name="message" required maxlength="600"></textarea>
-        </div>
-        <button type="submit" class="btn full"><?= e(t('reviews_send')) ?></button>
-      </form>
-    </div>
+    <button type="button" class="btn full open-modal-btn" id="openReviewModalBtn"><?= e(t('reviews_leave')) ?></button>
   </section>
 
   <!-- ===== ПРАЙС ===== -->
@@ -143,17 +125,23 @@ require __DIR__ . '/includes/header.php';
       <div class="booking-contacts" id="bookingContacts" style="display:none;">
         <h3><?= e(t('booking_contacts_title')) ?></h3>
         <p style="color:var(--ink-soft);"><?= e(t('booking_contacts_hint')) ?></p>
+        <?php
+          $__idxIgUrl      = getSetting('social_instagram_url', '');
+          $__idxViberPhone = getSetting('social_viber_phone', '');
+          $__idxTgPhone    = getSetting('social_telegram_phone', '');
+          $__idxCallPhone  = getSetting('social_phone', '');
+        ?>
         <div class="contact-grid">
-          <a class="contact-tile" href="<?= e(SOCIAL_INSTAGRAM_URL) ?>" target="_blank" rel="noopener">
-            <span class="contact-icon">📷</span><?= e(t('booking_instagram')) ?>
+          <a class="contact-tile" href="<?= e($__idxIgUrl) ?>" target="_blank" rel="noopener">
+            <span class="contact-icon"><img src="assets/img/social/inst.png" alt="" class="social-icon-img"></span><?= e(t('booking_instagram')) ?>
           </a>
-          <a class="contact-tile" href="viber://chat?number=%2B<?= e(preg_replace('/\D/', '', SOCIAL_VIBER_PHONE)) ?>">
-            <span class="contact-icon">💜</span><?= e(t('booking_viber')) ?>
+          <a class="contact-tile" href="viber://chat?number=%2B<?= e(preg_replace('/\D/', '', $__idxViberPhone)) ?>">
+            <span class="contact-icon"><img src="assets/img/social/viber.png" alt="" class="social-icon-img"></span><?= e(t('booking_viber')) ?>
           </a>
-          <a class="contact-tile" href="https://t.me/+<?= e(preg_replace('/\D/', '', SOCIAL_TELEGRAM_PHONE)) ?>" target="_blank" rel="noopener">
-            <span class="contact-icon">✈️</span><?= e(t('booking_telegram')) ?>
+          <a class="contact-tile" href="https://t.me/+<?= e(preg_replace('/\D/', '', $__idxTgPhone)) ?>" target="_blank" rel="noopener">
+            <span class="contact-icon"><img src="assets/img/social/tg.png" alt="" class="social-icon-img"></span><?= e(t('booking_telegram')) ?>
           </a>
-          <a class="contact-tile" href="tel:<?= e(SOCIAL_PHONE) ?>">
+          <a class="contact-tile" href="tel:<?= e($__idxCallPhone) ?>">
             <span class="contact-icon">📞</span><?= e(t('booking_phone')) ?>
           </a>
         </div>
@@ -162,6 +150,39 @@ require __DIR__ . '/includes/header.php';
   </section>
 
   </div>
+  </div>
+
+  <!-- Модальное окно "Оставить отзыв" — вынесено за пределы .panels-track,
+       чтобы position:fixed работал относительно всего экрана, а не
+       "уезжал" вместе со сдвигом вкладок Отзывы/Прайс/Запись. -->
+  <div class="modal-overlay" id="reviewModalOverlay">
+    <div class="modal-box">
+      <h3><?= e(t('reviews_leave')) ?></h3>
+      <form action="submit_review.php" method="post" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+        <div class="form-field">
+          <label><?= e(t('reviews_name')) ?></label>
+          <input type="text" name="author_name" required maxlength="60">
+        </div>
+        <div class="form-field">
+          <label><?= e(t('reviews_rating')) ?></label>
+          <input type="hidden" name="rating" id="ratingInput" value="5">
+          <div id="starPicker" style="font-size:26px; color:var(--accent); cursor:pointer;">
+            <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
+          </div>
+        </div>
+        <div class="form-field">
+          <label><?= e(t('reviews_text')) ?></label>
+          <textarea name="message" required maxlength="600"></textarea>
+        </div>
+        <div class="form-field">
+          <label><?= e(t('reviews_photo')) ?></label>
+          <input type="file" name="photo" accept="image/png,image/jpeg,image/webp,image/gif">
+        </div>
+        <button type="submit" class="btn full"><?= e(t('reviews_send')) ?></button>
+      </form>
+      <button type="button" class="modal-close" id="closeReviewModalBtn"><?= e(t('close')) ?></button>
+    </div>
   </div>
 
 </main>

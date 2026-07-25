@@ -1,10 +1,15 @@
-<?php $__lang = currentLang(); $__tabParam = isset($_GET['tab']) ? '&tab=' . urlencode($_GET['tab']) : ''; ?>
+<?php
+$__lang = currentLang();
+$__tabParam = isset($_GET['tab']) ? '&tab=' . urlencode($_GET['tab']) : '';
+$__siteName = getSetting('site_name', '');
+$__siteTitle = $__siteName !== '' ? $__siteName : 'Мастер маникюра';
+?>
 <!DOCTYPE html>
 <html lang="<?= $__lang === 'ua' ? 'uk' : 'ru' ?>">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title><?= e(SITE_NAME) ?></title>
+<title><?= e($__siteTitle) ?></title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,500&family=Jost:wght@300;400;500;600&family=Tangerine:wght@700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/css/style.css">
@@ -13,7 +18,11 @@
 
 <header class="topbar">
   <div class="container topbar-row">
-    <div class="brand"><?= e(SITE_NAME) ?></div>
+    <?php if ($__siteName !== ''): ?>
+    <div class="brand"><?= e($__siteName) ?></div>
+    <?php else: ?>
+    <div class="brand">&nbsp;</div>
+    <?php endif; ?>
     <div class="lang-switch">
       <a href="?lang=ru<?= $__tabParam ?>" class="<?= $__lang === 'ru' ? 'active' : '' ?>">РУС</a>
       <a href="?lang=ua<?= $__tabParam ?>" class="<?= $__lang === 'ua' ? 'active' : '' ?>">УКР</a>

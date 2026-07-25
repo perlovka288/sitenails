@@ -32,7 +32,7 @@ $reviews = $pdo->query('SELECT * FROM reviews ORDER BY is_approved ASC, created_
 
   <table class="admin-table">
     <thead>
-      <tr><th>Статус</th><th>Автор</th><th>Оценка</th><th>Текст</th><th>Действия</th></tr>
+      <tr><th>Статус</th><th>Автор</th><th>Оценка</th><th>Текст</th><th>Фото</th><th>Действия</th></tr>
     </thead>
     <tbody>
       <?php foreach ($reviews as $r): ?>
@@ -41,6 +41,15 @@ $reviews = $pdo->query('SELECT * FROM reviews ORDER BY is_approved ASC, created_
           <td><?= e($r['author_name']) ?></td>
           <td><?= str_repeat('★', (int)$r['rating']) ?></td>
           <td><?= e($r['message']) ?></td>
+          <td>
+            <?php if (!empty($r['photo_path'])): ?>
+              <a href="../<?= e($r['photo_path']) ?>" target="_blank">
+                <img src="../<?= e($r['photo_path']) ?>" alt="" style="width:56px;height:56px;object-fit:cover;border-radius:8px;border:1px solid var(--line);">
+              </a>
+            <?php else: ?>
+              —
+            <?php endif; ?>
+          </td>
           <td style="white-space:nowrap;">
             <?php if (!$r['is_approved']): ?>
             <form method="post" style="display:inline;">
@@ -58,7 +67,7 @@ $reviews = $pdo->query('SELECT * FROM reviews ORDER BY is_approved ASC, created_
         </tr>
       <?php endforeach; ?>
       <?php if (!$reviews): ?>
-        <tr><td colspan="5">Отзывов пока нет.</td></tr>
+        <tr><td colspan="6">Отзывов пока нет.</td></tr>
       <?php endif; ?>
     </tbody>
   </table>

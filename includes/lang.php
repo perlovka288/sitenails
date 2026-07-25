@@ -33,6 +33,7 @@ $GLOBALS['TRANSLATIONS'] = [
         'reviews_name'     => 'Ваше имя',
         'reviews_rating'   => 'Оценка',
         'reviews_text'     => 'Отзыв',
+        'reviews_photo'    => 'Фото (необязательно)',
         'reviews_send'     => 'Отправить отзыв',
         'reviews_sent'     => 'Спасибо! Ваш отзыв отправлен и появится на сайте после проверки.',
 
@@ -83,6 +84,7 @@ $GLOBALS['TRANSLATIONS'] = [
         'reviews_name'     => 'Ваше ім\'я',
         'reviews_rating'   => 'Оцінка',
         'reviews_text'     => 'Відгук',
+        'reviews_photo'    => 'Фото (необов\'язково)',
         'reviews_send'     => 'Надіслати відгук',
         'reviews_sent'     => 'Дякуємо! Ваш відгук надіслано і з\'явиться на сайті після перевірки.',
 

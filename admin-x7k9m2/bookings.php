@@ -13,11 +13,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrfCheck()) {
         $pdo->prepare("UPDATE bookings SET status = 'done' WHERE id = ?")->execute([$id]);
     } elseif ($action === 'delete') {
         $pdo->prepare('DELETE FROM bookings WHERE id = ?')->execute([$id]);
+    } elseif ($action === 'toggle_slot') {
+        $slotId = (int)($_POST['slot_id'] ?? 0);
+        if ($slotId > 0) {
+            $pdo->prepare('UPDATE available_slots SET is_booked = 1 - is_booked WHERE id = ?')->execute([$slotId]);
+        }
     }
     redirect('bookings.php');
 }
 
-$bookings = $pdo->query('SELECT * FROM bookings ORDER BY created_at DESC')->fetchAll();
+$bookings = $pdo->query('
+    SELECT b.*, s.is_booked AS slot_is_booked, s.slot_date AS slot_date_fmt, s.slot_time AS slot_time_fmt
+    FROM bookings b
+    LEFT JOIN available_slots s ON s.id = b.slot_id
+    ORDER BY b.created_at DESC
+')->fetchAll();
 ?>
 <!DOCTYPE html>
 <html lang="ru">
@@ -34,7 +44,7 @@ $bookings = $pdo->query('SELECT * FROM bookings ORDER BY created_at DESC')->fetc
 
   <table class="admin-table">
     <thead>
-      <tr><th>Статус</th><th>Клиент</th><th>Телефон</th><th>Услуга</th><th>Дата</th><th>Комментарий</th><th>Действия</th></tr>
+      <tr><th>Статус</th><th>Клиент</th><th>Телефон</th><th>Услуга</th><th>Дата</th><th>Время в календаре</th><th>Комментарий</th><th>Действия</th></tr>
     </thead>
     <tbody>
       <?php foreach ($bookings as $b): ?>
@@ -44,8 +54,26 @@ $bookings = $pdo->query('SELECT * FROM bookings ORDER BY created_at DESC')->fetc
           <td><?= e($b['phone'] ?: '—') ?></td>
           <td><?= e($b['service'] ?: '—') ?></td>
           <td><?= e($b['wanted_date'] ?: '—') ?></td>
+          <td>
+            <?php if ($b['slot_id']): ?>
+              <span class="badge <?= $b['slot_is_booked'] ? 'done' : 'new' ?>">
+                <?= $b['slot_is_booked'] ? 'занято' : 'свободно' ?>
+              </span>
+            <?php else: ?>
+              —
+            <?php endif; ?>
+          </td>
           <td><?= e($b['comment'] ?: '—') ?></td>
           <td style="white-space:nowrap;">
+            <?php if ($b['slot_id']): ?>
+            <form method="post" style="display:inline;" title="Мама сама решает, занято это время или нет">
+              <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+              <input type="hidden" name="slot_id" value="<?= (int)$b['slot_id'] ?>">
+              <button name="action" value="toggle_slot" class="btn ghost" style="padding:6px 12px;font-size:12px;">
+                <?= $b['slot_is_booked'] ? 'Освободить время' : 'Отметить занятым' ?>
+              </button>
+            </form>
+            <?php endif; ?>
             <?php if ($b['status'] !== 'done'): ?>
             <form method="post" style="display:inline;">
               <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
@@ -62,7 +90,7 @@ $bookings = $pdo->query('SELECT * FROM bookings ORDER BY created_at DESC')->fetc
         </tr>
       <?php endforeach; ?>
       <?php if (!$bookings): ?>
-        <tr><td colspan="7">Записей пока нет.</td></tr>
+        <tr><td colspan="8">Записей пока нет.</td></tr>
       <?php endif; ?>
     </tbody>
   </table>

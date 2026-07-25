@@ -8,18 +8,22 @@
 session_start();
 
 // ==== ОБЩИЕ НАСТРОЙКИ САЙТА ====
-define('SITE_NAME', 'Nails by Mama');   // TODO: поменяйте на реальное имя
-define('SITE_PHONE', '+380 96 055 44 85');
 define('DB_PATH', __DIR__ . '/data/database.sqlite');
 
-// ==== СОЦИАЛЬНЫЕ СЕТИ И КОНТАКТЫ МАСТЕРА ====
-// Используются в разделе "Запись" вместо анкеты — клиент выбирает удобное
-// время в календаре и пишет мастеру напрямую.
-define('SOCIAL_INSTAGRAM_URL', 'https://www.instagram.com/nails_master_kurakoluba?utm_source=qr');
-define('SOCIAL_VIBER_PHONE', '+380960554485');
-define('SOCIAL_TELEGRAM_PHONE', '+380960554485');
-define('SOCIAL_PHONE', '+380960554485');
-define('SITE_LOCATION_METRO', 'ХТЗ'); // станция метро (см. прайс)
+// Значения ниже используются ТОЛЬКО один раз — как стартовые значения,
+// которые записываются в базу при самом первом запуске сайта.
+// Дальше название сайта, телефон и ссылки на соцсети мама меняет сама
+// в панели управления → раздел «Настройки», без участия программиста.
+// Смотри функции getSetting()/setSetting() ниже и admin-x7k9m2/settings.php.
+const DEFAULT_SETTINGS = [
+    'site_name'             => '', // пусто — мама впишет своё название в панели управления
+    'site_phone'             => '+380 96 055 44 85',
+    'social_instagram_url'   => 'https://www.instagram.com/nails_master_kurakoluba?utm_source=qr',
+    'social_viber_phone'     => '+380960554485',
+    'social_telegram_phone'  => '+380960554485',
+    'social_phone'           => '+380960554485',
+    'site_location_metro'    => 'ХТЗ',
+];
 
 // ==== ПОДКЛЮЧЕНИЕ К БАЗЕ ====
 function getDB(): PDO
@@ -36,9 +40,78 @@ function getDB(): PDO
         if ($isNew) {
             initDB($pdo);
         }
+
+        // Догоняем схему на уже существующих базах (сайт уже был запущен
+        // раньше и обновился новым кодом) — ничего не удаляем и не трогаем
+        // существующие данные, только добавляем недостающее.
+        migrateSchema($pdo);
     }
 
     return $pdo;
+}
+
+// ==== ДОБАВЛЕНИЕ НЕДОСТАЮЩИХ ТАБЛИЦ/КОЛОНОК НА УЖЕ РАБОТАЮЩЕМ САЙТЕ ====
+function migrateSchema(PDO $pdo): void
+{
+    // Таблица настроек сайта (название, телефон, соцсети) — редактируется
+    // мамой в панели управления, без правки файлов на хостинге.
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS site_settings (
+            key   TEXT PRIMARY KEY,
+            value TEXT NOT NULL DEFAULT ''
+        )
+    ");
+    $seed = $pdo->prepare('INSERT OR IGNORE INTO site_settings (key, value) VALUES (?, ?)');
+    foreach (DEFAULT_SETTINGS as $key => $value) {
+        $seed->execute([$key, $value]);
+    }
+
+    // slot_id в bookings — связывает заявку клиента со слотом в календаре,
+    // чтобы мама могла из «Записей» сразу отметить нужное время занятым.
+    $columns = $pdo->query('PRAGMA table_info(bookings)')->fetchAll(PDO::FETCH_ASSOC);
+    $hasSlotId = false;
+    foreach ($columns as $col) {
+        if ($col['name'] === 'slot_id') {
+            $hasSlotId = true;
+            break;
+        }
+    }
+    if (!$hasSlotId) {
+        $pdo->exec('ALTER TABLE bookings ADD COLUMN slot_id INTEGER');
+    }
+
+    // photo_path в reviews — фото, которое клиент прикрепил к отзыву.
+    $reviewColumns = $pdo->query('PRAGMA table_info(reviews)')->fetchAll(PDO::FETCH_ASSOC);
+    $hasPhotoPath = false;
+    foreach ($reviewColumns as $col) {
+        if ($col['name'] === 'photo_path') {
+            $hasPhotoPath = true;
+            break;
+        }
+    }
+    if (!$hasPhotoPath) {
+        $pdo->exec('ALTER TABLE reviews ADD COLUMN photo_path TEXT');
+    }
+}
+
+// ==== НАСТРОЙКИ САЙТА (название, телефон, соцсети) — читаем/пишем из БД ====
+function getSetting(string $key, string $default = ''): string
+{
+    $pdo = getDB();
+    $stmt = $pdo->prepare('SELECT value FROM site_settings WHERE key = ?');
+    $stmt->execute([$key]);
+    $value = $stmt->fetchColumn();
+    return $value !== false ? (string)$value : $default;
+}
+
+function setSetting(string $key, string $value): void
+{
+    $pdo = getDB();
+    $stmt = $pdo->prepare('
+        INSERT INTO site_settings (key, value) VALUES (?, ?)
+        ON CONFLICT(key) DO UPDATE SET value = excluded.value
+    ');
+    $stmt->execute([$key, $value]);
 }
 
 // ==== СОЗДАНИЕ ТАБЛИЦ ПРИ ПЕРВОМ ЗАПУСКЕ ====
@@ -58,6 +131,7 @@ function initDB(PDO $pdo): void
             author_name TEXT NOT NULL,
             rating INTEGER NOT NULL DEFAULT 5,
             message TEXT NOT NULL,
+            photo_path TEXT,
             is_approved INTEGER NOT NULL DEFAULT 0,
             created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
         )
@@ -86,9 +160,23 @@ function initDB(PDO $pdo): void
             wanted_date TEXT,
             comment TEXT,
             status TEXT NOT NULL DEFAULT 'new',
+            slot_id INTEGER,
             created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
         )
     ");
+
+    // Настройки сайта (название, телефон, соцсети) — правит мама в панели
+    // управления, программист для этого больше не нужен.
+    $pdo->exec("
+        CREATE TABLE site_settings (
+            key   TEXT PRIMARY KEY,
+            value TEXT NOT NULL DEFAULT ''
+        )
+    ");
+    $seed = $pdo->prepare('INSERT INTO site_settings (key, value) VALUES (?, ?)');
+    foreach (DEFAULT_SETTINGS as $key => $value) {
+        $seed->execute([$key, $value]);
+    }
 
     // Свободные слоты, которые мама выставляет в календаре записи.
     // Клиент кликает по свободному времени на сайте, чтобы выбрать его.

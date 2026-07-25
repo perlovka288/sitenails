@@ -1,12 +1,28 @@
+<?php
+$__footSiteName  = getSetting('site_name', '');
+$__footSitePhone = getSetting('site_phone', '');
+$__igUrl      = getSetting('social_instagram_url', '');
+$__viberPhone = getSetting('social_viber_phone', '');
+$__tgPhone    = getSetting('social_telegram_phone', '');
+$__callPhone  = getSetting('social_phone', '');
+?>
 <footer>
   <div class="container">
     <div class="footer-social">
-      <a href="<?= e(SOCIAL_INSTAGRAM_URL) ?>" target="_blank" rel="noopener" title="Instagram">📷</a>
-      <a href="viber://chat?number=%2B<?= e(preg_replace('/\D/', '', SOCIAL_VIBER_PHONE)) ?>" title="Viber">💜</a>
-      <a href="https://t.me/+<?= e(preg_replace('/\D/', '', SOCIAL_TELEGRAM_PHONE)) ?>" target="_blank" rel="noopener" title="Telegram">✈️</a>
-      <a href="tel:<?= e(SOCIAL_PHONE) ?>" title="<?= e(t('booking_phone')) ?>">📞</a>
+      <a href="<?= e($__igUrl) ?>" target="_blank" rel="noopener" title="Instagram">
+        <img src="assets/img/social/inst.png" alt="Instagram" class="social-icon-img">
+      </a>
+      <a href="viber://chat?number=%2B<?= e(preg_replace('/\D/', '', $__viberPhone)) ?>" title="Viber">
+        <img src="assets/img/social/viber.png" alt="Viber" class="social-icon-img">
+      </a>
+      <a href="https://t.me/+<?= e(preg_replace('/\D/', '', $__tgPhone)) ?>" target="_blank" rel="noopener" title="Telegram">
+        <img src="assets/img/social/tg.png" alt="Telegram" class="social-icon-img">
+      </a>
+      <a href="tel:<?= e($__callPhone) ?>" title="<?= e(t('booking_phone')) ?>">📞</a>
     </div>
-    <p><?= e(SITE_NAME) ?> · <?= e(SITE_PHONE) ?></p>
+    <?php if ($__footSiteName !== '' || $__footSitePhone !== ''): ?>
+    <p><?= e($__footSiteName) ?><?= ($__footSiteName !== '' && $__footSitePhone !== '') ? ' · ' : '' ?><?= e($__footSitePhone) ?></p>
+    <?php endif; ?>
     <!--
       Скрытая ссылка в админ-панель.
       Она не отображается визуально (opacity: 0), но остаётся в HTML-коде.
@@ -24,16 +40,16 @@
     <h3><?= e(t('fab_title')) ?></h3>
     <p style="text-align:center; color:var(--ink-soft); font-size:13px; margin:6px 0 0;"><?= e(t('fab_hint')) ?></p>
     <div class="contact-grid">
-      <a class="contact-tile" href="<?= e(SOCIAL_INSTAGRAM_URL) ?>" target="_blank" rel="noopener">
-        <span class="contact-icon">📷</span><?= e(t('booking_instagram')) ?>
+      <a class="contact-tile" href="<?= e($__igUrl) ?>" target="_blank" rel="noopener">
+        <span class="contact-icon"><img src="assets/img/social/inst.png" alt="" class="social-icon-img"></span><?= e(t('booking_instagram')) ?>
       </a>
-      <a class="contact-tile" href="viber://chat?number=%2B<?= e(preg_replace('/\D/', '', SOCIAL_VIBER_PHONE)) ?>">
-        <span class="contact-icon">💜</span><?= e(t('booking_viber')) ?>
+      <a class="contact-tile" href="viber://chat?number=%2B<?= e(preg_replace('/\D/', '', $__viberPhone)) ?>">
+        <span class="contact-icon"><img src="assets/img/social/viber.png" alt="" class="social-icon-img"></span><?= e(t('booking_viber')) ?>
       </a>
-      <a class="contact-tile" href="https://t.me/+<?= e(preg_replace('/\D/', '', SOCIAL_TELEGRAM_PHONE)) ?>" target="_blank" rel="noopener">
-        <span class="contact-icon">✈️</span><?= e(t('booking_telegram')) ?>
+      <a class="contact-tile" href="https://t.me/+<?= e(preg_replace('/\D/', '', $__tgPhone)) ?>" target="_blank" rel="noopener">
+        <span class="contact-icon"><img src="assets/img/social/tg.png" alt="" class="social-icon-img"></span><?= e(t('booking_telegram')) ?>
       </a>
-      <a class="contact-tile" href="tel:<?= e(SOCIAL_PHONE) ?>">
+      <a class="contact-tile" href="tel:<?= e($__callPhone) ?>">
         <span class="contact-icon">📞</span><?= e(t('booking_phone')) ?>
       </a>
     </div>
