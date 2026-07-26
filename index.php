@@ -55,9 +55,6 @@ $aboutHasContent = $about && (
     || !empty($about['photo_path'])
 );
 
-// ===== Опыт работы =====
-$experienceItems = $pdo->query('SELECT * FROM work_experience ORDER BY sort_order, id DESC')->fetchAll();
-
 // ===== Виджеты (галереи фото/видео/PDF-сертификаты) =====
 $widgetCategories = $pdo->query('SELECT * FROM widget_categories ORDER BY sort_order, id')->fetchAll();
 $widgetItemsByCategory = [];
@@ -74,104 +71,16 @@ $socialLinksList = $pdo->query('SELECT * FROM social_links ORDER BY sort_order, 
 $reviewSent  = isset($_GET['review_sent']);
 $bookingSent = isset($_GET['booking_sent']);
 
-$validTabs = ['reviews', 'price', 'booking'];
-$activeTab = $_GET['tab'] ?? 'reviews';
+$validTabs = ['about', 'reviews', 'price', 'booking'];
+$activeTab = $_GET['tab'] ?? 'about';
 if (!in_array($activeTab, $validTabs, true)) {
-    $activeTab = 'reviews';
+    $activeTab = 'about';
 }
 
 require __DIR__ . '/includes/header.php';
 ?>
 
 <main class="container">
-
-  <?php if ($aboutHasContent): ?>
-  <!-- ===== О МНЕ (самый первый блок сайта) ===== -->
-  <section class="about-me" id="about">
-    <div class="about-me-photo">
-      <?php if (!empty($about['photo_path'])): ?>
-        <img src="<?= e($about['photo_path']) ?>" alt="<?= e($about['title'] ?? '') ?>">
-      <?php else: ?>
-        <div class="about-me-photo-placeholder" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="48" height="48" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>
-        </div>
-      <?php endif; ?>
-    </div>
-    <div class="about-me-content">
-      <?php
-        $__aboutGreeting = ($lang === 'ua' && !empty($about['greeting_ua'])) ? $about['greeting_ua'] : ($about['greeting'] ?? '');
-        $__aboutTitle    = ($lang === 'ua' && !empty($about['title_ua']))    ? $about['title_ua']    : ($about['title'] ?? '');
-        $__aboutSubtitle = ($lang === 'ua' && !empty($about['subtitle_ua'])) ? $about['subtitle_ua'] : ($about['subtitle'] ?? '');
-        $__aboutBio      = ($lang === 'ua' && !empty($about['bio_ua']))      ? $about['bio_ua']      : ($about['bio'] ?? '');
-        $__btn1Text = ($lang === 'ua' && !empty($about['btn1_text_ua'])) ? $about['btn1_text_ua'] : ($about['btn1_text'] ?? '');
-        $__btn2Text = ($lang === 'ua' && !empty($about['btn2_text_ua'])) ? $about['btn2_text_ua'] : ($about['btn2_text'] ?? '');
-      ?>
-      <?php if ($__aboutGreeting !== ''): ?><span class="about-me-eyebrow"><?= e($__aboutGreeting) ?></span><?php endif; ?>
-      <?php if ($__aboutTitle !== ''): ?><h1 class="about-me-title"><?= e($__aboutTitle) ?></h1><?php endif; ?>
-      <?php if ($__aboutSubtitle !== ''): ?><p class="about-me-subtitle"><?= e($__aboutSubtitle) ?></p><?php endif; ?>
-      <?php if ($__aboutBio !== ''): ?><p class="about-me-bio"><?= nl2br(e($__aboutBio)) ?></p><?php endif; ?>
-
-      <?php if ($aboutStats): ?>
-        <div class="about-me-stats">
-          <?php foreach ($aboutStats as $__s): ?>
-            <div class="about-me-stat">
-              <div class="about-me-stat-value"><?= e($__s['value']) ?></div>
-              <div class="about-me-stat-label"><?= e(($lang === 'ua' && !empty($__s['label_ua'])) ? $__s['label_ua'] : $__s['label']) ?></div>
-            </div>
-          <?php endforeach; ?>
-        </div>
-      <?php endif; ?>
-
-      <?php if ($aboutSkills): ?>
-        <div class="about-me-skills">
-          <?php foreach ($aboutSkills as $__sk): ?>
-            <div class="about-me-skill">
-              <?php if (!empty($__sk['icon_image'])): ?>
-                <span class="about-me-skill-icon about-me-skill-icon--img"><img src="<?= e($__sk['icon_image']) ?>" alt=""></span>
-              <?php else: ?>
-                <span class="about-me-skill-icon"><?= e($__sk['icon_text'] ?: '★') ?></span>
-              <?php endif; ?>
-              <span><?= e(($lang === 'ua' && !empty($__sk['name_ua'])) ? $__sk['name_ua'] : $__sk['name']) ?></span>
-            </div>
-          <?php endforeach; ?>
-        </div>
-      <?php endif; ?>
-
-      <?php if (($__btn1Text !== '' && !empty($about['btn1_url'])) || ($__btn2Text !== '' && !empty($about['btn2_url']))): ?>
-        <div class="about-me-actions">
-          <?php if ($__btn1Text !== '' && !empty($about['btn1_url'])): ?>
-            <a href="<?= e($about['btn1_url']) ?>" class="btn" target="_blank" rel="noopener"><?= e($__btn1Text) ?></a>
-          <?php endif; ?>
-          <?php if ($__btn2Text !== '' && !empty($about['btn2_url'])): ?>
-            <a href="<?= e($about['btn2_url']) ?>" class="btn ghost" target="_blank" rel="noopener"><?= e($__btn2Text) ?></a>
-          <?php endif; ?>
-        </div>
-      <?php endif; ?>
-    </div>
-  </section>
-  <?php endif; ?>
-
-  <?php if ($experienceItems): ?>
-  <!-- ===== ОПЫТ РАБОТЫ ===== -->
-  <section class="work-experience" id="experience">
-    <h2 class="section-title"><?= e(t('experience_title')) ?></h2>
-    <div class="experience-list">
-      <?php foreach ($experienceItems as $__ex): ?>
-        <?php
-          $__exPosition = ($lang === 'ua' && !empty($__ex['position_ua'])) ? $__ex['position_ua'] : $__ex['position'];
-          $__exCompany  = ($lang === 'ua' && !empty($__ex['company_ua']))  ? $__ex['company_ua']  : $__ex['company'];
-          $__exDesc     = ($lang === 'ua' && !empty($__ex['description_ua'])) ? $__ex['description_ua'] : $__ex['description'];
-        ?>
-        <div class="experience-card">
-          <div class="experience-period"><?= e($__ex['period']) ?></div>
-          <div class="experience-position"><?= e($__exPosition) ?></div>
-          <?php if (!empty($__exCompany)): ?><div class="experience-company"><?= e($__exCompany) ?></div><?php endif; ?>
-          <?php if (!empty($__exDesc)): ?><p class="experience-desc"><?= nl2br(e($__exDesc)) ?></p><?php endif; ?>
-        </div>
-      <?php endforeach; ?>
-    </div>
-  </section>
-  <?php endif; ?>
 
   <?php if ($widgetCategories): ?>
   <!-- ===== ВИДЖЕТЫ: ГАЛЕРЕИ / ВИДЕО / СЕРТИФИКАТЫ ===== -->
@@ -193,7 +102,10 @@ require __DIR__ . '/includes/header.php';
                   <img src="<?= e($__item['file_path']) ?>" alt="<?= e($__item['title'] ?? '') ?>" loading="lazy">
                 </button>
               <?php elseif ($__cat['type'] === 'video'): ?>
-                <video src="<?= e($__item['file_path']) ?>" controls preload="metadata" playsinline></video>
+                <button type="button" class="widget-video-thumb" data-video-src="<?= e($__item['file_path']) ?>">
+                  <video src="<?= e($__item['file_path']) ?>" preload="metadata" playsinline muted></video>
+                  <span class="widget-video-play" aria-hidden="true">&#9658;</span>
+                </button>
               <?php else: ?>
                 <a class="widget-pdf-tile" href="<?= e($__item['file_path']) ?>" target="_blank" rel="noopener">
                   <span class="widget-pdf-icon" aria-hidden="true">📄</span>
@@ -237,8 +149,78 @@ require __DIR__ . '/includes/header.php';
   <div class="panels-viewport">
   <div class="panels-track no-anim" id="panelsTrack" data-active="<?= e($activeTab) ?>">
 
+  <!-- ===== О МНЕ ===== -->
+  <section class="panel" id="about" data-panel="about">
+    <?php if ($aboutHasContent): ?>
+      <div class="about-me">
+        <div class="about-me-photo">
+          <?php if (!empty($about['photo_path'])): ?>
+            <img src="<?= e($about['photo_path']) ?>" alt="<?= e($about['title'] ?? '') ?>">
+          <?php else: ?>
+            <div class="about-me-photo-placeholder" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="48" height="48" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>
+            </div>
+          <?php endif; ?>
+        </div>
+        <div class="about-me-content">
+          <?php
+            $__aboutGreeting = ($lang === 'ua' && !empty($about['greeting_ua'])) ? $about['greeting_ua'] : ($about['greeting'] ?? '');
+            $__aboutTitle    = ($lang === 'ua' && !empty($about['title_ua']))    ? $about['title_ua']    : ($about['title'] ?? '');
+            $__aboutSubtitle = ($lang === 'ua' && !empty($about['subtitle_ua'])) ? $about['subtitle_ua'] : ($about['subtitle'] ?? '');
+            $__aboutBio      = ($lang === 'ua' && !empty($about['bio_ua']))      ? $about['bio_ua']      : ($about['bio'] ?? '');
+            $__btn1Text = ($lang === 'ua' && !empty($about['btn1_text_ua'])) ? $about['btn1_text_ua'] : ($about['btn1_text'] ?? '');
+            $__btn2Text = ($lang === 'ua' && !empty($about['btn2_text_ua'])) ? $about['btn2_text_ua'] : ($about['btn2_text'] ?? '');
+          ?>
+          <?php if ($__aboutGreeting !== ''): ?><span class="about-me-eyebrow"><?= e($__aboutGreeting) ?></span><?php endif; ?>
+          <?php if ($__aboutTitle !== ''): ?><h1 class="about-me-title"><?= e($__aboutTitle) ?></h1><?php endif; ?>
+          <?php if ($__aboutSubtitle !== ''): ?><p class="about-me-subtitle"><?= e($__aboutSubtitle) ?></p><?php endif; ?>
+          <?php if ($__aboutBio !== ''): ?><p class="about-me-bio"><?= nl2br(e($__aboutBio)) ?></p><?php endif; ?>
+
+          <?php if ($aboutStats): ?>
+            <div class="about-me-stats">
+              <?php foreach ($aboutStats as $__s): ?>
+                <div class="about-me-stat">
+                  <div class="about-me-stat-value"><?= e($__s['value']) ?></div>
+                  <div class="about-me-stat-label"><?= e(($lang === 'ua' && !empty($__s['label_ua'])) ? $__s['label_ua'] : $__s['label']) ?></div>
+                </div>
+              <?php endforeach; ?>
+            </div>
+          <?php endif; ?>
+
+          <?php if ($aboutSkills): ?>
+            <div class="about-me-skills">
+              <?php foreach ($aboutSkills as $__sk): ?>
+                <div class="about-me-skill">
+                  <?php if (!empty($__sk['icon_image'])): ?>
+                    <span class="about-me-skill-icon about-me-skill-icon--img"><img src="<?= e($__sk['icon_image']) ?>" alt=""></span>
+                  <?php else: ?>
+                    <span class="about-me-skill-icon"><?= e($__sk['icon_text'] ?: '★') ?></span>
+                  <?php endif; ?>
+                  <span><?= e(($lang === 'ua' && !empty($__sk['name_ua'])) ? $__sk['name_ua'] : $__sk['name']) ?></span>
+                </div>
+              <?php endforeach; ?>
+            </div>
+          <?php endif; ?>
+
+          <?php if (($__btn1Text !== '' && !empty($about['btn1_url'])) || ($__btn2Text !== '' && !empty($about['btn2_url']))): ?>
+            <div class="about-me-actions">
+              <?php if ($__btn1Text !== '' && !empty($about['btn1_url'])): ?>
+                <a href="<?= e($about['btn1_url']) ?>" class="btn" target="_blank" rel="noopener"><?= e($__btn1Text) ?></a>
+              <?php endif; ?>
+              <?php if ($__btn2Text !== '' && !empty($about['btn2_url'])): ?>
+                <a href="<?= e($about['btn2_url']) ?>" class="btn ghost" target="_blank" rel="noopener"><?= e($__btn2Text) ?></a>
+              <?php endif; ?>
+            </div>
+          <?php endif; ?>
+        </div>
+      </div>
+    <?php else: ?>
+      <p><?= e(t('about_empty')) ?></p>
+    <?php endif; ?>
+  </section>
+
   <!-- ===== ОТЗЫВЫ ===== -->
-  <section class="panel" id="reviews" data-panel="reviews">
+  <section class="panel" id="reviews-panel" data-panel="reviews">
     <h2 class="section-title"><?= e(t('reviews_title')) ?></h2>
 
     <?php if ($reviewsAvgRating !== null): ?>
@@ -497,6 +479,7 @@ require __DIR__ . '/includes/header.php';
   <div class="modal-overlay lightbox-overlay" id="photoLightboxOverlay">
     <button type="button" class="lightbox-close" id="photoLightboxClose" aria-label="<?= e(t('close')) ?>">&times;</button>
     <img src="" alt="" class="lightbox-img" id="photoLightboxImg">
+    <video src="" controls playsinline class="lightbox-video" id="photoLightboxVideo"></video>
   </div>
 
   <?php if ($__isAdmin): ?>

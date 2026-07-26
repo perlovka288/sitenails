@@ -114,6 +114,29 @@ $skills = $pdo->query('SELECT * FROM about_skills ORDER BY sort_order, id')->fet
 <title>О мне — Панель управления</title>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../assets/css/style.css">
+<style>
+  .admin-translate-btn { padding: 3px 10px; font-size: 11px; margin-left: 8px; vertical-align: middle; }
+  .about-live-preview {
+    background: var(--surface, #f7f2ec);
+    border: 1px dashed var(--line-strong, #ccc);
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 18px;
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .about-live-preview-photo {
+    width: 84px; height: 84px; border-radius: 50%; overflow: hidden;
+    background: var(--surface-2, #eee); flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 11px; color: var(--ink-soft, #888);
+  }
+  .about-live-preview-text { flex: 1 1 260px; }
+  .about-live-preview-label { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-soft, #888); margin-bottom: 6px; }
+</style>
+<script>window.ADMIN_CSRF_TOKEN = <?= json_encode(csrfToken()) ?>;</script>
+<script src="assets/admin.js" defer></script>
 </head>
 <body>
 <div class="admin-shell">
@@ -129,6 +152,24 @@ $skills = $pdo->query('SELECT * FROM about_skills ORDER BY sort_order, id')->fet
       Если оставить заголовок и текст «о себе» пустыми, блок на сайте вообще
       не появится.
     </p>
+
+    <div class="about-live-preview" id="aboutLivePreview">
+      <div class="about-live-preview-photo" data-preview="photo">
+        <?php if (!empty($about['photo_path'])): ?>
+          <img src="../<?= e($about['photo_path']) ?>" alt="" style="width:100%;height:100%;object-fit:cover;">
+        <?php else: ?>
+          нет фото
+        <?php endif; ?>
+      </div>
+      <div class="about-live-preview-text">
+        <div class="about-live-preview-label">Так это будет выглядеть на сайте</div>
+        <div data-preview="greeting" style="font-size:12px; color:var(--ink-soft);"><?= e($about['greeting'] ?? '') ?></div>
+        <div data-preview="title" style="font-family:'Playfair Display',serif; font-weight:700; font-size:20px;"><?= e($about['title'] ?: 'Заголовок появится здесь') ?></div>
+        <div data-preview="subtitle" style="color:var(--primary); font-weight:600; font-size:13px;"><?= e($about['subtitle'] ?? '') ?></div>
+        <div data-preview="bio" style="font-size:13px; color:var(--ink-soft); margin-top:4px;"><?= e($about['bio'] ?: 'Текст «о себе» появится здесь') ?></div>
+      </div>
+    </div>
+
     <form method="post" enctype="multipart/form-data">
       <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
       <input type="hidden" name="form" value="about_main">
@@ -148,47 +189,57 @@ $skills = $pdo->query('SELECT * FROM about_skills ORDER BY sort_order, id')->fet
 
       <div class="form-field">
         <label>Приветствие (рус.), например «Привет, я»</label>
-        <input type="text" name="greeting" value="<?= e($about['greeting'] ?? '') ?>" maxlength="60">
+        <input type="text" id="greeting" name="greeting" value="<?= e($about['greeting'] ?? '') ?>" maxlength="60">
       </div>
       <div class="form-field">
-        <label>Приветствие (укр., необязательно)</label>
-        <input type="text" name="greeting_ua" value="<?= e($about['greeting_ua'] ?? '') ?>" maxlength="60">
+        <label>Приветствие (укр., необязательно)
+          <button type="button" class="btn ghost admin-translate-btn" data-translate-from="greeting" data-translate-to="greeting_ua">⇄ Перевести с рус.</button>
+        </label>
+        <input type="text" id="greeting_ua" name="greeting_ua" value="<?= e($about['greeting_ua'] ?? '') ?>" maxlength="60">
       </div>
 
       <div class="form-field">
         <label>Заголовок (рус.), например «Меня зовут Мария»</label>
-        <input type="text" name="title" value="<?= e($about['title'] ?? '') ?>" maxlength="100">
+        <input type="text" id="title" name="title" value="<?= e($about['title'] ?? '') ?>" maxlength="100">
       </div>
       <div class="form-field">
-        <label>Заголовок (укр., необязательно)</label>
-        <input type="text" name="title_ua" value="<?= e($about['title_ua'] ?? '') ?>" maxlength="100">
+        <label>Заголовок (укр., необязательно)
+          <button type="button" class="btn ghost admin-translate-btn" data-translate-from="title" data-translate-to="title_ua">⇄ Перевести с рус.</button>
+        </label>
+        <input type="text" id="title_ua" name="title_ua" value="<?= e($about['title_ua'] ?? '') ?>" maxlength="100">
       </div>
 
       <div class="form-field">
         <label>Подзаголовок (рус.), например «Мастер маникюра»</label>
-        <input type="text" name="subtitle" value="<?= e($about['subtitle'] ?? '') ?>" maxlength="120">
+        <input type="text" id="subtitle" name="subtitle" value="<?= e($about['subtitle'] ?? '') ?>" maxlength="120">
       </div>
       <div class="form-field">
-        <label>Подзаголовок (укр., необязательно)</label>
-        <input type="text" name="subtitle_ua" value="<?= e($about['subtitle_ua'] ?? '') ?>" maxlength="120">
+        <label>Подзаголовок (укр., необязательно)
+          <button type="button" class="btn ghost admin-translate-btn" data-translate-from="subtitle" data-translate-to="subtitle_ua">⇄ Перевести с рус.</button>
+        </label>
+        <input type="text" id="subtitle_ua" name="subtitle_ua" value="<?= e($about['subtitle_ua'] ?? '') ?>" maxlength="120">
       </div>
 
       <div class="form-field">
         <label>Текст «О себе» (рус.)</label>
-        <textarea name="bio" maxlength="800"><?= e($about['bio'] ?? '') ?></textarea>
+        <textarea id="bio" name="bio" maxlength="800"><?= e($about['bio'] ?? '') ?></textarea>
       </div>
       <div class="form-field">
-        <label>Текст «О себе» (укр., необязательно)</label>
-        <textarea name="bio_ua" maxlength="800"><?= e($about['bio_ua'] ?? '') ?></textarea>
+        <label>Текст «О себе» (укр., необязательно)
+          <button type="button" class="btn ghost admin-translate-btn" data-translate-from="bio" data-translate-to="bio_ua">⇄ Перевести с рус.</button>
+        </label>
+        <textarea id="bio_ua" name="bio_ua" maxlength="800"><?= e($about['bio_ua'] ?? '') ?></textarea>
       </div>
 
       <div class="form-field">
         <label>Кнопка 1 — текст (рус.), например «Смотреть работы»</label>
-        <input type="text" name="btn1_text" value="<?= e($about['btn1_text'] ?? '') ?>" maxlength="40">
+        <input type="text" id="btn1_text" name="btn1_text" value="<?= e($about['btn1_text'] ?? '') ?>" maxlength="40">
       </div>
       <div class="form-field">
-        <label>Кнопка 1 — текст (укр., необязательно)</label>
-        <input type="text" name="btn1_text_ua" value="<?= e($about['btn1_text_ua'] ?? '') ?>" maxlength="40">
+        <label>Кнопка 1 — текст (укр., необязательно)
+          <button type="button" class="btn ghost admin-translate-btn" data-translate-from="btn1_text" data-translate-to="btn1_text_ua">⇄ Перевести с рус.</button>
+        </label>
+        <input type="text" id="btn1_text_ua" name="btn1_text_ua" value="<?= e($about['btn1_text_ua'] ?? '') ?>" maxlength="40">
       </div>
       <div class="form-field">
         <label>Кнопка 1 — ссылка (например #widget-1 или https://...)</label>
@@ -197,11 +248,13 @@ $skills = $pdo->query('SELECT * FROM about_skills ORDER BY sort_order, id')->fet
 
       <div class="form-field">
         <label>Кнопка 2 — текст (рус.), например «Связаться»</label>
-        <input type="text" name="btn2_text" value="<?= e($about['btn2_text'] ?? '') ?>" maxlength="40">
+        <input type="text" id="btn2_text" name="btn2_text" value="<?= e($about['btn2_text'] ?? '') ?>" maxlength="40">
       </div>
       <div class="form-field">
-        <label>Кнопка 2 — текст (укр., необязательно)</label>
-        <input type="text" name="btn2_text_ua" value="<?= e($about['btn2_text_ua'] ?? '') ?>" maxlength="40">
+        <label>Кнопка 2 — текст (укр., необязательно)
+          <button type="button" class="btn ghost admin-translate-btn" data-translate-from="btn2_text" data-translate-to="btn2_text_ua">⇄ Перевести с рус.</button>
+        </label>
+        <input type="text" id="btn2_text_ua" name="btn2_text_ua" value="<?= e($about['btn2_text_ua'] ?? '') ?>" maxlength="40">
       </div>
       <div class="form-field">
         <label>Кнопка 2 — ссылка</label>

@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // ===== Переключение вкладок Отзывы / Прайс / Запись со сдвигом =====
   var track = document.getElementById('panelsTrack');
   var tabButtons = document.querySelectorAll('.tab-btn');
-  var tabOrder = ['reviews', 'price', 'booking'];
+  var tabOrder = ['about', 'reviews', 'price', 'booking'];
   var panels = document.querySelectorAll('.panel');
   var panelsViewport = document.querySelector('.panels-viewport');
 
@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', function () {
       track.classList.remove('no-anim');
     }
 
-    track.style.transform = 'translateX(-' + (idx * (100 / 3)) + '%)';
+    track.style.transform = 'translateX(-' + (idx * (100 / tabOrder.length)) + '%)';
     track.dataset.active = name;
 
     tabButtons.forEach(function (btn) {
@@ -217,29 +217,44 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
-  // ===== Лайтбокс: открыть фото отзыва на весь экран, закрыть крестиком =====
+  // ===== Лайтбокс: открыть фото/видео на весь экран, закрыть крестиком =====
   var lightboxOverlay = document.getElementById('photoLightboxOverlay');
   var lightboxImg = document.getElementById('photoLightboxImg');
+  var lightboxVideo = document.getElementById('photoLightboxVideo');
   var lightboxClose = document.getElementById('photoLightboxClose');
+
+  function closeLightbox() {
+    lightboxOverlay.classList.remove('open');
+    if (lightboxImg) lightboxImg.src = '';
+    if (lightboxVideo) {
+      lightboxVideo.pause();
+      lightboxVideo.src = '';
+    }
+  }
 
   if (lightboxOverlay && lightboxImg) {
     document.querySelectorAll('.review-photo-thumb, .widget-photo-thumb').forEach(function (btn) {
       btn.addEventListener('click', function () {
+        if (lightboxVideo) { lightboxVideo.pause(); lightboxVideo.src = ''; }
         lightboxImg.src = btn.dataset.photoSrc;
         lightboxOverlay.classList.add('open');
       });
     });
-    if (lightboxClose) {
-      lightboxClose.addEventListener('click', function () {
-        lightboxOverlay.classList.remove('open');
+    document.querySelectorAll('.widget-video-thumb').forEach(function (btn) {
+      btn.addEventListener('click', function () {
         lightboxImg.src = '';
+        if (lightboxVideo) {
+          lightboxVideo.src = btn.dataset.videoSrc;
+          lightboxOverlay.classList.add('open');
+          lightboxVideo.play().catch(function () {});
+        }
       });
+    });
+    if (lightboxClose) {
+      lightboxClose.addEventListener('click', closeLightbox);
     }
     lightboxOverlay.addEventListener('click', function (ev) {
-      if (ev.target === lightboxOverlay) {
-        lightboxOverlay.classList.remove('open');
-        lightboxImg.src = '';
-      }
+      if (ev.target === lightboxOverlay) closeLightbox();
     });
   }
 
@@ -579,6 +594,18 @@ document.addEventListener('DOMContentLoaded', function () {
       var firstItem = track.querySelector('.widget-carousel-item');
       return firstItem ? firstItem.getBoundingClientRect().width + 12 : 260;
     };
+
+    // Стрелки показываем только если контент реально не помещается —
+    // иначе при 1-2 карточках стрелка "висела" далеко от единственной
+    // карточки и выглядело криво.
+    function updateArrows() {
+      var scrollable = track.scrollWidth > track.clientWidth + 4;
+      if (prevBtn) prevBtn.style.display = scrollable ? 'flex' : 'none';
+      if (nextBtn) nextBtn.style.display = scrollable ? 'flex' : 'none';
+      if (prevBtn) prevBtn.disabled = track.scrollLeft <= 4;
+      if (nextBtn) nextBtn.disabled = track.scrollLeft >= track.scrollWidth - track.clientWidth - 4;
+    }
+
     if (prevBtn) {
       prevBtn.addEventListener('click', function () {
         track.scrollBy({ left: -scrollStep(), behavior: 'smooth' });
@@ -589,5 +616,8 @@ document.addEventListener('DOMContentLoaded', function () {
         track.scrollBy({ left: scrollStep(), behavior: 'smooth' });
       });
     }
+    track.addEventListener('scroll', updateArrows);
+    window.addEventListener('resize', updateArrows);
+    updateArrows();
   });
 });

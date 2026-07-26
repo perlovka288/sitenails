@@ -34,6 +34,7 @@ $__siteTitle = $__siteName !== '' ? $__siteName : 'Мастер маникюра
     </div>
   </div>
   <div class="container nav-tabs">
+    <button type="button" class="tab-btn" data-tab="about"><?= e(t('nav_about')) ?></button>
     <button type="button" class="tab-btn" data-tab="reviews"><?= e(t('nav_reviews')) ?></button>
     <button type="button" class="tab-btn" data-tab="price"><?= e(t('nav_price')) ?></button>
     <button type="button" class="tab-btn" data-tab="booking"><?= e(t('nav_booking')) ?></button>

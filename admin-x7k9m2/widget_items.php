@@ -14,28 +14,50 @@ if (!$category) {
     redirect('widgets.php');
 }
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($_POST) && empty($_FILES)) {
+    // Когда файл больше post_max_size, PHP полностью очищает $_POST и
+    // $_FILES ещё до того, как скрипт успевает их прочитать — раньше это
+    // выглядело так, будто "ничего не произошло". Теперь показываем причину.
+    $contentLength = (int)($_SERVER['CONTENT_LENGTH'] ?? 0);
+    if ($contentLength > 0) {
+        $uploadError = 'Файл слишком большой для загрузки на этот хостинг. '
+            . 'Попробуйте сжать видео или выбрать файл поменьше (см. допустимый размер под формой).';
+    }
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrfCheck()) {
     $action = $_POST['action'] ?? '';
 
     if ($action === 'upload') {
         $title = trim($_POST['title'] ?? '');
         $allowed = widgetAllowedMime($category['type']);
-        $maxBytes = $category['type'] === 'video' ? 40 * 1024 * 1024 : 8 * 1024 * 1024;
+        $maxBytes = $category['type'] === 'video' ? 60 * 1024 * 1024 : 8 * 1024 * 1024;
 
-        $filePath = saveUploadedFile(
-            'file',
-            'assets/uploads/widgets/' . $categoryId,
-            $allowed,
-            $maxBytes,
-            $category['type']
-        );
-
-        if ($filePath !== null) {
-            $maxOrder = (int)$pdo->query('SELECT COALESCE(MAX(sort_order), 0) FROM widget_items WHERE category_id = ' . (int)$categoryId)->fetchColumn();
-            $pdo->prepare('INSERT INTO widget_items (category_id, file_path, title, sort_order) VALUES (?, ?, ?, ?)')
-                ->execute([$categoryId, $filePath, $title ?: null, $maxOrder + 1]);
+        $fileErrorCode = $_FILES['file']['error'] ?? UPLOAD_ERR_NO_FILE;
+        if ($fileErrorCode === UPLOAD_ERR_INI_SIZE || $fileErrorCode === UPLOAD_ERR_FORM_SIZE) {
+            $uploadError = 'Файл слишком большой. Максимум для этого раздела — '
+                . round($maxBytes / 1024 / 1024) . ' МБ. Сожмите видео и попробуйте снова.';
+        } elseif ($fileErrorCode !== UPLOAD_ERR_OK && $fileErrorCode !== UPLOAD_ERR_NO_FILE) {
+            $uploadError = 'Загрузка не удалась (код ошибки ' . (int)$fileErrorCode . '). Попробуйте ещё раз.';
         } else {
-            $uploadError = 'Файл не загружен — проверьте формат и размер.';
+            $filePath = saveUploadedFile(
+                'file',
+                'assets/uploads/widgets/' . $categoryId,
+                $allowed,
+                $maxBytes,
+                $category['type']
+            );
+
+            if ($filePath !== null) {
+                $maxOrder = (int)$pdo->query('SELECT COALESCE(MAX(sort_order), 0) FROM widget_items WHERE category_id = ' . (int)$categoryId)->fetchColumn();
+                $pdo->prepare('INSERT INTO widget_items (category_id, file_path, title, sort_order) VALUES (?, ?, ?, ?)')
+                    ->execute([$categoryId, $filePath, $title ?: null, $maxOrder + 1]);
+            } elseif (($_FILES['file']['size'] ?? 0) > $maxBytes) {
+                $uploadError = 'Файл слишком большой. Максимум для этого раздела — '
+                    . round($maxBytes / 1024 / 1024) . ' МБ.';
+            } else {
+                $uploadError = 'Файл не загружен — проверьте формат (' . implode(', ', $allowed) . ') и размер файла.';
+            }
         }
     } elseif ($action === 'delete') {
         $id = (int)($_POST['id'] ?? 0);
@@ -112,6 +134,7 @@ $typeAccept = [
       <div class="form-field">
         <label>Файл (<?= e($typeLabels[$category['type']] ?? '') ?>)</label>
         <input type="file" name="file" accept="<?= e($typeAccept[$category['type']] ?? '') ?>" required>
+        <p class="field-hint">Максимальный размер файла: <?= $category['type'] === 'video' ? '60 МБ' : '8 МБ' ?>. Если хостинг всё равно не принимает файл — попробуйте сжать его или выбрать поменьше.</p>
       </div>
       <button type="submit" class="btn full">Загрузить</button>
     </form>

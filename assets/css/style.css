@@ -191,7 +191,7 @@ a { color: inherit; }
 
 .panels-track {
   display: flex;
-  width: 300%;
+  width: 400%;
   transition: transform .45s cubic-bezier(.65,0,.35,1);
   align-items: flex-start;
 }
@@ -199,7 +199,7 @@ a { color: inherit; }
 .panels-track.no-anim { transition: none; }
 
 .panel {
-  width: calc(100% / 3);
+  width: calc(100% / 4);
   flex-shrink: 0;
   padding: 0 2px;
   visibility: hidden;
@@ -1182,6 +1182,16 @@ table.admin-table th { background: var(--surface-2); font-size: 11px; text-trans
 .widget-carousel-arrow--prev { left: -6px; }
 .widget-carousel-arrow--next { right: -6px; }
 .widget-carousel-arrow:hover { background: var(--primary); color: #1a1310; }
+.widget-carousel-arrow:disabled { opacity: .3; cursor: default; }
+.widget-carousel-arrow:disabled:hover { background: var(--surface-2); color: var(--ink); }
+.widget-video-thumb { border: 0; padding: 0; background: none; cursor: pointer; width: 100%; position: relative; }
+.widget-video-thumb video { pointer-events: none; }
+.widget-video-thumb .widget-video-play {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 34px; text-shadow: 0 2px 8px rgba(0,0,0,.5);
+}
+.lightbox-overlay .lightbox-video { max-width: 92vw; max-height: 86vh; border-radius: var(--radius-sm); box-shadow: var(--shadow); display: none; background: #000; }
+.lightbox-overlay.open .lightbox-video { display: block; }
 
 /* ===== Соцсети (виджет) ===== */
 .social-widget { margin-bottom: 40px; }

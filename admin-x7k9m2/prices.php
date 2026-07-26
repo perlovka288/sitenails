@@ -55,6 +55,9 @@ $items = $pdo->query('SELECT * FROM price_items ORDER BY category, sort_order')-
 <title>Прайс — Панель управления</title>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../assets/css/style.css">
+<style>.admin-translate-btn { padding: 3px 10px; font-size: 11px; margin-left: 8px; vertical-align: middle; }</style>
+<script>window.ADMIN_CSRF_TOKEN = <?= json_encode(csrfToken()) ?>;</script>
+<script src="assets/admin.js" defer></script>
 </head>
 <body>
 <div class="admin-shell">
@@ -70,19 +73,23 @@ $items = $pdo->query('SELECT * FROM price_items ORDER BY category, sort_order')-
       <?php endif; ?>
       <div class="form-field">
         <label>Категория, рус. (например, «Маникюр»)</label>
-        <input type="text" name="category" required value="<?= e($editItem['category'] ?? '') ?>">
+        <input type="text" id="category" name="category" required value="<?= e($editItem['category'] ?? '') ?>">
       </div>
       <div class="form-field">
-        <label>Категория, укр. (необязательно, например «Манікюр»)</label>
-        <input type="text" name="category_ua" value="<?= e($editItem['category_ua'] ?? '') ?>">
+        <label>Категория, укр. (необязательно, например «Манікюр»)
+          <button type="button" class="btn ghost admin-translate-btn" data-translate-from="category" data-translate-to="category_ua">⇄ Перевести с рус.</button>
+        </label>
+        <input type="text" id="category_ua" name="category_ua" value="<?= e($editItem['category_ua'] ?? '') ?>">
       </div>
       <div class="form-field">
         <label>Название услуги, рус.</label>
-        <input type="text" name="title" required value="<?= e($editItem['title'] ?? '') ?>">
+        <input type="text" id="price_title" name="title" required value="<?= e($editItem['title'] ?? '') ?>">
       </div>
       <div class="form-field">
-        <label>Название услуги, укр. (необязательно)</label>
-        <input type="text" name="title_ua" value="<?= e($editItem['title_ua'] ?? '') ?>">
+        <label>Название услуги, укр. (необязательно)
+          <button type="button" class="btn ghost admin-translate-btn" data-translate-from="price_title" data-translate-to="price_title_ua">⇄ Перевести с рус.</button>
+        </label>
+        <input type="text" id="price_title_ua" name="title_ua" value="<?= e($editItem['title_ua'] ?? '') ?>">
       </div>
       <div class="form-field">
         <label>Цена (например, «450 грн»)</label>
