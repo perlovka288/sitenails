@@ -807,6 +807,8 @@ footer .admin-dot {
 .greet-modal h3 { font-size: 20px; }
 .greet-modal p { color: var(--ink-soft); font-size: 14px; margin-bottom: 16px; font-weight: 300; }
 
+.lang-select-grid { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+
 /* ===== Админка ===== */
 .admin-shell { max-width: 880px; margin: 0 auto; padding: 24px 20px 60px; }
 .admin-header { display:flex; align-items:center; justify-content:space-between; margin-bottom: 20px;}

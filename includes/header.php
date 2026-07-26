@@ -40,6 +40,17 @@ $__siteTitle = $__siteName !== '' ? $__siteName : 'Мастер маникюра
   </div>
 </header>
 
+<!-- Модальное окно выбора языка (показывается первым, до имени) -->
+<div class="greet-overlay" id="langOverlay" style="display:none;">
+  <div class="greet-modal">
+    <h3 style="text-align:center;">Выберите язык сайта<br>Оберіть мову сайту</h3>
+    <div class="lang-select-grid">
+      <button type="button" class="btn full" data-lang="ru">Русский</button>
+      <button type="button" class="btn full" data-lang="ua">Українська</button>
+    </div>
+  </div>
+</div>
+
 <!-- Модальное окно приветствия -->
 <div class="greet-overlay" id="greetOverlay" style="display:none;">
   <div class="greet-modal">

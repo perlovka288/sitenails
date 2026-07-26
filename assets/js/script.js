@@ -82,10 +82,60 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  if (greetName) {
-    applyGreeting(greetName);
-  } else if (overlay) {
-    overlay.style.display = 'flex';
+  function showGreetIfNeeded() {
+    if (greetName) {
+      applyGreeting(greetName);
+    } else if (overlay) {
+      overlay.style.display = 'flex';
+    }
+  }
+
+  // Ручное переключение языка (кнопки РУС/УКР в шапке) тоже запоминаем,
+  // чтобы модалка выбора языка больше не всплывала при следующих визитах.
+  document.querySelectorAll('.lang-switch a[href]').forEach(function (a) {
+    a.addEventListener('click', function () {
+      var m = a.getAttribute('href').match(/[?&]lang=(ru|ua)/);
+      if (m) localStorage.setItem('visitor_lang', m[1]);
+    });
+  });
+
+  // ===== Модалка выбора языка (показывается первой, при самом первом визите) =====
+  var langOverlay = document.getElementById('langOverlay');
+  var savedLang = localStorage.getItem('visitor_lang');
+  var serverLang = window.SITE_LANG_CODE || 'ru';
+
+  function goToLang(code) {
+    var url = new URL(window.location.href);
+    url.searchParams.set('lang', code);
+    window.location.href = url.toString();
+  }
+
+  if (langOverlay) {
+    if (!savedLang) {
+      // Язык ещё ни разу не выбирали — спрашиваем.
+      langOverlay.style.display = 'flex';
+    } else if (savedLang !== serverLang) {
+      // Язык выбран раньше, но текущая страница отрисована на другом
+      // языке (например, зашли по ссылке без ?lang=) — доводим до нужного.
+      goToLang(savedLang);
+    } else {
+      showGreetIfNeeded();
+    }
+
+    langOverlay.querySelectorAll('[data-lang]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var chosen = btn.dataset.lang;
+        localStorage.setItem('visitor_lang', chosen);
+        langOverlay.style.display = 'none';
+        if (chosen !== serverLang) {
+          goToLang(chosen);
+        } else {
+          showGreetIfNeeded();
+        }
+      });
+    });
+  } else {
+    showGreetIfNeeded();
   }
 
   if (form) {
