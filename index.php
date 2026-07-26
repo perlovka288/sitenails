@@ -249,6 +249,7 @@ require __DIR__ . '/includes/header.php';
 
       <div class="booking-contacts" id="bookingContacts" style="display:none;">
         <h3><?= e(t('booking_contacts_title')) ?></h3>
+        <p class="fab-master-name"><?= e(t('fab_master_name')) ?></p>
         <p style="color:var(--ink-soft);"><?= e(t('booking_contacts_hint')) ?></p>
         <?php
           $__idxIgUrl      = getSetting('social_instagram_url', '');
