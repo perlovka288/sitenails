@@ -57,7 +57,8 @@ $aboutHasContent = $about && (
 );
 
 // ===== Виджеты (галереи фото/видео/PDF-сертификаты) =====
-$widgetCategories = $pdo->query('SELECT * FROM widget_categories ORDER BY sort_order, id')->fetchAll();
+$widgetsEnabled = getSetting('widgets_enabled', '1') === '1';
+$widgetCategories = $widgetsEnabled ? $pdo->query('SELECT * FROM widget_categories ORDER BY sort_order, id')->fetchAll() : [];
 $widgetItemsByCategory = [];
 if ($widgetCategories) {
     $itemsStmt = $pdo->query('SELECT * FROM widget_items ORDER BY category_id, sort_order, id');
@@ -249,7 +250,7 @@ require __DIR__ . '/includes/header.php';
                   <?php elseif ($__cat['type'] === 'video'): ?>
                     <button type="button" class="widget-video-thumb" data-video-src="<?= e($__item['file_path']) ?>">
                       <video src="<?= e($__item['file_path']) ?>#t=0.1" preload="metadata" playsinline muted data-video-cover></video>
-                      <span class="widget-video-play" aria-hidden="true">&#9658;</span>
+                      <span class="widget-video-play" aria-hidden="true"></span>
                     </button>
                     <?php if (!empty($__item['title'])): ?><div class="widget-item-caption"><?= e($__item['title']) ?></div><?php endif; ?>
                   <?php else: ?>

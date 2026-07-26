@@ -253,24 +253,29 @@ $btnTypeLabels = [
         </label>
         <input type="text" id="btn1_text_ua" name="btn1_text_ua" value="<?= e($about['btn1_text_ua'] ?? '') ?>" maxlength="40">
       </div>
-      <div class="form-field">
-        <label>Кнопка 1 — куда ведёт</label>
-        <select name="btn1_type" class="admin-btn-type-select" data-url-field="btn1_url_field">
-          <?php foreach ($btnTypeLabels as $__val => $__label): ?>
-            <option value="<?= e($__val) ?>"<?= ($about['btn1_type'] ?? 'custom') === $__val ? ' selected' : '' ?>><?= e($__label) ?></option>
-          <?php endforeach; ?>
-        </select>
-      </div>
-      <div class="form-field" id="btn1_url_field">
-        <label>Кнопка 1 — своя ссылка (только для типа «Своя ссылка»)</label>
-        <input type="text" name="btn1_url" value="<?= e($about['btn1_url'] ?? '') ?>" placeholder="например #widget-1 или https://...">
-      </div>
-      <div class="form-field form-field--switch">
-        <label class="switch">
-          <input type="checkbox" name="btn1_enabled" value="1" <?= ($about['btn1_enabled'] ?? 1) ? 'checked' : '' ?>>
-          <span class="switch-slider"></span>
-        </label>
-        <span>Показывать кнопку 1 на сайте</span>
+      <div class="settings-group">
+        <div class="settings-row">
+          <div class="settings-row-label">Кнопка 1 — куда ведёт</div>
+          <select name="btn1_type" class="admin-btn-type-select settings-row-control" data-url-field="btn1_url_field">
+            <?php foreach ($btnTypeLabels as $__val => $__label): ?>
+              <option value="<?= e($__val) ?>"<?= ($about['btn1_type'] ?? 'custom') === $__val ? ' selected' : '' ?>><?= e($__label) ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+        <div class="settings-row" id="btn1_url_field">
+          <div>
+            <div class="settings-row-label" style="font-weight:400;">Своя ссылка</div>
+            <div class="settings-row-sub">Только для типа «Своя ссылка», например #widget-1 или https://...</div>
+          </div>
+          <input type="text" name="btn1_url" class="settings-row-control" style="max-width:200px;" value="<?= e($about['btn1_url'] ?? '') ?>">
+        </div>
+        <div class="settings-row">
+          <div class="settings-row-label">Показывать кнопку 1 на сайте</div>
+          <label class="switch settings-row-control">
+            <input type="checkbox" name="btn1_enabled" value="1" <?= ($about['btn1_enabled'] ?? 1) ? 'checked' : '' ?>>
+            <span class="switch-slider"></span>
+          </label>
+        </div>
       </div>
 
       <div class="form-field">
@@ -283,24 +288,29 @@ $btnTypeLabels = [
         </label>
         <input type="text" id="btn2_text_ua" name="btn2_text_ua" value="<?= e($about['btn2_text_ua'] ?? '') ?>" maxlength="40">
       </div>
-      <div class="form-field">
-        <label>Кнопка 2 — куда ведёт</label>
-        <select name="btn2_type" class="admin-btn-type-select" data-url-field="btn2_url_field">
-          <?php foreach ($btnTypeLabels as $__val => $__label): ?>
-            <option value="<?= e($__val) ?>"<?= ($about['btn2_type'] ?? 'custom') === $__val ? ' selected' : '' ?>><?= e($__label) ?></option>
-          <?php endforeach; ?>
-        </select>
-      </div>
-      <div class="form-field" id="btn2_url_field">
-        <label>Кнопка 2 — своя ссылка (только для типа «Своя ссылка»)</label>
-        <input type="text" name="btn2_url" value="<?= e($about['btn2_url'] ?? '') ?>">
-      </div>
-      <div class="form-field form-field--switch">
-        <label class="switch">
-          <input type="checkbox" name="btn2_enabled" value="1" <?= ($about['btn2_enabled'] ?? 1) ? 'checked' : '' ?>>
-          <span class="switch-slider"></span>
-        </label>
-        <span>Показывать кнопку 2 на сайте</span>
+      <div class="settings-group">
+        <div class="settings-row">
+          <div class="settings-row-label">Кнопка 2 — куда ведёт</div>
+          <select name="btn2_type" class="admin-btn-type-select settings-row-control" data-url-field="btn2_url_field">
+            <?php foreach ($btnTypeLabels as $__val => $__label): ?>
+              <option value="<?= e($__val) ?>"<?= ($about['btn2_type'] ?? 'custom') === $__val ? ' selected' : '' ?>><?= e($__label) ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+        <div class="settings-row" id="btn2_url_field">
+          <div>
+            <div class="settings-row-label" style="font-weight:400;">Своя ссылка</div>
+            <div class="settings-row-sub">Только для типа «Своя ссылка»</div>
+          </div>
+          <input type="text" name="btn2_url" class="settings-row-control" style="max-width:200px;" value="<?= e($about['btn2_url'] ?? '') ?>">
+        </div>
+        <div class="settings-row">
+          <div class="settings-row-label">Показывать кнопку 2 на сайте</div>
+          <label class="switch settings-row-control">
+            <input type="checkbox" name="btn2_enabled" value="1" <?= ($about['btn2_enabled'] ?? 1) ? 'checked' : '' ?>>
+            <span class="switch-slider"></span>
+          </label>
+        </div>
       </div>
 
       <p class="field-hint">

@@ -1154,6 +1154,13 @@ table.admin-table th { background: var(--surface-2); font-size: 11px; text-trans
   border-radius: var(--radius-sm);
   display: block;
   background: var(--surface);
+  box-shadow: 0 2px 10px rgba(0,0,0,.18);
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+.widget-carousel-item:hover img,
+.widget-carousel-item:hover video {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(0,0,0,.28);
 }
 .widget-photo-thumb { border: 0; padding: 0; background: none; cursor: pointer; width: 100%; }
 .widget-item-caption {
@@ -1216,9 +1223,44 @@ table.admin-table th { background: var(--surface-2); font-size: 11px; text-trans
 .widget-carousel-arrow:disabled:hover { background: var(--surface-2); color: var(--ink); }
 .widget-video-thumb { border: 0; padding: 0; background: none; cursor: pointer; width: 100%; position: relative; }
 .widget-video-thumb video { pointer-events: none; }
+.widget-video-thumb::after {
+  /* Лёгкое затемнение снизу — чтобы кнопка play всегда была видна
+     независимо от того, что на кадре видео. */
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0,0,0,0) 55%, rgba(0,0,0,.45) 100%);
+  border-radius: var(--radius-sm);
+  pointer-events: none;
+}
 .widget-video-thumb .widget-video-play {
-  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-  color: #fff; font-size: 34px; text-shadow: 0 2px 8px rgba(0,0,0,.5);
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.widget-video-thumb .widget-video-play::before {
+  /* Заметная круглая кнопка play вместо мелкого символа-треугольника —
+     хорошо видна на любом фоне и одинаково выглядит на всех устройствах. */
+  content: "";
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgba(20, 15, 10, .55);
+  border: 2px solid rgba(255,255,255,.9);
+  box-shadow: 0 4px 14px rgba(0,0,0,.35);
+  backdrop-filter: blur(2px);
+}
+.widget-video-thumb .widget-video-play::after {
+  content: "";
+  position: absolute;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 9px 0 9px 15px;
+  border-color: transparent transparent transparent #fff;
+  margin-left: 4px;
 }
 .lightbox-overlay .lightbox-video { max-width: 92vw; max-height: 86vh; border-radius: var(--radius-sm); box-shadow: var(--shadow); display: none; background: #000; }
 .lightbox-overlay.open .lightbox-video { display: block; }
@@ -1264,8 +1306,68 @@ table.admin-table th { background: var(--surface-2); font-size: 11px; text-trans
   text-align: center;
 }
 .admin-widget-item-card img,
-.admin-widget-item-card video { width: 100%; height: 100px; object-fit: cover; border-radius: 8px; }
+.admin-widget-item-card video { width: 100%; aspect-ratio: 9 / 16; object-fit: cover; border-radius: 8px; }
+.admin-widget-item-card-pdf { width: 100%; aspect-ratio: 9 / 16; display: flex; align-items: center; justify-content: center; font-size: 32px; background: var(--surface-2); border-radius: 8px; }
 .admin-widget-item-card form { margin-top: 8px; }
+
+/* ===== Виджеты: карточка категории с превью файлов сеткой + тайл
+   "+ Добавить" — чтобы сразу было видно содержимое категории, без
+   отдельного перехода на другую страницу для каждой из них. ===== */
+.widget-cat-card { margin-bottom: 18px; }
+.widget-cat-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+.widget-cat-card-meta { font-size: 12px; color: var(--ink-faint); }
+.widget-cat-card-actions { display: flex; gap: 8px; flex-shrink: 0; }
+.admin-widget-item-add-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  aspect-ratio: 9 / 16;
+  border-radius: 8px;
+  border: 1px dashed var(--line-strong);
+  color: var(--ink-soft);
+  text-decoration: none;
+  font-size: 12.5px;
+  transition: border-color .15s ease, color .15s ease;
+}
+.admin-widget-item-add-tile span { font-size: 26px; line-height: 1; }
+.admin-widget-item-add-tile:hover { border-color: var(--primary); color: var(--primary); }
+
+/* ===== Группы настроек в стиле мобильных "Настроек" — заголовок слева,
+   тумблер/контрол справа, аккуратные строки без нагромождения полей. ===== */
+.settings-group {
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  margin-bottom: 18px;
+}
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line);
+}
+.settings-row:last-child { border-bottom: none; }
+.settings-row-label { font-size: 14px; color: var(--ink); font-weight: 600; }
+.settings-row-sub { font-size: 12px; color: var(--ink-faint); margin-top: 3px; max-width: 460px; }
+.settings-row-control { flex-shrink: 0; }
+.settings-group-title {
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--ink-faint);
+  padding: 12px 16px 2px;
+}
 
 /* ===== Тумблер вкл/выкл (например, кнопки блока "О мне") — цвет
    тумблера берётся из переменных темы сайта (--primary), поэтому

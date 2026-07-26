@@ -54,8 +54,16 @@ if (isset($_GET['edit'])) {
 
 $categories = $pdo->query('SELECT * FROM widget_categories ORDER BY sort_order, id')->fetchAll();
 $counts = [];
-foreach ($pdo->query('SELECT category_id, COUNT(*) AS cnt FROM widget_items GROUP BY category_id')->fetchAll() as $row) {
-    $counts[(int)$row['category_id']] = (int)$row['cnt'];
+$itemsByCat = [];
+foreach ($pdo->query('SELECT * FROM widget_items ORDER BY category_id, sort_order, id')->fetchAll() as $row) {
+    $counts[(int)$row['category_id']] = ($counts[(int)$row['category_id']] ?? 0) + 1;
+    $itemsByCat[(int)$row['category_id']][] = $row;
+}
+
+$widgetsEnabled = getSetting('widgets_enabled', '1') === '1';
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrfCheck() && ($_POST['action'] ?? '') === 'toggle_widgets_enabled') {
+    setSetting('widgets_enabled', isset($_POST['widgets_enabled']) ? '1' : '0');
+    redirect('widgets.php');
 }
 
 $typeLabels = ['photo' => 'Фото (галерея)', 'video' => 'Видео', 'pdf' => 'PDF (сертификаты)'];
@@ -75,9 +83,25 @@ $typeLabels = ['photo' => 'Фото (галерея)', 'video' => 'Видео', 
 
   <p style="color:var(--ink-soft); font-size:13px;">
     Создайте категорию (например «Портфолио», «Сертификаты», «Видео-отзывы»),
-    выберите её тип, а затем в разделе «Файлы» загрузите в неё фото, видео
-    или PDF. На сайте содержимое категории листается горизонтально.
+    выберите её тип, а затем нажмите «+ Добавить» на карточке категории ниже,
+    чтобы загрузить в неё фото, видео или PDF. На сайте содержимое категории
+    листается горизонтально (карусель).
   </p>
+
+  <div class="settings-group">
+    <form method="post" id="widgetsEnabledForm" class="settings-row">
+      <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+      <input type="hidden" name="action" value="toggle_widgets_enabled">
+      <div>
+        <div class="settings-row-label">Показывать блок «Достижения» на сайте</div>
+        <div class="settings-row-sub">Общий выключатель — если выключить, вся карусель категорий пропадёт с вкладки «О мне», сами категории и файлы не удаляются.</div>
+      </div>
+      <label class="switch settings-row-control">
+        <input type="checkbox" name="widgets_enabled" value="1" onchange="document.getElementById('widgetsEnabledForm').submit()" <?= $widgetsEnabled ? 'checked' : '' ?>>
+        <span class="switch-slider"></span>
+      </label>
+    </form>
+  </div>
 
   <div class="card">
     <h3><?= $editItem ? 'Изменить категорию' : 'Новая категория' ?></h3>
@@ -116,29 +140,50 @@ $typeLabels = ['photo' => 'Фото (галерея)', 'video' => 'Видео', 
     </form>
   </div>
 
-  <table class="admin-table">
-    <thead><tr><th>Категория</th><th>Тип</th><th>Файлов</th><th></th></tr></thead>
-    <tbody>
-      <?php foreach ($categories as $cat): ?>
-        <tr>
-          <td><?= e($cat['name']) ?><?= $cat['name_ua'] ? ' / ' . e($cat['name_ua']) : '' ?></td>
-          <td><?= e($typeLabels[$cat['type']] ?? $cat['type']) ?></td>
-          <td><?= $counts[(int)$cat['id']] ?? 0 ?></td>
-          <td style="white-space:nowrap;">
-            <a href="widget_items.php?category_id=<?= (int)$cat['id'] ?>" class="btn ghost" style="padding:6px 12px;font-size:12px;">Файлы</a>
-            <a href="?edit=<?= (int)$cat['id'] ?>" class="btn ghost" style="padding:6px 12px;font-size:12px;">Изменить</a>
-            <form method="post" style="display:inline;" onsubmit="return confirm('Удалить категорию вместе со всеми файлами внутри неё?');">
-              <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
-              <input type="hidden" name="action" value="delete">
-              <input type="hidden" name="id" value="<?= (int)$cat['id'] ?>">
-              <button class="btn ghost" style="padding:6px 12px;font-size:12px;">Удалить</button>
-            </form>
-          </td>
-        </tr>
-      <?php endforeach; ?>
-      <?php if (!$categories): ?><tr><td colspan="4">Пока нет категорий.</td></tr><?php endif; ?>
-    </tbody>
-  </table>
+  <?php foreach ($categories as $cat): ?>
+    <?php
+      $__catId = (int)$cat['id'];
+      $__catItems = $itemsByCat[$__catId] ?? [];
+      $__catName = e($cat['name']) . ($cat['name_ua'] ? ' / ' . e($cat['name_ua']) : '');
+    ?>
+    <div class="card widget-cat-card">
+      <div class="widget-cat-card-head">
+        <div>
+          <h3 style="margin-bottom:2px;"><?= $__catName ?></h3>
+          <span class="widget-cat-card-meta"><?= e($typeLabels[$cat['type']] ?? $cat['type']) ?> · файлов: <?= count($__catItems) ?></span>
+        </div>
+        <div class="widget-cat-card-actions">
+          <a href="?edit=<?= $__catId ?>" class="btn ghost" style="padding:6px 12px;font-size:12px;">Изменить</a>
+          <form method="post" style="display:inline;" onsubmit="return confirm('Удалить категорию вместе со всеми файлами внутри неё?');">
+            <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+            <input type="hidden" name="action" value="delete">
+            <input type="hidden" name="id" value="<?= $__catId ?>">
+            <button class="btn ghost" style="padding:6px 12px;font-size:12px;">Удалить</button>
+          </form>
+        </div>
+      </div>
+      <div class="admin-widget-item-grid">
+        <?php foreach ($__catItems as $__it): ?>
+          <div class="admin-widget-item-card">
+            <?php if ($cat['type'] === 'photo'): ?>
+              <img src="../<?= e($__it['file_path']) ?>" alt="">
+            <?php elseif ($cat['type'] === 'video'): ?>
+              <video src="../<?= e($__it['file_path']) ?>#t=0.1" preload="metadata" muted></video>
+            <?php else: ?>
+              <div class="admin-widget-item-card-pdf">📄</div>
+            <?php endif; ?>
+          </div>
+        <?php endforeach; ?>
+        <a href="widget_items.php?category_id=<?= $__catId ?>" class="admin-widget-item-add-tile">
+          <span>+</span>
+          Добавить
+        </a>
+      </div>
+    </div>
+  <?php endforeach; ?>
+  <?php if (!$categories): ?>
+    <p style="color:var(--ink-soft); font-size:13px;">Пока нет ни одной категории — создайте первую в форме выше.</p>
+  <?php endif; ?>
 </div>
 <script src="assets/admin.js" defer></script>
 </body>
