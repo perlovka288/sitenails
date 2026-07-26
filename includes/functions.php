@@ -157,3 +157,79 @@ function csrfCheck(): bool
     return isset($_POST['csrf_token'], $_SESSION['csrf_token'])
         && hash_equals($_SESSION['csrf_token'], $_POST['csrf_token']);
 }
+
+// ==== Загрузка файла общего назначения (аватар, иконки, файлы виджетов) ====
+// $allowedMime — карта "mime-тип => расширение", $destDir — относительный
+// путь от корня сайта (например "assets/uploads/widgets/3").
+// Возвращает относительный путь к сохранённому файлу или null, если файла
+// не было / он не прошёл проверку.
+function saveUploadedFile(string $fieldName, string $destDir, array $allowedMime, int $maxBytes, string $prefix): ?string
+{
+    if (empty($_FILES[$fieldName]) || ($_FILES[$fieldName]['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+        return null;
+    }
+    if ($_FILES[$fieldName]['error'] !== UPLOAD_ERR_OK) {
+        return null;
+    }
+
+    $tmpName = $_FILES[$fieldName]['tmp_name'];
+    $size = (int)$_FILES[$fieldName]['size'];
+    if ($size <= 0 || $size > $maxBytes) {
+        return null;
+    }
+
+    $mime = function_exists('mime_content_type') ? mime_content_type($tmpName) : null;
+    if ($mime === null || !isset($allowedMime[$mime])) {
+        return null;
+    }
+
+    $ext = $allowedMime[$mime];
+    $fullDir = __DIR__ . '/../' . ltrim($destDir, '/');
+    if (!is_dir($fullDir)) {
+        mkdir($fullDir, 0755, true);
+    }
+
+    $filename = $prefix . '_' . date('Ymd_His') . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
+    $destination = $fullDir . '/' . $filename;
+
+    if (!move_uploaded_file($tmpName, $destination)) {
+        return null;
+    }
+
+    return rtrim($destDir, '/') . '/' . $filename;
+}
+
+// Удаляет файл с диска по относительному пути от корня сайта (тихо
+// игнорирует отсутствующий файл — например, если его уже удалили руками).
+function deleteUploadedFile(?string $relativePath): void
+{
+    if (!$relativePath) {
+        return;
+    }
+    $full = __DIR__ . '/../' . ltrim($relativePath, '/');
+    if (is_file($full)) {
+        @unlink($full);
+    }
+}
+
+// Допустимые MIME-типы для загрузок виджетов, по типу категории.
+function widgetAllowedMime(string $type): array
+{
+    return match ($type) {
+        'photo' => [
+            'image/jpeg' => 'jpg',
+            'image/png'  => 'png',
+            'image/webp' => 'webp',
+            'image/gif'  => 'gif',
+        ],
+        'video' => [
+            'video/mp4'       => 'mp4',
+            'video/webm'      => 'webm',
+            'video/quicktime' => 'mov',
+        ],
+        'pdf' => [
+            'application/pdf' => 'pdf',
+        ],
+        default => [],
+    };
+}

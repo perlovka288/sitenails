@@ -223,7 +223,7 @@ document.addEventListener('DOMContentLoaded', function () {
   var lightboxClose = document.getElementById('photoLightboxClose');
 
   if (lightboxOverlay && lightboxImg) {
-    document.querySelectorAll('.review-photo-thumb').forEach(function (btn) {
+    document.querySelectorAll('.review-photo-thumb, .widget-photo-thumb').forEach(function (btn) {
       btn.addEventListener('click', function () {
         lightboxImg.src = btn.dataset.photoSrc;
         lightboxOverlay.classList.add('open');
@@ -568,4 +568,26 @@ document.addEventListener('DOMContentLoaded', function () {
       if (ev.target === fabOverlay) fabOverlay.classList.remove('open');
     });
   }
+
+  // ===== Виджеты: горизонтальные карусели (галереи/видео/сертификаты) =====
+  document.querySelectorAll('[data-carousel]').forEach(function (track) {
+    var wrap = track.closest('.widget-carousel-wrap');
+    if (!wrap) return;
+    var prevBtn = wrap.querySelector('[data-carousel-prev]');
+    var nextBtn = wrap.querySelector('[data-carousel-next]');
+    var scrollStep = function () {
+      var firstItem = track.querySelector('.widget-carousel-item');
+      return firstItem ? firstItem.getBoundingClientRect().width + 12 : 260;
+    };
+    if (prevBtn) {
+      prevBtn.addEventListener('click', function () {
+        track.scrollBy({ left: -scrollStep(), behavior: 'smooth' });
+      });
+    }
+    if (nextBtn) {
+      nextBtn.addEventListener('click', function () {
+        track.scrollBy({ left: scrollStep(), behavior: 'smooth' });
+      });
+    }
+  });
 });

@@ -113,6 +113,12 @@ $GLOBALS['TRANSLATIONS'] = [
         'slot_status_booked' => 'Занято',
         'slot_delete'        => 'Удалить',
         'slot_confirm_delete'=> 'Удалить это время из календаря?',
+
+        'about_view_work'    => 'Смотреть работы',
+        'about_get_in_touch' => 'Связаться',
+        'experience_title'   => 'Опыт работы',
+        'widgets_title_default' => 'Галерея',
+        'social_title'       => 'Соцсети',
     ],
     'ua' => [
         'nav_reviews'      => 'Відгуки',
@@ -213,6 +219,12 @@ $GLOBALS['TRANSLATIONS'] = [
         'slot_status_booked' => 'Зайнято',
         'slot_delete'        => 'Видалити',
         'slot_confirm_delete'=> 'Видалити цей час з календаря?',
+
+        'about_view_work'    => 'Дивитись роботи',
+        'about_get_in_touch' => "Зв'язатися",
+        'experience_title'   => 'Досвід роботи',
+        'widgets_title_default' => 'Галерея',
+        'social_title'       => 'Соцмережі',
     ],
 ];
 

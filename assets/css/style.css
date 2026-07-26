@@ -1002,3 +1002,227 @@ table.admin-table th { background: var(--surface-2); font-size: 11px; text-trans
   transition: transform .15s ease;
 }
 .admin-panel-btn:hover { transform: translateY(-1px); }
+
+/* ==========================================================================
+   РАЗДЕЛ «О МНЕ» + ОПЫТ РАБОТЫ + ВИДЖЕТЫ (ГАЛЕРЕИ) + СОЦСЕТИ
+   ========================================================================== */
+
+.about-me {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 28px;
+  align-items: center;
+  margin-bottom: 40px;
+  padding-bottom: 32px;
+  border-bottom: 1px solid var(--line);
+}
+.about-me-photo {
+  flex: 0 0 220px;
+  width: 220px;
+  height: 220px;
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  margin: 0 auto;
+}
+.about-me-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.about-me-photo-placeholder {
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--ink-faint);
+}
+.about-me-content { flex: 1 1 280px; min-width: 260px; text-align: center; }
+@media (min-width: 560px) {
+  .about-me-content { text-align: left; }
+}
+.about-me-eyebrow {
+  display: inline-block;
+  font-size: 12px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-bottom: 6px;
+}
+.about-me-title { margin: 0 0 4px; font-size: 30px; }
+.about-me-subtitle { margin: 0 0 10px; color: var(--primary); font-weight: 600; font-family: 'Jost', sans-serif; }
+.about-me-bio { color: var(--ink-soft); font-size: 14.5px; max-width: 52ch; margin: 0 auto 18px; }
+@media (min-width: 560px) { .about-me-bio { margin: 0 0 18px; } }
+
+.about-me-stats {
+  display: flex;
+  gap: 22px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+@media (min-width: 560px) { .about-me-stats { justify-content: flex-start; } }
+.about-me-stat-value {
+  font-family: 'Playfair Display', serif;
+  font-weight: 700;
+  font-size: 26px;
+  color: var(--ink);
+}
+.about-me-stat-label { font-size: 11.5px; color: var(--ink-soft); text-transform: uppercase; letter-spacing: .04em; }
+
+.about-me-skills {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+@media (min-width: 560px) { .about-me-skills { justify-content: flex-start; } }
+.about-me-skill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px 6px 6px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 13px;
+  color: var(--ink-soft);
+  background: var(--surface);
+}
+.about-me-skill-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: var(--primary-soft);
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 700;
+  overflow: hidden;
+}
+.about-me-skill-icon--img img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; }
+
+.about-me-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+@media (min-width: 560px) { .about-me-actions { justify-content: flex-start; } }
+.about-me-actions .btn { width: auto; padding: 12px 24px; }
+
+/* ===== Опыт работы ===== */
+.work-experience { margin-bottom: 40px; }
+.experience-list { display: flex; flex-direction: column; gap: 12px; margin-top: 14px; }
+.experience-card {
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  box-shadow: var(--shadow);
+}
+.experience-period { font-size: 12px; color: var(--primary-dark); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
+.experience-position { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 17px; }
+.experience-company { color: var(--ink-soft); font-size: 13.5px; margin-top: 2px; }
+.experience-desc { color: var(--ink-soft); font-size: 13.5px; margin: 8px 0 0; }
+
+/* ===== Виджеты: горизонтальные карусели ===== */
+.widget-block { margin-bottom: 40px; }
+.widget-carousel-wrap { position: relative; margin-top: 14px; }
+.widget-carousel {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scroll-behavior: smooth;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+}
+.widget-carousel::-webkit-scrollbar { height: 6px; }
+.widget-carousel::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 999px; }
+.widget-carousel-item {
+  flex: 0 0 auto;
+  width: 220px;
+  scroll-snap-align: start;
+}
+.widget-carousel-item img,
+.widget-carousel-item video {
+  width: 220px;
+  height: 150px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  display: block;
+  background: var(--surface);
+}
+.widget-photo-thumb { border: 0; padding: 0; background: none; cursor: pointer; width: 100%; }
+.widget-pdf-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 220px;
+  height: 150px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  text-decoration: none;
+  color: var(--ink);
+  text-align: center;
+  padding: 10px;
+}
+.widget-pdf-icon { font-size: 30px; }
+.widget-pdf-title { font-size: 12.5px; color: var(--ink-soft); word-break: break-word; }
+.widget-carousel-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--line-strong);
+  background: var(--surface-2);
+  color: var(--ink);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 2;
+}
+.widget-carousel-arrow--prev { left: -6px; }
+.widget-carousel-arrow--next { right: -6px; }
+.widget-carousel-arrow:hover { background: var(--primary); color: #1a1310; }
+
+/* ===== Соцсети (виджет) ===== */
+.social-widget { margin-bottom: 40px; }
+.social-widget-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+.social-widget-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  text-decoration: none;
+  font-size: 12.5px;
+  text-align: center;
+}
+.social-widget-tile:hover { border-color: var(--primary); }
+.social-widget-icon { font-size: 24px; }
+
+/* ===== Админка: загрузка файлов / карточки ===== */
+.admin-upload-current { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.admin-upload-current img { width: 56px; height: 56px; object-fit: cover; border-radius: 8px; }
+.admin-widget-item-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+.admin-widget-item-card {
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  text-align: center;
+}
+.admin-widget-item-card img,
+.admin-widget-item-card video { width: 100%; height: 100px; object-fit: cover; border-radius: 8px; }
+.admin-widget-item-card form { margin-top: 8px; }
