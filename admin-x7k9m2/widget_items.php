@@ -32,11 +32,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrfCheck()) {
         $title = trim($_POST['title'] ?? '');
         $allowed = widgetAllowedMime($category['type']);
         $maxBytes = $category['type'] === 'video' ? 60 * 1024 * 1024 : 8 * 1024 * 1024;
+        $serverLimitBytes = currentServerUploadLimitBytes();
 
         $fileErrorCode = $_FILES['file']['error'] ?? UPLOAD_ERR_NO_FILE;
         if ($fileErrorCode === UPLOAD_ERR_INI_SIZE || $fileErrorCode === UPLOAD_ERR_FORM_SIZE) {
-            $uploadError = 'Файл слишком большой. Максимум для этого раздела — '
-                . round($maxBytes / 1024 / 1024) . ' МБ. Сожмите видео и попробуйте снова.';
+            // PHP отклонил файл ещё на уровне php.ini/.user.ini хостинга —
+            // это НЕ лимит раздела (60 МБ), а более строгий лимит сервера.
+            // Показываем правду, чтобы не выглядело "видео 23 МБ, почему отказ".
+            if ($serverLimitBytes > 0 && $serverLimitBytes < $maxBytes) {
+                $uploadError = 'Хостинг сейчас пропускает файлы только до '
+                    . round($serverLimitBytes / 1024 / 1024) . ' МБ (лимит сервера upload_max_filesize/post_max_size), '
+                    . 'хотя лимит этого раздела — ' . round($maxBytes / 1024 / 1024) . ' МБ. '
+                    . 'Подождите немного, если недавно меняли .user.ini/.htaccess, либо попросите хостинг поднять эти лимиты, '
+                    . 'либо сожмите файл до ' . round($serverLimitBytes / 1024 / 1024) . ' МБ.';
+            } else {
+                $uploadError = 'Файл слишком большой. Максимум для этого раздела — '
+                    . round($maxBytes / 1024 / 1024) . ' МБ. Сожмите видео и попробуйте снова.';
+            }
         } elseif ($fileErrorCode !== UPLOAD_ERR_OK && $fileErrorCode !== UPLOAD_ERR_NO_FILE) {
             $uploadError = 'Загрузка не удалась (код ошибки ' . (int)$fileErrorCode . '). Попробуйте ещё раз.';
         } else {
@@ -123,7 +135,7 @@ $typeAccept = [
 
     <?php if (!empty($uploadError)): ?><div class="alert error"><?= e($uploadError) ?></div><?php endif; ?>
 
-    <form method="post" enctype="multipart/form-data">
+    <form method="post" enctype="multipart/form-data" id="widgetUploadForm">
       <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
       <input type="hidden" name="action" value="upload">
       <input type="hidden" name="category_id" value="<?= (int)$categoryId ?>">
@@ -131,14 +143,38 @@ $typeAccept = [
         <label>Подпись (необязательно)</label>
         <input type="text" name="title" maxlength="100">
       </div>
+      <?php if ($category['type'] === 'video'): ?>
+      <div class="form-field" style="display:flex; align-items:center; gap:8px;">
+        <input type="checkbox" id="compressVideoToggle" checked style="width:auto;">
+        <label for="compressVideoToggle" style="margin:0; font-weight:400;">Сжать видео перед загрузкой (рекомендуется — многие бесплатные хостинги режут большие файлы сильнее, чем указано в настройках)</label>
+      </div>
+      <p class="field-hint" id="compressVideoStatus" style="display:none;"></p>
+      <?php endif; ?>
       <div class="form-field">
         <label>Файл (<?= e($typeLabels[$category['type']] ?? '') ?>)</label>
-        <input type="file" name="file" accept="<?= e($typeAccept[$category['type']] ?? '') ?>" required>
-        <p class="field-hint">Максимальный размер файла: <?= $category['type'] === 'video' ? '60 МБ' : '8 МБ' ?>. Если хостинг всё равно не принимает файл — попробуйте сжать его или выбрать поменьше.</p>
+        <input type="file" name="file" id="widgetFileInput" accept="<?= e($typeAccept[$category['type']] ?? '') ?>" required>
+        <?php
+          $__catMaxBytes = $category['type'] === 'video' ? 60 * 1024 * 1024 : 8 * 1024 * 1024;
+          $__serverLimitBytes = currentServerUploadLimitBytes();
+          $__effectiveBytes = $__serverLimitBytes > 0 ? min($__catMaxBytes, $__serverLimitBytes) : $__catMaxBytes;
+        ?>
+        <p class="field-hint">
+          Максимальный размер файла: <?= round($__effectiveBytes / 1024 / 1024) ?> МБ
+          (лимит раздела — <?= round($__catMaxBytes / 1024 / 1024) ?> МБ,
+          текущий лимит хостинга сейчас — <?= $__serverLimitBytes > 0 ? round($__serverLimitBytes / 1024 / 1024) . ' МБ' : 'неизвестен' ?>).
+          Если хостинг режет файл сильнее, чем нужно, — подождите пару минут после загрузки
+          <code>.user.ini</code>/<code>.htaccess</code> на сервер (лимиты применяются не мгновенно)
+          или обратитесь в поддержку хостинга с просьбой поднять <code>upload_max_filesize</code>
+          и <code>post_max_size</code>. Иначе — сожмите файл и попробуйте снова.
+        </p>
       </div>
-      <button type="submit" class="btn full">Загрузить</button>
+      <button type="submit" class="btn full" id="widgetUploadSubmitBtn">Загрузить</button>
     </form>
   </div>
+
+  <?php if ($category['type'] === 'video'): ?>
+  <script src="../assets/js/video-compress.js"></script>
+  <?php endif; ?>
 
   <div class="admin-widget-item-grid">
     <?php foreach ($items as $i => $item): ?>

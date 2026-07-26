@@ -25,9 +25,21 @@ document.addEventListener('DOMContentLoaded', function () {
   }
   window.addEventListener('resize', updateViewportHeight);
 
+  var pageHero = document.getElementById('pageHero');
+
+  function updateHeroVisibility(name) {
+    if (!pageHero) return;
+    // Приветствие скрываем только на вкладке "О мне" — там уже есть своё
+    // приветствие внутри карточки. На остальных вкладках (Отзывы/Прайс/
+    // Запись) оно остаётся видимым, как и раньше.
+    pageHero.style.display = name === 'about' ? 'none' : '';
+  }
+
   function setActiveTab(name, animate) {
     var idx = tabOrder.indexOf(name);
     if (idx === -1) idx = 0;
+
+    updateHeroVisibility(name);
 
     if (!animate) {
       track.classList.add('no-anim');
@@ -582,6 +594,64 @@ document.addEventListener('DOMContentLoaded', function () {
     fabOverlay.addEventListener('click', function (ev) {
       if (ev.target === fabOverlay) fabOverlay.classList.remove('open');
     });
+  }
+
+  // ===== Виджеты: обложка видео (первый кадр вместо чёрного экрана) =====
+  // У части браузеров (особенно iOS/Safari) видео с preload="metadata" не
+  // рисует кадр, пока не поставить currentTime вручную после loadedmetadata.
+  document.querySelectorAll('video[data-video-cover]').forEach(function (video) {
+    function nudge() {
+      if (video.currentTime === 0) {
+        try { video.currentTime = 0.1; } catch (e) { /* ignore */ }
+      }
+    }
+    video.addEventListener('loadedmetadata', nudge);
+    if (video.readyState >= 1) nudge();
+  });
+
+  // ===== Виджеты: обложка PDF (первая страница вместо иконки 📄) =====
+  // Рендерим первую страницу через pdf.js прямо в браузере — без сжатия
+  // и без плагинов на хостинге. Библиотека подгружается только если на
+  // странице реально есть PDF-виджеты (чтобы не тратить трафик зря).
+  var pdfCovers = document.querySelectorAll('[data-pdf-src]');
+  if (pdfCovers.length) {
+    var pdfjsScript = document.createElement('script');
+    pdfjsScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    pdfjsScript.onload = function () {
+      if (!window.pdfjsLib) return;
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+      pdfCovers.forEach(function (cover) {
+        var src = cover.dataset.pdfSrc;
+        if (!src) return;
+
+        window.pdfjsLib.getDocument(src).promise
+          .then(function (pdf) { return pdf.getPage(1); })
+          .then(function (page) {
+            var targetWidth = cover.clientWidth || 220;
+            var targetHeight = cover.clientHeight || 150;
+            var baseViewport = page.getViewport({ scale: 1 });
+            var scale = Math.max(targetWidth / baseViewport.width, targetHeight / baseViewport.height) * 1.4;
+            var viewport = page.getViewport({ scale: scale });
+
+            var canvas = document.createElement('canvas');
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+
+            return page.render({ canvasContext: canvas.getContext('2d'), viewport: viewport }).promise
+              .then(function () {
+                cover.innerHTML = '';
+                cover.appendChild(canvas);
+              });
+          })
+          .catch(function () {
+            // Если рендер не удался (нет сети до CDN, битый файл и т.п.) —
+            // просто остаётся иконка 📄, ничего не ломается.
+          });
+      });
+    };
+    document.head.appendChild(pdfjsScript);
   }
 
   // ===== Виджеты: горизонтальные карусели (галереи/видео/сертификаты) =====

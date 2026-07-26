@@ -1,0 +1,29 @@
+# .htaccess
+# Поднимает лимиты PHP на загрузку файлов на хостингах, где PHP работает
+# как модуль Apache (mod_php) — на таких хостах файл .user.ini (для PHP-FPM
+# и CGI-режима) не действует, поэтому нужен ещё и этот способ.
+#
+# Директивы обёрнуты в <IfModule>, чтобы .htaccess НЕ ломал сайт (ошибка 500)
+# на хостингах, где PHP работает иначе (FastCGI/PHP-FPM) — там эти строки
+# просто игнорируются, и работает .user.ini из корня сайта.
+<IfModule mod_php7.c>
+    php_value upload_max_filesize 60M
+    php_value post_max_size 64M
+    php_value max_execution_time 300
+    php_value max_input_time 300
+    php_value memory_limit 256M
+</IfModule>
+<IfModule mod_php8.c>
+    php_value upload_max_filesize 60M
+    php_value post_max_size 64M
+    php_value max_execution_time 300
+    php_value max_input_time 300
+    php_value memory_limit 256M
+</IfModule>
+<IfModule sapi_apache2.c>
+    php_value upload_max_filesize 60M
+    php_value post_max_size 64M
+    php_value max_execution_time 300
+    php_value max_input_time 300
+    php_value memory_limit 256M
+</IfModule>

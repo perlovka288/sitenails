@@ -212,6 +212,37 @@ function deleteUploadedFile(?string $relativePath): void
     }
 }
 
+// Переводит значение php.ini вида "8M", "512K", "2G" в байты.
+// Нужно, чтобы показывать пользователю реальный текущий лимит хостинга,
+// а не только лимит, заданный в коде сайта (они могут отличаться).
+function iniSizeToBytes(string $value): int
+{
+    $value = trim($value);
+    if ($value === '') {
+        return 0;
+    }
+    $unit = strtolower(substr($value, -1));
+    $number = (float)$value;
+    return (int)match ($unit) {
+        'g' => $number * 1024 * 1024 * 1024,
+        'm' => $number * 1024 * 1024,
+        'k' => $number * 1024,
+        default => $number,
+    };
+}
+
+// Реальный текущий лимит загрузки на этом хостинге прямо сейчас (минимум
+// из upload_max_filesize и post_max_size из php.ini/.user.ini/.htaccess) —
+// то, что сайт может принять, независимо от лимита конкретного раздела.
+function currentServerUploadLimitBytes(): int
+{
+    $upload = iniSizeToBytes((string)ini_get('upload_max_filesize'));
+    $post   = iniSizeToBytes((string)ini_get('post_max_size'));
+    if ($upload <= 0) return $post;
+    if ($post <= 0) return $upload;
+    return min($upload, $post);
+}
+
 // Допустимые MIME-типы для загрузок виджетов, по типу категории.
 function widgetAllowedMime(string $type): array
 {

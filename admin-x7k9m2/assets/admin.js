@@ -23,9 +23,15 @@ document.addEventListener('DOMContentLoaded', function () {
       btn.disabled = true;
       btn.textContent = 'Переводим…';
 
+      // Направление определяем по имени поля-получателя: если оно
+      // оканчивается на "_ua" — переводим на украинский, иначе — на русский.
+      // Это позволяет одной и той же кнопке работать в обе стороны.
+      var toLang = /_ua$/.test(btn.dataset.translateTo) ? 'uk' : 'ru';
+
       var body = new URLSearchParams();
       body.set('csrf_token', window.ADMIN_CSRF_TOKEN || '');
       body.set('text', text);
+      body.set('to', toLang);
 
       fetch('translate.php', { method: 'POST', body: body })
         .then(function (res) { return res.json(); })

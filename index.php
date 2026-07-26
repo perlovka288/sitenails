@@ -82,65 +82,11 @@ require __DIR__ . '/includes/header.php';
 
 <main class="container">
 
-  <?php if ($widgetCategories): ?>
-  <!-- ===== ВИДЖЕТЫ: ГАЛЕРЕИ / ВИДЕО / СЕРТИФИКАТЫ ===== -->
-  <?php foreach ($widgetCategories as $__cat): ?>
-    <?php
-      $__catItems = $widgetItemsByCategory[(int)$__cat['id']] ?? [];
-      if (!$__catItems) continue;
-      $__catName = ($lang === 'ua' && !empty($__cat['name_ua'])) ? $__cat['name_ua'] : $__cat['name'];
-    ?>
-    <section class="widget-block" id="widget-<?= (int)$__cat['id'] ?>">
-      <h2 class="section-title"><?= e($__catName ?: t('widgets_title_default')) ?></h2>
-      <div class="widget-carousel-wrap">
-        <button type="button" class="widget-carousel-arrow widget-carousel-arrow--prev" data-carousel-prev aria-label="←">&#8249;</button>
-        <div class="widget-carousel" data-carousel>
-          <?php foreach ($__catItems as $__item): ?>
-            <div class="widget-carousel-item">
-              <?php if ($__cat['type'] === 'photo'): ?>
-                <button type="button" class="widget-photo-thumb" data-photo-src="<?= e($__item['file_path']) ?>">
-                  <img src="<?= e($__item['file_path']) ?>" alt="<?= e($__item['title'] ?? '') ?>" loading="lazy">
-                </button>
-              <?php elseif ($__cat['type'] === 'video'): ?>
-                <button type="button" class="widget-video-thumb" data-video-src="<?= e($__item['file_path']) ?>">
-                  <video src="<?= e($__item['file_path']) ?>" preload="metadata" playsinline muted></video>
-                  <span class="widget-video-play" aria-hidden="true">&#9658;</span>
-                </button>
-              <?php else: ?>
-                <a class="widget-pdf-tile" href="<?= e($__item['file_path']) ?>" target="_blank" rel="noopener">
-                  <span class="widget-pdf-icon" aria-hidden="true">📄</span>
-                  <span class="widget-pdf-title"><?= e($__item['title'] ?: 'PDF') ?></span>
-                </a>
-              <?php endif; ?>
-            </div>
-          <?php endforeach; ?>
-        </div>
-        <button type="button" class="widget-carousel-arrow widget-carousel-arrow--next" data-carousel-next aria-label="→">&#8250;</button>
-      </div>
-    </section>
-  <?php endforeach; ?>
-  <?php endif; ?>
-
-  <?php if ($socialLinksList): ?>
-  <!-- ===== СОЦСЕТИ / МЕССЕНДЖЕРЫ ===== -->
-  <section class="social-widget" id="social">
-    <h2 class="section-title"><?= e(t('social_title')) ?></h2>
-    <div class="social-widget-grid">
-      <?php foreach ($socialLinksList as $__soc): ?>
-        <a class="social-widget-tile" href="<?= e($__soc['url']) ?>" target="_blank" rel="noopener">
-          <?php if (!empty($__soc['icon_image'])): ?>
-            <img src="<?= e($__soc['icon_image']) ?>" alt="" class="social-icon-img">
-          <?php else: ?>
-            <span class="social-widget-icon"><?= e($__soc['icon_text'] ?: '🔗') ?></span>
-          <?php endif; ?>
-          <span><?= e($__soc['platform']) ?></span>
-        </a>
-      <?php endforeach; ?>
-    </div>
-  </section>
-  <?php endif; ?>
-
-  <section class="hero">
+  <!-- ===== Приветствие: показывается на всех вкладках, КРОМЕ "О мне" —
+       там уже есть своё приветствие (about-me-eyebrow), два подряд
+       выглядели избыточно. Скрывается/показывается через JS при
+       переключении вкладок (см. setActiveTab в script.js). ===== -->
+  <section class="hero" id="pageHero" <?= $activeTab === 'about' ? 'style="display:none;"' : '' ?>>
     <span class="eyebrow"><?= e(t('hero_eyebrow')) ?></span>
     <h1 data-greet><?= e(getSetting('site_name', '')) ?: '&nbsp;' ?></h1>
     <p><?= e(t('hero_text')) ?></p>
@@ -428,6 +374,70 @@ require __DIR__ . '/includes/header.php';
 
   </div>
   </div>
+
+  <?php if ($widgetCategories): ?>
+  <!-- ===== ВИДЖЕТЫ: ГАЛЕРЕИ / ВИДЕО / СЕРТИФИКАТЫ ===== -->
+  <?php foreach ($widgetCategories as $__cat): ?>
+    <?php
+      $__catItems = $widgetItemsByCategory[(int)$__cat['id']] ?? [];
+      if (!$__catItems) continue;
+      $__catName = ($lang === 'ua' && !empty($__cat['name_ua'])) ? $__cat['name_ua'] : $__cat['name'];
+    ?>
+    <section class="widget-block" id="widget-<?= (int)$__cat['id'] ?>">
+      <h2 class="section-title"><?= e($__catName ?: t('widgets_title_default')) ?></h2>
+      <div class="widget-carousel-wrap">
+        <button type="button" class="widget-carousel-arrow widget-carousel-arrow--prev" data-carousel-prev aria-label="←">&#8249;</button>
+        <div class="widget-carousel" data-carousel>
+          <?php foreach ($__catItems as $__item): ?>
+            <div class="widget-carousel-item">
+              <?php if ($__cat['type'] === 'photo'): ?>
+                <button type="button" class="widget-photo-thumb" data-photo-src="<?= e($__item['file_path']) ?>">
+                  <img src="<?= e($__item['file_path']) ?>" alt="<?= e($__item['title'] ?? '') ?>" loading="lazy">
+                </button>
+                <?php if (!empty($__item['title'])): ?><div class="widget-item-caption"><?= e($__item['title']) ?></div><?php endif; ?>
+              <?php elseif ($__cat['type'] === 'video'): ?>
+                <button type="button" class="widget-video-thumb" data-video-src="<?= e($__item['file_path']) ?>">
+                  <video src="<?= e($__item['file_path']) ?>#t=0.1" preload="metadata" playsinline muted data-video-cover></video>
+                  <span class="widget-video-play" aria-hidden="true">&#9658;</span>
+                </button>
+                <?php if (!empty($__item['title'])): ?><div class="widget-item-caption"><?= e($__item['title']) ?></div><?php endif; ?>
+              <?php else: ?>
+                <a class="widget-pdf-tile" href="<?= e($__item['file_path']) ?>" target="_blank" rel="noopener">
+                  <span class="widget-pdf-cover" data-pdf-src="<?= e($__item['file_path']) ?>">
+                    <span class="widget-pdf-icon" aria-hidden="true">📄</span>
+                  </span>
+                  <span class="widget-pdf-title"><?= e($__item['title'] ?: 'PDF') ?></span>
+                </a>
+              <?php endif; ?>
+            </div>
+          <?php endforeach; ?>
+        </div>
+        <button type="button" class="widget-carousel-arrow widget-carousel-arrow--next" data-carousel-next aria-label="→">&#8250;</button>
+      </div>
+    </section>
+  <?php endforeach; ?>
+  <?php endif; ?>
+
+  <?php if ($socialLinksList): ?>
+  <!-- ===== СОЦСЕТИ / МЕССЕНДЖЕРЫ ===== -->
+  <section class="social-widget" id="social">
+    <h2 class="section-title"><?= e(t('social_title')) ?></h2>
+    <div class="social-widget-grid">
+      <?php foreach ($socialLinksList as $__soc): ?>
+        <a class="social-widget-tile" href="<?= e($__soc['url']) ?>" target="_blank" rel="noopener">
+          <?php if (!empty($__soc['icon_image'])): ?>
+            <img src="<?= e($__soc['icon_image']) ?>" alt="" class="social-icon-img">
+          <?php else: ?>
+            <span class="social-widget-icon"><?= e($__soc['icon_text'] ?: '🔗') ?></span>
+          <?php endif; ?>
+          <span><?= e($__soc['platform']) ?></span>
+        </a>
+      <?php endforeach; ?>
+    </div>
+  </section>
+  <?php endif; ?>
+
+
 
   <!-- Модальное окно "Оставить отзыв" — вынесено за пределы .panels-track,
        чтобы position:fixed работал относительно всего экрана, а не
