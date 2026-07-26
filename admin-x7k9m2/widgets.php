@@ -88,11 +88,13 @@ $typeLabels = ['photo' => 'Фото (галерея)', 'video' => 'Видео', 
 
       <div class="form-field">
         <label>Название категории, рус.</label>
-        <input type="text" name="name" required maxlength="60" value="<?= e($editItem['name'] ?? '') ?>">
+        <input type="text" id="widget_cat_name" name="name" required maxlength="60" value="<?= e($editItem['name'] ?? '') ?>">
       </div>
       <div class="form-field">
-        <label>Название категории, укр. (необязательно)</label>
-        <input type="text" name="name_ua" maxlength="60" value="<?= e($editItem['name_ua'] ?? '') ?>">
+        <label>Название категории, укр. (необязательно)
+          <button type="button" class="btn ghost admin-translate-btn" data-translate-from="widget_cat_name" data-translate-to="widget_cat_name_ua">⇄ Перевести с рус.</button>
+        </label>
+        <input type="text" id="widget_cat_name_ua" name="name_ua" maxlength="60" value="<?= e($editItem['name_ua'] ?? '') ?>">
       </div>
       <div class="form-field">
         <label>Тип содержимого<?= $editItem ? ' (нельзя изменить после создания)' : '' ?></label>
@@ -138,5 +140,6 @@ $typeLabels = ['photo' => 'Фото (галерея)', 'video' => 'Видео', 
     </tbody>
   </table>
 </div>
+<script src="assets/admin.js" defer></script>
 </body>
 </html>

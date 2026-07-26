@@ -34,8 +34,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrfCheck()) {
             UPDATE about_me SET
                 photo_path = ?, greeting = ?, greeting_ua = ?, title = ?, title_ua = ?,
                 subtitle = ?, subtitle_ua = ?, bio = ?, bio_ua = ?,
-                btn1_text = ?, btn1_text_ua = ?, btn1_url = ?,
-                btn2_text = ?, btn2_text_ua = ?, btn2_url = ?
+                btn1_text = ?, btn1_text_ua = ?, btn1_url = ?, btn1_type = ?, btn1_enabled = ?,
+                btn2_text = ?, btn2_text_ua = ?, btn2_url = ?, btn2_type = ?, btn2_enabled = ?
             WHERE id = 1
         ')->execute([
             $photoPath,
@@ -44,7 +44,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrfCheck()) {
             trim($_POST['subtitle'] ?? ''), trim($_POST['subtitle_ua'] ?? '') ?: null,
             trim($_POST['bio'] ?? ''), trim($_POST['bio_ua'] ?? '') ?: null,
             trim($_POST['btn1_text'] ?? '') ?: null, trim($_POST['btn1_text_ua'] ?? '') ?: null, trim($_POST['btn1_url'] ?? '') ?: null,
+            in_array($_POST['btn1_type'] ?? '', ['custom', 'instagram', 'reviews', 'viber'], true) ? $_POST['btn1_type'] : 'custom',
+            isset($_POST['btn1_enabled']) ? 1 : 0,
             trim($_POST['btn2_text'] ?? '') ?: null, trim($_POST['btn2_text_ua'] ?? '') ?: null, trim($_POST['btn2_url'] ?? '') ?: null,
+            in_array($_POST['btn2_type'] ?? '', ['custom', 'instagram', 'reviews', 'viber'], true) ? $_POST['btn2_type'] : 'custom',
+            isset($_POST['btn2_enabled']) ? 1 : 0,
         ]);
         $message = 'Блок «О мне» сохранён.';
     }
@@ -105,6 +109,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrfCheck()) {
 $about = $pdo->query('SELECT * FROM about_me WHERE id = 1')->fetch();
 $stats = $pdo->query('SELECT * FROM about_stats ORDER BY sort_order, id')->fetchAll();
 $skills = $pdo->query('SELECT * FROM about_skills ORDER BY sort_order, id')->fetchAll();
+$btnTypeLabels = [
+    'custom'    => 'Своя ссылка',
+    'instagram' => 'Instagram',
+    'reviews'   => 'Раздел «Отзывы» на сайте',
+    'viber'     => 'Открыть Viber-чат',
+];
 ?>
 <!DOCTYPE html>
 <html lang="ru">
@@ -134,6 +144,8 @@ $skills = $pdo->query('SELECT * FROM about_skills ORDER BY sort_order, id')->fet
   }
   .about-live-preview-text { flex: 1 1 260px; }
   .about-live-preview-label { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-soft, #888); margin-bottom: 6px; }
+  .form-field--switch { display: flex; align-items: center; gap: 12px; }
+  .form-field--switch span { font-size: 13px; color: var(--ink-soft); }
 </style>
 <script>window.ADMIN_CSRF_TOKEN = <?= json_encode(csrfToken()) ?>;</script>
 <script src="assets/admin.js" defer></script>
@@ -242,8 +254,23 @@ $skills = $pdo->query('SELECT * FROM about_skills ORDER BY sort_order, id')->fet
         <input type="text" id="btn1_text_ua" name="btn1_text_ua" value="<?= e($about['btn1_text_ua'] ?? '') ?>" maxlength="40">
       </div>
       <div class="form-field">
-        <label>Кнопка 1 — ссылка (например #widget-1 или https://...)</label>
-        <input type="text" name="btn1_url" value="<?= e($about['btn1_url'] ?? '') ?>">
+        <label>Кнопка 1 — куда ведёт</label>
+        <select name="btn1_type" class="admin-btn-type-select" data-url-field="btn1_url_field">
+          <?php foreach ($btnTypeLabels as $__val => $__label): ?>
+            <option value="<?= e($__val) ?>"<?= ($about['btn1_type'] ?? 'custom') === $__val ? ' selected' : '' ?>><?= e($__label) ?></option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+      <div class="form-field" id="btn1_url_field">
+        <label>Кнопка 1 — своя ссылка (только для типа «Своя ссылка»)</label>
+        <input type="text" name="btn1_url" value="<?= e($about['btn1_url'] ?? '') ?>" placeholder="например #widget-1 или https://...">
+      </div>
+      <div class="form-field form-field--switch">
+        <label class="switch">
+          <input type="checkbox" name="btn1_enabled" value="1" <?= ($about['btn1_enabled'] ?? 1) ? 'checked' : '' ?>>
+          <span class="switch-slider"></span>
+        </label>
+        <span>Показывать кнопку 1 на сайте</span>
       </div>
 
       <div class="form-field">
@@ -257,9 +284,31 @@ $skills = $pdo->query('SELECT * FROM about_skills ORDER BY sort_order, id')->fet
         <input type="text" id="btn2_text_ua" name="btn2_text_ua" value="<?= e($about['btn2_text_ua'] ?? '') ?>" maxlength="40">
       </div>
       <div class="form-field">
-        <label>Кнопка 2 — ссылка</label>
+        <label>Кнопка 2 — куда ведёт</label>
+        <select name="btn2_type" class="admin-btn-type-select" data-url-field="btn2_url_field">
+          <?php foreach ($btnTypeLabels as $__val => $__label): ?>
+            <option value="<?= e($__val) ?>"<?= ($about['btn2_type'] ?? 'custom') === $__val ? ' selected' : '' ?>><?= e($__label) ?></option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+      <div class="form-field" id="btn2_url_field">
+        <label>Кнопка 2 — своя ссылка (только для типа «Своя ссылка»)</label>
         <input type="text" name="btn2_url" value="<?= e($about['btn2_url'] ?? '') ?>">
       </div>
+      <div class="form-field form-field--switch">
+        <label class="switch">
+          <input type="checkbox" name="btn2_enabled" value="1" <?= ($about['btn2_enabled'] ?? 1) ? 'checked' : '' ?>>
+          <span class="switch-slider"></span>
+        </label>
+        <span>Показывать кнопку 2 на сайте</span>
+      </div>
+
+      <p class="field-hint">
+        «Instagram» и «Открыть Viber-чат» берут ссылку/номер из раздела
+        «Настройки» автоматически. «Раздел Отзывы» сразу переключает
+        посетителя на вкладку «Отзывы» этого же сайта. Поле «своя ссылка»
+        используется только когда выбран тип «Своя ссылка».
+      </p>
 
       <button type="submit" class="btn full">Сохранить блок «О мне»</button>
     </form>
@@ -276,11 +325,13 @@ $skills = $pdo->query('SELECT * FROM about_skills ORDER BY sort_order, id')->fet
       </div>
       <div class="form-field">
         <label>Подпись, рус. (например «Года опыта»)</label>
-        <input type="text" name="label" required maxlength="60">
+        <input type="text" id="stat_label" name="label" required maxlength="60">
       </div>
       <div class="form-field">
-        <label>Подпись, укр. (необязательно)</label>
-        <input type="text" name="label_ua" maxlength="60">
+        <label>Подпись, укр. (необязательно)
+          <button type="button" class="btn ghost admin-translate-btn" data-translate-from="stat_label" data-translate-to="stat_label_ua">⇄ Перевести с рус.</button>
+        </label>
+        <input type="text" id="stat_label_ua" name="label_ua" maxlength="60">
       </div>
       <button type="submit" class="btn full">Добавить статистику</button>
     </form>
@@ -314,11 +365,13 @@ $skills = $pdo->query('SELECT * FROM about_skills ORDER BY sort_order, id')->fet
       <input type="hidden" name="form" value="skill_add">
       <div class="form-field">
         <label>Название, рус. (например «Premiere Pro»)</label>
-        <input type="text" name="name" required maxlength="60">
+        <input type="text" id="skill_name" name="name" required maxlength="60">
       </div>
       <div class="form-field">
-        <label>Название, укр. (необязательно)</label>
-        <input type="text" name="name_ua" maxlength="60">
+        <label>Название, укр. (необязательно)
+          <button type="button" class="btn ghost admin-translate-btn" data-translate-from="skill_name" data-translate-to="skill_name_ua">⇄ Перевести с рус.</button>
+        </label>
+        <input type="text" id="skill_name_ua" name="name_ua" maxlength="60">
       </div>
       <div class="form-field">
         <label>Короткая иконка-текст (например «Pr»), если нет картинки</label>

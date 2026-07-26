@@ -16,7 +16,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrfCheck()) {
         setSetting('site_phone', trim((string)($_POST['site_phone'] ?? '')));
         setSetting('social_instagram_url', trim((string)($_POST['social_instagram_url'] ?? '')));
         setSetting('social_viber_phone', trim((string)($_POST['social_viber_phone'] ?? '')));
-        setSetting('social_telegram_phone', trim((string)($_POST['social_telegram_phone'] ?? '')));
         setSetting('social_phone', trim((string)($_POST['social_phone'] ?? '')));
         $siteMessage = 'Настройки сайта сохранены.';
     } else {
@@ -46,7 +45,6 @@ $siteName      = getSetting('site_name', '');
 $sitePhone     = getSetting('site_phone', '');
 $igUrl         = getSetting('social_instagram_url', '');
 $viberPhone    = getSetting('social_viber_phone', '');
-$tgPhone       = getSetting('social_telegram_phone', '');
 $callPhone     = getSetting('social_phone', '');
 ?>
 <!DOCTYPE html>
@@ -88,10 +86,6 @@ $callPhone     = getSetting('social_phone', '');
       <div class="form-field">
         <label>Номер для Viber</label>
         <input type="text" name="social_viber_phone" value="<?= e($viberPhone) ?>" placeholder="+380XXXXXXXXX">
-      </div>
-      <div class="form-field">
-        <label>Номер/юзернейм для Telegram</label>
-        <input type="text" name="social_telegram_phone" value="<?= e($tgPhone) ?>" placeholder="+380XXXXXXXXX">
       </div>
       <div class="form-field">
         <label>Номер для звонка (кнопка "Позвонить")</label>

@@ -74,27 +74,33 @@ $items = $pdo->query('SELECT * FROM work_experience ORDER BY sort_order, id DESC
       </div>
       <div class="form-field">
         <label>Должность, рус.</label>
-        <input type="text" name="position" required maxlength="100" value="<?= e($editItem['position'] ?? '') ?>">
+        <input type="text" id="exp_position" name="position" required maxlength="100" value="<?= e($editItem['position'] ?? '') ?>">
       </div>
       <div class="form-field">
-        <label>Должность, укр. (необязательно)</label>
-        <input type="text" name="position_ua" maxlength="100" value="<?= e($editItem['position_ua'] ?? '') ?>">
+        <label>Должность, укр. (необязательно)
+          <button type="button" class="btn ghost admin-translate-btn" data-translate-from="exp_position" data-translate-to="exp_position_ua">⇄ Перевести с рус.</button>
+        </label>
+        <input type="text" id="exp_position_ua" name="position_ua" maxlength="100" value="<?= e($editItem['position_ua'] ?? '') ?>">
       </div>
       <div class="form-field">
         <label>Компания, рус. (необязательно)</label>
-        <input type="text" name="company" maxlength="100" value="<?= e($editItem['company'] ?? '') ?>">
+        <input type="text" id="exp_company" name="company" maxlength="100" value="<?= e($editItem['company'] ?? '') ?>">
       </div>
       <div class="form-field">
-        <label>Компания, укр. (необязательно)</label>
-        <input type="text" name="company_ua" maxlength="100" value="<?= e($editItem['company_ua'] ?? '') ?>">
+        <label>Компания, укр. (необязательно)
+          <button type="button" class="btn ghost admin-translate-btn" data-translate-from="exp_company" data-translate-to="exp_company_ua">⇄ Перевести с рус.</button>
+        </label>
+        <input type="text" id="exp_company_ua" name="company_ua" maxlength="100" value="<?= e($editItem['company_ua'] ?? '') ?>">
       </div>
       <div class="form-field">
         <label>Описание, рус. (необязательно)</label>
-        <textarea name="description" maxlength="600"><?= e($editItem['description'] ?? '') ?></textarea>
+        <textarea id="exp_description" name="description" maxlength="600"><?= e($editItem['description'] ?? '') ?></textarea>
       </div>
       <div class="form-field">
-        <label>Описание, укр. (необязательно)</label>
-        <textarea name="description_ua" maxlength="600"><?= e($editItem['description_ua'] ?? '') ?></textarea>
+        <label>Описание, укр. (необязательно)
+          <button type="button" class="btn ghost admin-translate-btn" data-translate-from="exp_description" data-translate-to="exp_description_ua">⇄ Перевести с рус.</button>
+        </label>
+        <textarea id="exp_description_ua" name="description_ua" maxlength="600"><?= e($editItem['description_ua'] ?? '') ?></textarea>
       </div>
 
       <button type="submit" class="btn full"><?= $editItem ? 'Сохранить' : 'Добавить' ?></button>
@@ -127,5 +133,6 @@ $items = $pdo->query('SELECT * FROM work_experience ORDER BY sort_order, id DESC
     </tbody>
   </table>
 </div>
+<script src="assets/admin.js" defer></script>
 </body>
 </html>

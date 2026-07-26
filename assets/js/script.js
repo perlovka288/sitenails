@@ -27,6 +27,33 @@ document.addEventListener('DOMContentLoaded', function () {
 
   var pageHero = document.getElementById('pageHero');
 
+  // ===== Плавное появление блоков при прокрутке =====
+  var revealEls = document.querySelectorAll('.reveal-on-scroll');
+  var revealObserver = null;
+  if (revealEls.length && 'IntersectionObserver' in window) {
+    revealObserver = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-visible');
+          revealObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.15, rootMargin: '0px 0px -60px 0px' });
+    revealEls.forEach(function (el) { revealObserver.observe(el); });
+  } else {
+    revealEls.forEach(function (el) { el.classList.add('is-visible'); });
+  }
+
+  // Принудительно проявляет блоки текущей активной вкладки — используется
+  // сразу после переключения вкладки (см. setActiveTab), чтобы контент не
+  // "завис" невидимым из-за особенностей момента срабатывания observer'а.
+  function revealVisibleNow() {
+    document.querySelectorAll('.panel.is-active .reveal-on-scroll:not(.is-visible)').forEach(function (el) {
+      el.classList.add('is-visible');
+      if (revealObserver) revealObserver.unobserve(el);
+    });
+  }
+
   function updateHeroVisibility(name) {
     if (!pageHero) return;
     // Приветствие скрываем только на вкладке "О мне" — там уже есть своё
@@ -61,6 +88,11 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     updateViewportHeight();
+
+    // На всякий случай сразу проявляем блоки внутри только что открытой
+    // вкладки — она наезжает сдвигом transform, и IntersectionObserver
+    // может немного "опоздать" среагировать на этот сдвиг.
+    revealVisibleNow();
 
     if (!animate) {
       // возвращаем анимацию сразу после первого (мгновенного) позиционирования

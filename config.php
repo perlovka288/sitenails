@@ -199,12 +199,17 @@ function migrateSchema(PDO $pdo): void
         CREATE TABLE IF NOT EXISTS social_links (
             id           INTEGER PRIMARY KEY AUTOINCREMENT,
             platform     TEXT NOT NULL,
+            platform_ua  TEXT,
             icon_text    TEXT,
             icon_image   TEXT,
             url          TEXT NOT NULL,
             sort_order   INTEGER NOT NULL DEFAULT 0
         )
     ");
+    $socialCols = array_column($pdo->query('PRAGMA table_info(social_links)')->fetchAll(PDO::FETCH_ASSOC), 'name');
+    if (!in_array('platform_ua', $socialCols, true)) {
+        $pdo->exec('ALTER TABLE social_links ADD COLUMN platform_ua TEXT');
+    }
 
     // Кастомные виджеты-категории (галереи / видео / сертификаты PDF)
     $pdo->exec("
@@ -229,6 +234,25 @@ function migrateSchema(PDO $pdo): void
             created_at    TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
         )
     ");
+
+    // ==== Кнопки блока «О мне»: тип поведения + вкл/выкл (тумблер) ====
+    // btn{N}_type: 'custom' (своя ссылка, как раньше), 'instagram'
+    // (ведёт на Instagram из настроек), 'reviews' (открывает вкладку
+    // "Отзывы" на этом же сайте), 'viber' (сразу открывает чат Viber
+    // с номером из настроек). btn{N}_enabled — показывать ли кнопку
+    // вообще (тумблер в панели «О мне»), по умолчанию включено.
+    $aboutColumns = $pdo->query('PRAGMA table_info(about_me)')->fetchAll(PDO::FETCH_ASSOC);
+    $aboutColNames = array_column($aboutColumns, 'name');
+    foreach ([
+        'btn1_type'    => "ALTER TABLE about_me ADD COLUMN btn1_type TEXT NOT NULL DEFAULT 'custom'",
+        'btn2_type'    => "ALTER TABLE about_me ADD COLUMN btn2_type TEXT NOT NULL DEFAULT 'custom'",
+        'btn1_enabled' => 'ALTER TABLE about_me ADD COLUMN btn1_enabled INTEGER NOT NULL DEFAULT 1',
+        'btn2_enabled' => 'ALTER TABLE about_me ADD COLUMN btn2_enabled INTEGER NOT NULL DEFAULT 1',
+    ] as $__col => $__sql) {
+        if (!in_array($__col, $aboutColNames, true)) {
+            $pdo->exec($__sql);
+        }
+    }
 }
 
 // ==== НАСТРОЙКИ САЙТА (название, телефон, соцсети) — читаем/пишем из БД ====

@@ -49,6 +49,7 @@ foreach ($priceItems as $item) {
 $about = $pdo->query('SELECT * FROM about_me WHERE id = 1')->fetch();
 $aboutStats = $pdo->query('SELECT * FROM about_stats ORDER BY sort_order, id')->fetchAll();
 $aboutSkills = $pdo->query('SELECT * FROM about_skills ORDER BY sort_order, id')->fetchAll();
+$workExperience = $pdo->query('SELECT * FROM work_experience ORDER BY sort_order, id')->fetchAll();
 $aboutHasContent = $about && (
     trim((string)($about['title'] ?? '')) !== ''
     || trim((string)($about['bio'] ?? '')) !== ''
@@ -98,7 +99,7 @@ require __DIR__ . '/includes/header.php';
   <!-- ===== О МНЕ ===== -->
   <section class="panel" id="about" data-panel="about">
     <?php if ($aboutHasContent): ?>
-      <div class="about-me">
+      <div class="about-me reveal-on-scroll">
         <div class="about-me-photo">
           <?php if (!empty($about['photo_path'])): ?>
             <img src="<?= e($about['photo_path']) ?>" alt="<?= e($about['title'] ?? '') ?>">
@@ -116,6 +117,16 @@ require __DIR__ . '/includes/header.php';
             $__aboutBio      = ($lang === 'ua' && !empty($about['bio_ua']))      ? $about['bio_ua']      : ($about['bio'] ?? '');
             $__btn1Text = ($lang === 'ua' && !empty($about['btn1_text_ua'])) ? $about['btn1_text_ua'] : ($about['btn1_text'] ?? '');
             $__btn2Text = ($lang === 'ua' && !empty($about['btn2_text_ua'])) ? $about['btn2_text_ua'] : ($about['btn2_text'] ?? '');
+
+            // Кнопки могут быть выключены тумблером в панели управления,
+            // а их ссылка — либо своя (custom), либо один из готовых
+            // сценариев (Instagram / вкладка "Отзывы" / чат Viber).
+            $__btn1Enabled = ($about['btn1_enabled'] ?? 1) == 1;
+            $__btn2Enabled = ($about['btn2_enabled'] ?? 1) == 1;
+            $__btn1Href = $__btn1Enabled ? aboutButtonHref($about['btn1_type'] ?? 'custom', $about['btn1_url'] ?? null) : '';
+            $__btn2Href = $__btn2Enabled ? aboutButtonHref($about['btn2_type'] ?? 'custom', $about['btn2_url'] ?? null) : '';
+            $__btn1Show = $__btn1Enabled && $__btn1Text !== '' && $__btn1Href !== '';
+            $__btn2Show = $__btn2Enabled && $__btn2Text !== '' && $__btn2Href !== '';
           ?>
           <?php if ($__aboutGreeting !== ''): ?><span class="about-me-eyebrow"><?= e($__aboutGreeting) ?></span><?php endif; ?>
           <?php if ($__aboutTitle !== ''): ?><h1 class="about-me-title"><?= e($__aboutTitle) ?></h1><?php endif; ?>
@@ -148,20 +159,116 @@ require __DIR__ . '/includes/header.php';
             </div>
           <?php endif; ?>
 
-          <?php if (($__btn1Text !== '' && !empty($about['btn1_url'])) || ($__btn2Text !== '' && !empty($about['btn2_url']))): ?>
+          <?php if ($__btn1Show || $__btn2Show): ?>
             <div class="about-me-actions">
-              <?php if ($__btn1Text !== '' && !empty($about['btn1_url'])): ?>
-                <a href="<?= e($about['btn1_url']) ?>" class="btn" target="_blank" rel="noopener"><?= e($__btn1Text) ?></a>
+              <?php if ($__btn1Show): ?>
+                <a href="<?= e($__btn1Href) ?>" class="btn"<?= aboutButtonIsExternal($__btn1Href) ? ' target="_blank" rel="noopener"' : '' ?>><?= e($__btn1Text) ?></a>
               <?php endif; ?>
-              <?php if ($__btn2Text !== '' && !empty($about['btn2_url'])): ?>
-                <a href="<?= e($about['btn2_url']) ?>" class="btn ghost" target="_blank" rel="noopener"><?= e($__btn2Text) ?></a>
+              <?php if ($__btn2Show): ?>
+                <a href="<?= e($__btn2Href) ?>" class="btn ghost"<?= aboutButtonIsExternal($__btn2Href) ? ' target="_blank" rel="noopener"' : '' ?>><?= e($__btn2Text) ?></a>
               <?php endif; ?>
             </div>
           <?php endif; ?>
         </div>
       </div>
+
+      <?php if ($workExperience): ?>
+        <div class="work-experience reveal-on-scroll">
+          <h2 class="section-title" style="font-size:17px;"><?= e(t('experience_title')) ?></h2>
+          <div class="experience-list">
+            <?php foreach ($workExperience as $__exp): ?>
+              <?php
+                $__expPosition = ($lang === 'ua' && !empty($__exp['position_ua'])) ? $__exp['position_ua'] : $__exp['position'];
+                $__expCompany = ($lang === 'ua' && !empty($__exp['company_ua'])) ? $__exp['company_ua'] : ($__exp['company'] ?? '');
+                $__expDesc = ($lang === 'ua' && !empty($__exp['description_ua'])) ? $__exp['description_ua'] : ($__exp['description'] ?? '');
+              ?>
+              <div class="experience-card reveal-on-scroll">
+                <div class="experience-period"><?= e($__exp['period']) ?></div>
+                <div class="experience-position"><?= e($__expPosition) ?></div>
+                <?php if ($__expCompany !== ''): ?><div class="experience-company"><?= e($__expCompany) ?></div><?php endif; ?>
+                <?php if ($__expDesc !== ''): ?><div class="experience-desc"><?= nl2br(e($__expDesc)) ?></div><?php endif; ?>
+              </div>
+            <?php endforeach; ?>
+          </div>
+        </div>
+      <?php endif; ?>
     <?php else: ?>
       <p><?= e(t('about_empty')) ?></p>
+    <?php endif; ?>
+
+    <?php if ($socialLinksList): ?>
+      <!-- ===== СОЦСЕТИ / МЕССЕНДЖЕРЫ (свободный список из админки) — теперь
+           только на вкладке "О мне", а не на всех сразу, и размещены
+           ВЫШЕ блока "Достижения". ===== -->
+      <section class="social-widget reveal-on-scroll" id="social">
+        <h2 class="section-title"><?= e(t('social_title')) ?></h2>
+        <div class="social-widget-grid">
+          <?php foreach ($socialLinksList as $__soc): ?>
+            <?php $__socName = ($lang === 'ua' && !empty($__soc['platform_ua'])) ? $__soc['platform_ua'] : $__soc['platform']; ?>
+            <a class="social-widget-tile" href="<?= e($__soc['url']) ?>" target="_blank" rel="noopener">
+              <?php if (!empty($__soc['icon_image'])): ?>
+                <img src="<?= e($__soc['icon_image']) ?>" alt="" class="social-icon-img">
+              <?php else: ?>
+                <span class="social-widget-icon"><?= e($__soc['icon_text'] ?: '🔗') ?></span>
+              <?php endif; ?>
+              <span><?= e($__socName) ?></span>
+            </a>
+          <?php endforeach; ?>
+        </div>
+      </section>
+    <?php endif; ?>
+
+    <?php if ($widgetCategories): ?>
+      <!-- ===== ВИДЖЕТЫ: ГАЛЕРЕИ / ВИДЕО / СЕРТИФИКАТЫ =====
+           Раньше эти блоки выводились ПОСЛЕ .panels-track и поэтому были
+           видны на всех вкладках (Отзывы/Прайс/Запись) одновременно.
+           Теперь они — часть вкладки "О мне" и показываются только на ней. -->
+      <?php foreach ($widgetCategories as $__cat): ?>
+        <?php
+          $__catItems = $widgetItemsByCategory[(int)$__cat['id']] ?? [];
+          if (!$__catItems) continue;
+          $__catName = ($lang === 'ua' && !empty($__cat['name_ua'])) ? $__cat['name_ua'] : $__cat['name'];
+          // Если фото/видео/PDF меньше 3 штук — центрируем их, а не
+          // прижимаем к левому краю (как для полной прокручиваемой ленты).
+          $__catFew = count($__catItems) < 3;
+        ?>
+        <section class="widget-block reveal-on-scroll" id="widget-<?= (int)$__cat['id'] ?>">
+          <h2 class="section-title"><?= e($__catName ?: t('widgets_title_default')) ?></h2>
+          <div class="widget-carousel-wrap">
+            <?php if (!$__catFew): ?>
+            <button type="button" class="widget-carousel-arrow widget-carousel-arrow--prev" data-carousel-prev aria-label="←">&#8249;</button>
+            <?php endif; ?>
+            <div class="widget-carousel<?= $__catFew ? ' widget-carousel--few' : '' ?>" data-carousel>
+              <?php foreach ($__catItems as $__item): ?>
+                <div class="widget-carousel-item">
+                  <?php if ($__cat['type'] === 'photo'): ?>
+                    <button type="button" class="widget-photo-thumb" data-photo-src="<?= e($__item['file_path']) ?>">
+                      <img src="<?= e($__item['file_path']) ?>" alt="<?= e($__item['title'] ?? '') ?>" loading="lazy">
+                    </button>
+                    <?php if (!empty($__item['title'])): ?><div class="widget-item-caption"><?= e($__item['title']) ?></div><?php endif; ?>
+                  <?php elseif ($__cat['type'] === 'video'): ?>
+                    <button type="button" class="widget-video-thumb" data-video-src="<?= e($__item['file_path']) ?>">
+                      <video src="<?= e($__item['file_path']) ?>#t=0.1" preload="metadata" playsinline muted data-video-cover></video>
+                      <span class="widget-video-play" aria-hidden="true">&#9658;</span>
+                    </button>
+                    <?php if (!empty($__item['title'])): ?><div class="widget-item-caption"><?= e($__item['title']) ?></div><?php endif; ?>
+                  <?php else: ?>
+                    <a class="widget-pdf-tile" href="<?= e($__item['file_path']) ?>" target="_blank" rel="noopener">
+                      <span class="widget-pdf-cover" data-pdf-src="<?= e($__item['file_path']) ?>">
+                        <span class="widget-pdf-icon" aria-hidden="true">📄</span>
+                      </span>
+                      <span class="widget-pdf-title"><?= e($__item['title'] ?: 'PDF') ?></span>
+                    </a>
+                  <?php endif; ?>
+                </div>
+              <?php endforeach; ?>
+            </div>
+            <?php if (!$__catFew): ?>
+            <button type="button" class="widget-carousel-arrow widget-carousel-arrow--next" data-carousel-next aria-label="→">&#8250;</button>
+            <?php endif; ?>
+          </div>
+        </section>
+      <?php endforeach; ?>
     <?php endif; ?>
   </section>
 
@@ -200,7 +307,7 @@ require __DIR__ . '/includes/header.php';
 
     <?php foreach ($reviews as $r): ?>
       <?php $__photos = reviewPhotoPaths($r['photo_path']); ?>
-      <div class="card review<?= !$r['is_approved'] ? ' review--hidden' : '' ?>">
+      <div class="card review reveal-on-scroll<?= !$r['is_approved'] ? ' review--hidden' : '' ?>">
         <?php if ($__isAdmin && !$r['is_approved']): ?>
           <span class="badge new admin-hidden-badge"><?= e(t('reviews_hidden')) ?></span>
         <?php endif; ?>
@@ -264,7 +371,7 @@ require __DIR__ . '/includes/header.php';
 
     <?php foreach ($priceByCategory as $catKey => $cat): ?>
       <?php $isFramed = in_array($catKey, ['Наращивание / Коррекция'], true); ?>
-      <div class="price-block<?= $isFramed ? ' price-block--framed' : '' ?>">
+      <div class="price-block reveal-on-scroll<?= $isFramed ? ' price-block--framed' : '' ?>">
         <div class="price-category"><?= e($cat['label']) ?> <span class="heart">♡</span></div>
         <?php foreach ($cat['items'] as $item): ?>
           <?php $title = ($lang === 'ua' && !empty($item['title_ua'])) ? $item['title_ua'] : $item['title']; ?>
@@ -351,7 +458,6 @@ require __DIR__ . '/includes/header.php';
         <?php
           $__idxIgUrl      = getSetting('social_instagram_url', '');
           $__idxViberPhone = getSetting('social_viber_phone', '');
-          $__idxTgPhone    = getSetting('social_telegram_phone', '');
           $__idxCallPhone  = getSetting('social_phone', '');
         ?>
         <div class="contact-grid">
@@ -360,9 +466,6 @@ require __DIR__ . '/includes/header.php';
           </a>
           <a class="contact-tile" href="viber://chat?number=%2B<?= e(preg_replace('/\D/', '', $__idxViberPhone)) ?>">
             <span class="contact-icon"><img src="assets/img/social/viber.png" alt="" class="social-icon-img"></span><?= e(t('booking_viber')) ?>
-          </a>
-          <a class="contact-tile" href="https://t.me/+<?= e(preg_replace('/\D/', '', $__idxTgPhone)) ?>" target="_blank" rel="noopener">
-            <span class="contact-icon"><img src="assets/img/social/tg.png" alt="" class="social-icon-img"></span><?= e(t('booking_telegram')) ?>
           </a>
           <a class="contact-tile" href="tel:<?= e($__idxCallPhone) ?>">
             <span class="contact-icon">📞</span><?= e(t('booking_phone')) ?>
@@ -374,70 +477,6 @@ require __DIR__ . '/includes/header.php';
 
   </div>
   </div>
-
-  <?php if ($widgetCategories): ?>
-  <!-- ===== ВИДЖЕТЫ: ГАЛЕРЕИ / ВИДЕО / СЕРТИФИКАТЫ ===== -->
-  <?php foreach ($widgetCategories as $__cat): ?>
-    <?php
-      $__catItems = $widgetItemsByCategory[(int)$__cat['id']] ?? [];
-      if (!$__catItems) continue;
-      $__catName = ($lang === 'ua' && !empty($__cat['name_ua'])) ? $__cat['name_ua'] : $__cat['name'];
-    ?>
-    <section class="widget-block" id="widget-<?= (int)$__cat['id'] ?>">
-      <h2 class="section-title"><?= e($__catName ?: t('widgets_title_default')) ?></h2>
-      <div class="widget-carousel-wrap">
-        <button type="button" class="widget-carousel-arrow widget-carousel-arrow--prev" data-carousel-prev aria-label="←">&#8249;</button>
-        <div class="widget-carousel" data-carousel>
-          <?php foreach ($__catItems as $__item): ?>
-            <div class="widget-carousel-item">
-              <?php if ($__cat['type'] === 'photo'): ?>
-                <button type="button" class="widget-photo-thumb" data-photo-src="<?= e($__item['file_path']) ?>">
-                  <img src="<?= e($__item['file_path']) ?>" alt="<?= e($__item['title'] ?? '') ?>" loading="lazy">
-                </button>
-                <?php if (!empty($__item['title'])): ?><div class="widget-item-caption"><?= e($__item['title']) ?></div><?php endif; ?>
-              <?php elseif ($__cat['type'] === 'video'): ?>
-                <button type="button" class="widget-video-thumb" data-video-src="<?= e($__item['file_path']) ?>">
-                  <video src="<?= e($__item['file_path']) ?>#t=0.1" preload="metadata" playsinline muted data-video-cover></video>
-                  <span class="widget-video-play" aria-hidden="true">&#9658;</span>
-                </button>
-                <?php if (!empty($__item['title'])): ?><div class="widget-item-caption"><?= e($__item['title']) ?></div><?php endif; ?>
-              <?php else: ?>
-                <a class="widget-pdf-tile" href="<?= e($__item['file_path']) ?>" target="_blank" rel="noopener">
-                  <span class="widget-pdf-cover" data-pdf-src="<?= e($__item['file_path']) ?>">
-                    <span class="widget-pdf-icon" aria-hidden="true">📄</span>
-                  </span>
-                  <span class="widget-pdf-title"><?= e($__item['title'] ?: 'PDF') ?></span>
-                </a>
-              <?php endif; ?>
-            </div>
-          <?php endforeach; ?>
-        </div>
-        <button type="button" class="widget-carousel-arrow widget-carousel-arrow--next" data-carousel-next aria-label="→">&#8250;</button>
-      </div>
-    </section>
-  <?php endforeach; ?>
-  <?php endif; ?>
-
-  <?php if ($socialLinksList): ?>
-  <!-- ===== СОЦСЕТИ / МЕССЕНДЖЕРЫ ===== -->
-  <section class="social-widget" id="social">
-    <h2 class="section-title"><?= e(t('social_title')) ?></h2>
-    <div class="social-widget-grid">
-      <?php foreach ($socialLinksList as $__soc): ?>
-        <a class="social-widget-tile" href="<?= e($__soc['url']) ?>" target="_blank" rel="noopener">
-          <?php if (!empty($__soc['icon_image'])): ?>
-            <img src="<?= e($__soc['icon_image']) ?>" alt="" class="social-icon-img">
-          <?php else: ?>
-            <span class="social-widget-icon"><?= e($__soc['icon_text'] ?: '🔗') ?></span>
-          <?php endif; ?>
-          <span><?= e($__soc['platform']) ?></span>
-        </a>
-      <?php endforeach; ?>
-    </div>
-  </section>
-  <?php endif; ?>
-
-
 
   <!-- Модальное окно "Оставить отзыв" — вынесено за пределы .panels-track,
        чтобы position:fixed работал относительно всего экрана, а не

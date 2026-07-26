@@ -9,9 +9,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrfCheck()) {
     $action = $_POST['action'] ?? '';
 
     if ($action === 'add' || $action === 'edit') {
-        $platform = trim($_POST['platform'] ?? '');
-        $url      = trim($_POST['url'] ?? '');
-        $iconText = trim($_POST['icon_text'] ?? '');
+        $platform   = trim($_POST['platform'] ?? '');
+        $platformUa = trim($_POST['platform_ua'] ?? '');
+        $url        = trim($_POST['url'] ?? '');
+        $iconText   = trim($_POST['icon_text'] ?? '');
 
         if ($platform !== '' && $url !== '') {
             $iconImage = saveUploadedFile(
@@ -24,8 +25,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrfCheck()) {
 
             if ($action === 'add') {
                 $maxOrder = (int)$pdo->query('SELECT COALESCE(MAX(sort_order), 0) FROM social_links')->fetchColumn();
-                $pdo->prepare('INSERT INTO social_links (platform, icon_text, icon_image, url, sort_order) VALUES (?, ?, ?, ?, ?)')
-                    ->execute([$platform, $iconText ?: null, $iconImage, $url, $maxOrder + 1]);
+                $pdo->prepare('INSERT INTO social_links (platform, platform_ua, icon_text, icon_image, url, sort_order) VALUES (?, ?, ?, ?, ?, ?)')
+                    ->execute([$platform, $platformUa ?: null, $iconText ?: null, $iconImage, $url, $maxOrder + 1]);
             } else {
                 $id = (int)($_POST['id'] ?? 0);
                 if ($iconImage !== null) {
@@ -35,11 +36,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrfCheck()) {
                     if ($old) {
                         deleteUploadedFile($old['icon_image']);
                     }
-                    $pdo->prepare('UPDATE social_links SET platform = ?, icon_text = ?, icon_image = ?, url = ? WHERE id = ?')
-                        ->execute([$platform, $iconText ?: null, $iconImage, $url, $id]);
+                    $pdo->prepare('UPDATE social_links SET platform = ?, platform_ua = ?, icon_text = ?, icon_image = ?, url = ? WHERE id = ?')
+                        ->execute([$platform, $platformUa ?: null, $iconText ?: null, $iconImage, $url, $id]);
                 } else {
-                    $pdo->prepare('UPDATE social_links SET platform = ?, icon_text = ?, url = ? WHERE id = ?')
-                        ->execute([$platform, $iconText ?: null, $url, $id]);
+                    $pdo->prepare('UPDATE social_links SET platform = ?, platform_ua = ?, icon_text = ?, url = ? WHERE id = ?')
+                        ->execute([$platform, $platformUa ?: null, $iconText ?: null, $url, $id]);
                 }
             }
         }
@@ -81,8 +82,8 @@ $items = $pdo->query('SELECT * FROM social_links ORDER BY sort_order, id')->fetc
 
   <p style="color:var(--ink-soft); font-size:13px;">
     Это отдельный настраиваемый блок ссылок на соцсети/мессенджеры на сайте
-    (виджет «Соцсети»). Он не связан с иконками Instagram/Viber/Telegram/
-    звонок в шапке и подвале сайта — те по-прежнему настраиваются в разделе
+    (виджет «Соцсети»). Он не связан с иконками Instagram/Viber/звонок
+    в шапке и подвале сайта — те по-прежнему настраиваются в разделе
     «Настройки».
   </p>
 
@@ -94,8 +95,14 @@ $items = $pdo->query('SELECT * FROM social_links ORDER BY sort_order, id')->fetc
       <?php if ($editItem): ?><input type="hidden" name="id" value="<?= (int)$editItem['id'] ?>"><?php endif; ?>
 
       <div class="form-field">
-        <label>Название (например «Telegram», «Instagram», «WhatsApp»)</label>
-        <input type="text" name="platform" required maxlength="40" value="<?= e($editItem['platform'] ?? '') ?>">
+        <label>Название (например «Instagram», «WhatsApp»)</label>
+        <input type="text" id="social_platform" name="platform" required maxlength="40" value="<?= e($editItem['platform'] ?? '') ?>">
+      </div>
+      <div class="form-field">
+        <label>Название (укр., необязательно)
+          <button type="button" class="btn ghost admin-translate-btn" data-translate-from="social_platform" data-translate-to="social_platform_ua">⇄ Перевести с рус.</button>
+        </label>
+        <input type="text" id="social_platform_ua" name="platform_ua" maxlength="40" value="<?= e($editItem['platform_ua'] ?? '') ?>">
       </div>
       <div class="form-field">
         <label>Ссылка (полный адрес, например https://t.me/username)</label>
@@ -132,7 +139,7 @@ $items = $pdo->query('SELECT * FROM social_links ORDER BY sort_order, id')->fetc
               <?= e($item['icon_text'] ?: '—') ?>
             <?php endif; ?>
           </td>
-          <td><?= e($item['platform']) ?></td>
+          <td><?= e($item['platform']) ?><?= $item['platform_ua'] ? ' / ' . e($item['platform_ua']) : '' ?></td>
           <td style="word-break:break-all; max-width:220px;"><?= e($item['url']) ?></td>
           <td style="white-space:nowrap;">
             <a href="?edit=<?= (int)$item['id'] ?>" class="btn ghost" style="padding:6px 12px;font-size:12px;">Изменить</a>
@@ -149,5 +156,6 @@ $items = $pdo->query('SELECT * FROM social_links ORDER BY sort_order, id')->fetc
     </tbody>
   </table>
 </div>
+<script src="assets/admin.js" defer></script>
 </body>
 </html>

@@ -92,4 +92,18 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     }
   }
+
+  // ===== Кнопки блока «О мне»: показываем поле "своя ссылка" только
+  // когда выбран тип "Своя ссылка" — для остальных типов ссылка
+  // считается автоматически (Instagram/Viber из настроек, или вкладка
+  // "Отзывы" этого же сайта), вводить её вручную не нужно. =====
+  document.querySelectorAll('.admin-btn-type-select').forEach(function (select) {
+    var urlField = document.getElementById(select.dataset.urlField);
+    if (!urlField) return;
+    var sync = function () {
+      urlField.style.display = select.value === 'custom' ? '' : 'none';
+    };
+    select.addEventListener('change', sync);
+    sync();
+  });
 });

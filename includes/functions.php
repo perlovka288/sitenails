@@ -243,6 +243,31 @@ function currentServerUploadLimitBytes(): int
     return min($upload, $post);
 }
 
+// ==== Кнопки блока «О мне»: превращает выбранный в панели управления
+// тип кнопки ('instagram' / 'reviews' / 'viber' / 'custom') в реальную
+// ссылку. Для 'custom' используется ссылка, вписанная мамой вручную. ====
+function aboutButtonHref(string $type, ?string $customUrl): string
+{
+    switch ($type) {
+        case 'instagram':
+            return getSetting('social_instagram_url', '');
+        case 'reviews':
+            return '?tab=reviews';
+        case 'viber':
+            $phone = preg_replace('/\D/', '', getSetting('social_viber_phone', ''));
+            return 'viber://chat?number=%2B' . $phone;
+        default:
+            return trim((string)($customUrl ?? ''));
+    }
+}
+
+// Внешние ссылки открываем в новой вкладке, внутренние (например переход
+// на вкладку "Отзывы" этого же сайта) — в этой же, без target="_blank".
+function aboutButtonIsExternal(string $href): bool
+{
+    return str_starts_with($href, 'http://') || str_starts_with($href, 'https://');
+}
+
 // Допустимые MIME-типы для загрузок виджетов, по типу категории.
 function widgetAllowedMime(string $type): array
 {
