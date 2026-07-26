@@ -14,27 +14,35 @@ if ($name === '' || $message === '') {
     redirect('index.php?tab=reviews');
 }
 
-// ==== Фото к отзыву (необязательное) ====
+// ==== Фото к отзыву (до 3 штук, необязательно) ====
 // Сохраняем в assets/img/reviews/, чтобы отзывы вместе с фото
 // оставались на сайте после обновления страницы (обычная запись в БД
-// + файл на диске, никакого localStorage — переживает перезагрузку
+// + файлы на диске, никакого localStorage — переживает перезагрузку
 // и работает у всех посетителей одинаково).
-$photoPath = null;
-if (!empty($_FILES['photo']) && $_FILES['photo']['error'] !== UPLOAD_ERR_NO_FILE) {
-    $file = $_FILES['photo'];
+// Пути к фото храним в photo_path одной строкой в формате JSON-массива
+// (["assets/img/reviews/a.jpg", "..."]) — так один и тот же столбец
+// БД поддерживает от 0 до 3 фото без изменения структуры таблицы.
+$photoPaths = [];
+$allowed = [
+    'image/jpeg' => 'jpg',
+    'image/png'  => 'png',
+    'image/webp' => 'webp',
+    'image/gif'  => 'gif',
+];
+$maxBytes = 6 * 1024 * 1024; // 6 МБ на файл
+$maxPhotos = 3;
 
-    if ($file['error'] === UPLOAD_ERR_OK) {
-        $allowed = [
-            'image/jpeg' => 'jpg',
-            'image/png'  => 'png',
-            'image/webp' => 'webp',
-            'image/gif'  => 'gif',
-        ];
+if (!empty($_FILES['photos']) && is_array($_FILES['photos']['name'] ?? null)) {
+    $count = count($_FILES['photos']['name']);
+    for ($i = 0; $i < $count && count($photoPaths) < $maxPhotos; $i++) {
+        if (($_FILES['photos']['error'][$i] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+            continue;
+        }
+        $tmpName = $_FILES['photos']['tmp_name'][$i];
+        $size = (int)$_FILES['photos']['size'][$i];
+        $mime = function_exists('mime_content_type') ? mime_content_type($tmpName) : null;
 
-        $maxBytes = 6 * 1024 * 1024; // 6 МБ
-        $mime = function_exists('mime_content_type') ? mime_content_type($file['tmp_name']) : null;
-
-        if ($file['size'] <= $maxBytes && $mime !== null && isset($allowed[$mime])) {
+        if ($size > 0 && $size <= $maxBytes && $mime !== null && isset($allowed[$mime])) {
             $ext = $allowed[$mime];
             $dir = __DIR__ . '/assets/img/reviews';
             if (!is_dir($dir)) {
@@ -43,14 +51,15 @@ if (!empty($_FILES['photo']) && $_FILES['photo']['error'] !== UPLOAD_ERR_NO_FILE
             $filename = 'review_' . date('Ymd_His') . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
             $destination = $dir . '/' . $filename;
 
-            if (move_uploaded_file($file['tmp_name'], $destination)) {
-                $photoPath = 'assets/img/reviews/' . $filename;
+            if (move_uploaded_file($tmpName, $destination)) {
+                $photoPaths[] = 'assets/img/reviews/' . $filename;
             }
         }
-        // Если формат/размер не подошли — просто сохраняем отзыв без фото,
-        // не обрываем отправку из-за файла.
+        // Если формат/размер не подошли — просто пропускаем этот файл,
+        // не обрываем отправку отзыва из-за него.
     }
 }
+$photoPath = $photoPaths ? json_encode($photoPaths) : null;
 
 // Отзыв публикуется на сайте сразу же — мама, если что, всегда может
 // скрыть его или удалить в панели управления (раздел «Отзывы») или

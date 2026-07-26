@@ -1,8 +1,13 @@
 <?php
 /**
  * get_slots.php
- * Возвращает JSON со свободным/занятым временем на текущую неделю
+ * Возвращает JSON со свободным/занятым временем на конкретную неделю
  * (понедельник — воскресенье) для календаря записи.
+ *
+ * Параметр ?offset=N (0, 1, 2...) — на сколько недель вперёд от текущей
+ * листать календарь стрелочками «‹ ›» на сайте. Общее окно ограничено
+ * ближайшими ~30 днями (5 недель, offset 0..4) — дальше стрелка «вперёд»
+ * не пускает.
  *
  * Отдаём Content-Type: application/json сразу и подавляем вывод
  * предупреждений PHP в тело ответа, чтобы случайный notice/warning
@@ -19,9 +24,15 @@ try {
 
     $pdo = getDB();
 
-    // Всегда берём текущую календарную неделю (понедельник этой недели) —
-    // переключения недель на сайте больше нет.
-    $weekStart = new DateTime('monday this week');
+    // Окно навигации: сегодняшняя неделя (offset 0) + ещё немного вперёд,
+    // всего покрывая ближайшие ~30 дней.
+    $maxOffset = (int)floor(30 / 7); // 4 — то есть недели 0..4 (5 штук)
+
+    $offset = isset($_GET['offset']) ? (int)$_GET['offset'] : 0;
+    if ($offset < 0) $offset = 0;
+    if ($offset > $maxOffset) $offset = $maxOffset;
+
+    $weekStart = (new DateTime('monday this week'))->modify("+{$offset} week");
     $weekEnd = (clone $weekStart)->modify('+6 days');
 
     $stmt = $pdo->prepare(
@@ -60,6 +71,10 @@ try {
     echo json_encode([
         'success'    => true,
         'week_start' => $weekStart->format('Y-m-d'),
+        'week_end'   => $weekEnd->format('Y-m-d'),
+        'offset'     => $offset,
+        'can_prev'   => $offset > 0,
+        'can_next'   => $offset < $maxOffset,
         'days'       => $days,
     ], JSON_UNESCAPED_UNICODE);
 } catch (Throwable $e) {

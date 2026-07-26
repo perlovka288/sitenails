@@ -48,10 +48,15 @@ $reviews = $pdo->query('SELECT * FROM reviews ORDER BY is_approved ASC, created_
           <td><?= str_repeat('★', (int)$r['rating']) ?></td>
           <td><?= e($r['message']) ?></td>
           <td>
-            <?php if (!empty($r['photo_path'])): ?>
-              <a href="../<?= e($r['photo_path']) ?>" target="_blank">
-                <img src="../<?= e($r['photo_path']) ?>" alt="" style="width:56px;height:56px;object-fit:cover;border-radius:8px;border:1px solid var(--line);">
-              </a>
+            <?php $__adminPhotos = reviewPhotoPaths($r['photo_path']); ?>
+            <?php if ($__adminPhotos): ?>
+              <div style="display:flex; gap:6px;">
+              <?php foreach ($__adminPhotos as $__ap): ?>
+                <a href="../<?= e($__ap) ?>" target="_blank">
+                  <img src="../<?= e($__ap) ?>" alt="" style="width:56px;height:56px;object-fit:cover;border-radius:8px;border:1px solid var(--line);">
+                </a>
+              <?php endforeach; ?>
+              </div>
             <?php else: ?>
               —
             <?php endif; ?>

@@ -10,6 +10,22 @@ function e(string $value): string
     return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 }
 
+// Отзывы могут хранить фото в photo_path в двух форматах:
+//  - старый: обычная строка "assets/img/reviews/xxx.jpg" (одно фото)
+//  - новый:  JSON-массив ["assets/img/reviews/a.jpg", "..."] (до 3 фото)
+// Эта функция всегда возвращает обычный PHP-массив путей (может быть пустым).
+function reviewPhotoPaths(?string $photoPath): array
+{
+    if ($photoPath === null || $photoPath === '') {
+        return [];
+    }
+    $decoded = json_decode($photoPath, true);
+    if (is_array($decoded)) {
+        return array_values(array_filter($decoded, 'is_string'));
+    }
+    return [$photoPath];
+}
+
 // Название "запоминающей" куки — переживает даже потерю сессии на хостинге
 const REMEMBER_COOKIE_NAME = 'nails_remember';
 const REMEMBER_LIFETIME    = 60 * 60 * 24 * 90; // 90 дней

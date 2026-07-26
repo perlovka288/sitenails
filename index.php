@@ -62,16 +62,33 @@ require __DIR__ . '/includes/header.php';
     <?php endif; ?>
 
     <?php foreach ($reviews as $r): ?>
+      <?php $__photos = reviewPhotoPaths($r['photo_path']); ?>
       <div class="card review<?= !$r['is_approved'] ? ' review--hidden' : '' ?>">
         <?php if ($__isAdmin && !$r['is_approved']): ?>
           <span class="badge new admin-hidden-badge"><?= e(t('reviews_hidden')) ?></span>
         <?php endif; ?>
-        <div class="stars"><?= str_repeat('★', (int)$r['rating']) . str_repeat('☆', 5 - (int)$r['rating']) ?></div>
-        <?php if (!empty($r['photo_path'])): ?>
-          <img src="<?= e($r['photo_path']) ?>" alt="" class="review-photo">
+
+        <div class="review-head">
+          <span class="review-avatar" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>
+          </span>
+          <div class="review-head-info">
+            <div class="review-name"><?= e($r['author_name']) ?></div>
+            <div class="stars"><?= str_repeat('★', (int)$r['rating']) . str_repeat('☆', 5 - (int)$r['rating']) ?></div>
+          </div>
+        </div>
+
+        <div class="review-message"><?= nl2br(e($r['message'])) ?></div>
+
+        <?php if ($__photos): ?>
+          <div class="review-photos">
+            <?php foreach ($__photos as $__p): ?>
+              <button type="button" class="review-photo-thumb" data-photo-src="<?= e($__p) ?>">
+                <img src="<?= e($__p) ?>" alt="<?= e(t('photo_view_alt')) ?>">
+              </button>
+            <?php endforeach; ?>
+          </div>
         <?php endif; ?>
-        <div><?= nl2br(e($r['message'])) ?></div>
-        <div class="author">— <?= e($r['author_name']) ?></div>
 
         <?php if ($__isAdmin): ?>
         <div class="admin-inline-actions">
@@ -165,6 +182,12 @@ require __DIR__ . '/includes/header.php';
         <p class="admin-mode-hint"><?= e(t('admin_mode_badge')) ?>: <?= e(t('slot_form_title')) ?> — <?= $lang === 'ua' ? 'натисніть на будь-який час у календарі, щоб редагувати' : 'нажмите на любое время в календаре, чтобы его отредактировать' ?>.</p>
       <?php endif; ?>
 
+      <div class="calendar-nav">
+        <button type="button" class="cal-nav-btn" id="calPrevBtn" aria-label="<?= e(t('week_prev')) ?>">‹</button>
+        <span class="cal-nav-label" id="calWeekLabel"></span>
+        <button type="button" class="cal-nav-btn" id="calNextBtn" aria-label="<?= e(t('week_next')) ?>">›</button>
+      </div>
+
       <div class="calendar" id="bookingCalendar">
         <div class="calendar-grid" id="calendarGrid">
           <!-- заполняется через JS (get_slots.php): блоки Пн–Вс -->
@@ -227,8 +250,8 @@ require __DIR__ . '/includes/header.php';
         <div class="form-field">
           <label><?= e(t('reviews_rating')) ?></label>
           <input type="hidden" name="rating" id="ratingInput" value="5">
-          <div id="starPicker" style="font-size:26px; color:var(--accent); cursor:pointer;">
-            <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
+          <div id="starPicker" class="star-picker">
+            <span class="star selected">★</span><span class="star selected">★</span><span class="star selected">★</span><span class="star selected">★</span><span class="star selected">★</span>
           </div>
         </div>
         <div class="form-field">
@@ -237,16 +260,31 @@ require __DIR__ . '/includes/header.php';
         </div>
         <div class="form-field">
           <label><?= e(t('reviews_photo')) ?></label>
-          <label class="photo-upload-box" id="reviewPhotoBox" for="reviewPhotoInput">
-            <img id="reviewPhotoPreview" class="photo-upload-preview" style="display:none;" alt="">
-            <span class="photo-upload-plus" id="reviewPhotoPlus">+</span>
-          </label>
-          <input type="file" id="reviewPhotoInput" name="photo" accept="image/png,image/jpeg,image/webp,image/gif" style="display:none;">
+          <div class="photo-upload-row">
+            <?php for ($__i = 1; $__i <= 3; $__i++): ?>
+              <div class="photo-upload-slot">
+                <label class="photo-upload-box" for="reviewPhotoInput<?= $__i ?>">
+                  <img class="photo-upload-preview" style="display:none;" alt="">
+                  <span class="photo-upload-plus">
+                    <svg viewBox="0 0 24 24" width="26" height="26"><path d="M12 4v16M4 12h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                  </span>
+                </label>
+                <input type="file" id="reviewPhotoInput<?= $__i ?>" name="photos[]" class="photo-upload-input" accept="image/png,image/jpeg,image/webp,image/gif" style="display:none;">
+              </div>
+            <?php endfor; ?>
+          </div>
+          <p class="field-hint"><?= e(t('reviews_photo_hint')) ?></p>
         </div>
         <button type="submit" class="btn full"><?= e(t('reviews_send')) ?></button>
       </form>
       <button type="button" class="modal-close" id="closeReviewModalBtn"><?= e(t('close')) ?></button>
     </div>
+  </div>
+
+  <!-- ===== Лайтбокс для просмотра фото отзывов (открыть/закрыть крестиком) ===== -->
+  <div class="modal-overlay lightbox-overlay" id="photoLightboxOverlay">
+    <button type="button" class="lightbox-close" id="photoLightboxClose" aria-label="<?= e(t('close')) ?>">&times;</button>
+    <img src="" alt="" class="lightbox-img" id="photoLightboxImg">
   </div>
 
   <?php if ($__isAdmin): ?>

@@ -13,6 +13,7 @@
   --primary: #ffffff;       /* белый акцент вместо золота */
   --primary-soft: rgba(255, 255, 255, .12);
   --primary-dark: #d6d6d6;
+  --star-gold: #ffc94d;     /* отдельный жёлтый цвет — только для звёзд рейтинга */
   --line: rgba(245, 245, 245, .14);
   --line-strong: rgba(245, 245, 245, .28);
   --radius: 16px;
@@ -331,8 +332,45 @@ section.block { padding: 28px 0; }
 }
 
 /* Отзывы */
-.review .stars { color: var(--primary); letter-spacing: 2px; margin-bottom: 8px; font-size: 15px; }
+.review .stars { color: var(--star-gold); letter-spacing: 2px; margin-bottom: 0; font-size: 15px; }
 .review .author { font-weight: 600; margin-top: 10px; color: var(--ink-soft); font-style: italic; }
+
+.review-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.review-avatar {
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  border: 1px solid var(--line-strong);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-faint);
+}
+.review-head-info { display: flex; flex-direction: column; gap: 3px; }
+.review-name { font-weight: 600; color: var(--ink); font-size: 15px; }
+.review-message { color: var(--ink-soft); white-space: pre-line; }
+
+.review-photos {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+.review-photo-thumb {
+  width: 64px;
+  height: 64px;
+  padding: 0;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-strong);
+  overflow: hidden;
+  cursor: pointer;
+  background: none;
+  transition: border-color .15s ease, transform .15s ease;
+}
+.review-photo-thumb:hover { border-color: var(--primary); transform: translateY(-1px); }
+.review-photo-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .review-photo {
   display: block;
   max-width: 100%;
@@ -741,13 +779,90 @@ table.admin-table th { background: var(--surface-2); font-size: 11px; text-trans
 .badge.done { background: rgba(120,180,130,.18); color: #9fd6a8;}
 .login-box { max-width: 380px; margin: 90px auto; }
 
+/* ===== Выбор рейтинга звёздами — жёлтые, "выбранные" ===== */
+.star-picker { font-size: 30px; line-height: 1; cursor: pointer; letter-spacing: 4px; }
+.star-picker .star {
+  color: var(--ink-faint);
+  transition: color .15s ease, text-shadow .15s ease, transform .1s ease;
+  display: inline-block;
+}
+.star-picker .star.selected {
+  color: var(--star-gold);
+  text-shadow: 0 0 10px rgba(255, 201, 77, .55);
+}
+.star-picker .star:hover { transform: scale(1.12); }
+
+/* ===== Ряд из 3 фото-кнопок в форме отзыва ===== */
+.photo-upload-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.field-hint { font-size: 12px; color: var(--ink-faint); margin: 6px 0 0; }
+
+/* ===== Лайтбокс для просмотра фото отзыва ===== */
+.lightbox-overlay {
+  background: rgba(0, 0, 0, .88);
+  align-items: center;
+  justify-content: center;
+}
+.lightbox-overlay .lightbox-img {
+  max-width: 92vw;
+  max-height: 86vh;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+  display: none;
+}
+.lightbox-overlay.open .lightbox-img { display: block; }
+.lightbox-close {
+  position: absolute;
+  top: 18px;
+  right: 22px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+.lightbox-close:hover { background: var(--surface-2); }
+
+/* ===== Стрелочки листания недель в календаре ===== */
+.calendar-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+.cal-nav-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background .15s ease, border-color .15s ease, opacity .15s ease;
+}
+.cal-nav-btn:hover:not(:disabled) { background: var(--primary-soft); border-color: var(--primary); }
+.cal-nav-btn:disabled { opacity: .3; cursor: default; }
+.cal-nav-label {
+  font-size: 13px;
+  color: var(--ink-soft);
+  min-width: 120px;
+  text-align: center;
+  text-transform: capitalize;
+}
+
 /* ===== Красивая кнопка загрузки фото (квадрат с "+" по центру) ===== */
 .photo-upload-box {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 110px;
-  height: 110px;
+  width: 90px;
+  height: 90px;
   border-radius: var(--radius-sm);
   border: 2px dashed var(--line-strong);
   background: var(--bg-soft);
@@ -758,12 +873,13 @@ table.admin-table th { background: var(--surface-2); font-size: 11px; text-trans
 .photo-upload-box:hover { border-color: var(--primary); background: var(--primary-soft); }
 .photo-upload-box.has-image { border-style: solid; border-color: var(--line); }
 .photo-upload-plus {
-  font-size: 40px;
-  line-height: 1;
-  font-weight: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: var(--ink-faint);
   user-select: none;
 }
+.photo-upload-plus svg { display: block; }
 .photo-upload-box:hover .photo-upload-plus { color: var(--primary); }
 .photo-upload-preview {
   width: 100%;

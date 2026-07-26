@@ -65,6 +65,11 @@ $GLOBALS['TRANSLATIONS'] = [
         'fab_hint'    => 'Выберите удобный способ связи:',
         'close'       => 'Закрыть',
 
+        'week_prev' => 'Предыдущая неделя',
+        'week_next' => 'Следующая неделя',
+        'reviews_photo_hint' => 'Можно прикрепить до 3 фото',
+        'photo_view_alt' => 'Открыть фото',
+
         'booking_confirm_title'    => 'Подтвердите запись',
         'booking_confirm_question'=> 'Вы действительно хотите выбрать это время?',
         'yes'                      => 'Да',
@@ -152,6 +157,11 @@ $GLOBALS['TRANSLATIONS'] = [
         'fab_title'   => "Зв'язатися з майстром",
         'fab_hint'    => 'Оберіть зручний спосіб зв\'язку:',
         'close'       => 'Закрити',
+
+        'week_prev' => 'Попередній тиждень',
+        'week_next' => 'Наступний тиждень',
+        'reviews_photo_hint' => 'Можна прикріпити до 3 фото',
+        'photo_view_alt' => 'Відкрити фото',
 
         'booking_confirm_title'    => 'Підтвердіть запис',
         'booking_confirm_question'=> 'Ви дійсно хочете обрати цей час?',

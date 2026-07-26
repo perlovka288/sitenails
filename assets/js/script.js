@@ -103,43 +103,71 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  // ===== Выбор рейтинга звёздами в форме отзыва =====
+  // ===== Выбор рейтинга звёздами в форме отзыва (жёлтые, "выбранные") =====
   var starWrap = document.getElementById('starPicker');
   if (starWrap) {
     var ratingInput = document.getElementById('ratingInput');
-    var stars = starWrap.querySelectorAll('span');
+    var stars = starWrap.querySelectorAll('.star');
     stars.forEach(function (star, idx) {
       star.addEventListener('click', function () {
         ratingInput.value = idx + 1;
         stars.forEach(function (s, i) {
-          s.style.opacity = i <= idx ? '1' : '.3';
+          s.classList.toggle('selected', i <= idx);
         });
       });
     });
   }
 
-  // ===== Красивая квадратная кнопка "+" для фото отзыва с превью =====
-  var reviewPhotoInput = document.getElementById('reviewPhotoInput');
-  var reviewPhotoPreview = document.getElementById('reviewPhotoPreview');
-  var reviewPhotoPlus = document.getElementById('reviewPhotoPlus');
-  var reviewPhotoBox = document.getElementById('reviewPhotoBox');
-  if (reviewPhotoInput && reviewPhotoPreview && reviewPhotoBox) {
-    reviewPhotoInput.addEventListener('change', function () {
-      var file = reviewPhotoInput.files && reviewPhotoInput.files[0];
+  // ===== Красивые квадратные кнопки "+" для фото отзыва (до 3 шт.) с превью =====
+  document.querySelectorAll('.photo-upload-slot').forEach(function (slot) {
+    var input = slot.querySelector('.photo-upload-input');
+    var box = slot.querySelector('.photo-upload-box');
+    var preview = slot.querySelector('.photo-upload-preview');
+    var plus = slot.querySelector('.photo-upload-plus');
+    if (!input || !box || !preview || !plus) return;
+
+    input.addEventListener('change', function () {
+      var file = input.files && input.files[0];
       if (!file) {
-        reviewPhotoPreview.style.display = 'none';
-        reviewPhotoPlus.style.display = 'block';
-        reviewPhotoBox.classList.remove('has-image');
+        preview.style.display = 'none';
+        plus.style.display = 'flex';
+        box.classList.remove('has-image');
         return;
       }
       var reader = new FileReader();
       reader.onload = function (ev) {
-        reviewPhotoPreview.src = ev.target.result;
-        reviewPhotoPreview.style.display = 'block';
-        reviewPhotoPlus.style.display = 'none';
-        reviewPhotoBox.classList.add('has-image');
+        preview.src = ev.target.result;
+        preview.style.display = 'block';
+        plus.style.display = 'none';
+        box.classList.add('has-image');
       };
       reader.readAsDataURL(file);
+    });
+  });
+
+  // ===== Лайтбокс: открыть фото отзыва на весь экран, закрыть крестиком =====
+  var lightboxOverlay = document.getElementById('photoLightboxOverlay');
+  var lightboxImg = document.getElementById('photoLightboxImg');
+  var lightboxClose = document.getElementById('photoLightboxClose');
+
+  if (lightboxOverlay && lightboxImg) {
+    document.querySelectorAll('.review-photo-thumb').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        lightboxImg.src = btn.dataset.photoSrc;
+        lightboxOverlay.classList.add('open');
+      });
+    });
+    if (lightboxClose) {
+      lightboxClose.addEventListener('click', function () {
+        lightboxOverlay.classList.remove('open');
+        lightboxImg.src = '';
+      });
+    }
+    lightboxOverlay.addEventListener('click', function (ev) {
+      if (ev.target === lightboxOverlay) {
+        lightboxOverlay.classList.remove('open');
+        lightboxImg.src = '';
+      }
     });
   }
 
@@ -351,10 +379,41 @@ document.addEventListener('DOMContentLoaded', function () {
 
       calEmpty.style.display = anySlots ? 'none' : 'block';
       if (!anySlots) calEmpty.textContent = labels.noSlots;
+
+      // ===== Стрелочки листания недель (‹ ›), окно примерно в 30 дней =====
+      if (calPrevBtn) calPrevBtn.disabled = !data.can_prev;
+      if (calNextBtn) calNextBtn.disabled = !data.can_next;
+      if (calWeekLabel && data.days.length) {
+        var first = data.days[0];
+        var last = data.days[data.days.length - 1];
+        calWeekLabel.textContent = (first.month === last.month)
+          ? (first.day + '–' + last.day + ' ' + last.month)
+          : (first.day + ' ' + first.month + ' – ' + last.day + ' ' + last.month);
+      }
     }
 
+    var calPrevBtn = document.getElementById('calPrevBtn');
+    var calNextBtn = document.getElementById('calNextBtn');
+    var calWeekLabel = document.getElementById('calWeekLabel');
+    var weekOffset = 0;
+
     function loadWeek() {
-      fetchJSON('get_slots.php').then(renderWeek);
+      fetchJSON('get_slots.php?offset=' + weekOffset).then(renderWeek);
+    }
+
+    if (calPrevBtn) {
+      calPrevBtn.addEventListener('click', function () {
+        if (weekOffset > 0) {
+          weekOffset--;
+          loadWeek();
+        }
+      });
+    }
+    if (calNextBtn) {
+      calNextBtn.addEventListener('click', function () {
+        weekOffset++;
+        loadWeek();
+      });
     }
 
     var bookingConfirmOverlay = document.getElementById('bookingConfirmOverlay');
