@@ -42,6 +42,7 @@ $__callPhone  = getSetting('social_phone', '');
 <div class="fab-overlay" id="fabOverlay">
   <div class="fab-modal">
     <h3><?= e(t('fab_title')) ?></h3>
+    <p class="fab-master-name"><?= e(t('fab_master_name')) ?></p>
     <p style="text-align:center; color:var(--ink-soft); font-size:13px; margin:6px 0 0;"><?= e(t('fab_hint')) ?></p>
     <div class="contact-grid">
       <a class="contact-tile" href="<?= e($__igUrl) ?>" target="_blank" rel="noopener">

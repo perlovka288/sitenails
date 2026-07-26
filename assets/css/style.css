@@ -186,6 +186,7 @@ a { color: inherit; }
   overflow: hidden;
   margin: 0 -20px;
   padding: 0 20px;
+  transition: height .35s cubic-bezier(.65,0,.35,1);
 }
 
 .panels-track {
@@ -541,6 +542,13 @@ footer .admin-dot {
   .fab-modal { border-radius: 22px; }
 }
 .fab-modal h3 { text-align: center; font-size: 19px; }
+.fab-master-name {
+  text-align: center;
+  color: var(--primary);
+  font-size: 14px;
+  font-weight: 600;
+  margin: 4px 0 0;
+}
 .fab-modal .contact-grid { margin-top: 16px; }
 .fab-close {
   display: block;

@@ -4,6 +4,26 @@ document.addEventListener('DOMContentLoaded', function () {
   var tabButtons = document.querySelectorAll('.tab-btn');
   var tabOrder = ['reviews', 'price', 'booking'];
   var panels = document.querySelectorAll('.panel');
+  var panelsViewport = document.querySelector('.panels-viewport');
+
+  // Высота блока со вкладками подстраивается под контент активной вкладки,
+  // а не под самую высокую из трёх (раньше высота была "статической" —
+  // общей для всех вкладок, из-за чего внизу оставался лишний пустой отступ).
+  function updateViewportHeight() {
+    if (!panelsViewport) return;
+    var activePanel = document.querySelector('.panel.is-active');
+    if (activePanel) {
+      panelsViewport.style.height = activePanel.scrollHeight + 'px';
+    }
+  }
+
+  if (panelsViewport && panels.length && window.ResizeObserver) {
+    var panelsResizeObserver = new ResizeObserver(function () {
+      updateViewportHeight();
+    });
+    panels.forEach(function (panel) { panelsResizeObserver.observe(panel); });
+  }
+  window.addEventListener('resize', updateViewportHeight);
 
   function setActiveTab(name, animate) {
     var idx = tabOrder.indexOf(name);
@@ -27,6 +47,8 @@ document.addEventListener('DOMContentLoaded', function () {
     panels.forEach(function (panel) {
       panel.classList.toggle('is-active', panel.dataset.panel === name);
     });
+
+    updateViewportHeight();
 
     if (!animate) {
       // возвращаем анимацию сразу после первого (мгновенного) позиционирования
