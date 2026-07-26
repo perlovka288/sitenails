@@ -7,8 +7,8 @@ $pdo = getDB();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrfCheck()) {
     $id = (int)($_POST['id'] ?? 0);
-    if (($_POST['action'] ?? '') === 'approve') {
-        $pdo->prepare('UPDATE reviews SET is_approved = 1 WHERE id = ?')->execute([$id]);
+    if (($_POST['action'] ?? '') === 'toggle') {
+        $pdo->prepare('UPDATE reviews SET is_approved = 1 - is_approved WHERE id = ?')->execute([$id]);
     } elseif (($_POST['action'] ?? '') === 'delete') {
         $pdo->prepare('DELETE FROM reviews WHERE id = ?')->execute([$id]);
     }
@@ -30,6 +30,12 @@ $reviews = $pdo->query('SELECT * FROM reviews ORDER BY is_approved ASC, created_
 <div class="admin-shell">
   <?php require __DIR__ . '/includes/nav.php'; ?>
 
+  <p style="color:var(--ink-soft); font-size:13px; margin-top:-6px;">
+    Новые отзывы публикуются на сайте сразу. Здесь можно временно скрыть
+    отзыв (он останется в базе, просто не будет виден посетителям) или
+    удалить его совсем.
+  </p>
+
   <table class="admin-table">
     <thead>
       <tr><th>Статус</th><th>Автор</th><th>Оценка</th><th>Текст</th><th>Фото</th><th>Действия</th></tr>
@@ -37,7 +43,7 @@ $reviews = $pdo->query('SELECT * FROM reviews ORDER BY is_approved ASC, created_
     <tbody>
       <?php foreach ($reviews as $r): ?>
         <tr>
-          <td><span class="badge <?= $r['is_approved'] ? 'done' : 'new' ?>"><?= $r['is_approved'] ? 'Опубликован' : 'На проверке' ?></span></td>
+          <td><span class="badge <?= $r['is_approved'] ? 'done' : 'new' ?>"><?= $r['is_approved'] ? 'Опубликован' : 'Скрыт' ?></span></td>
           <td><?= e($r['author_name']) ?></td>
           <td><?= str_repeat('★', (int)$r['rating']) ?></td>
           <td><?= e($r['message']) ?></td>
@@ -51,13 +57,13 @@ $reviews = $pdo->query('SELECT * FROM reviews ORDER BY is_approved ASC, created_
             <?php endif; ?>
           </td>
           <td style="white-space:nowrap;">
-            <?php if (!$r['is_approved']): ?>
             <form method="post" style="display:inline;">
               <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
               <input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
-              <button name="action" value="approve" class="btn" style="padding:6px 12px;font-size:12px;">Опубликовать</button>
+              <button name="action" value="toggle" class="btn" style="padding:6px 12px;font-size:12px;">
+                <?= $r['is_approved'] ? 'Скрыть' : 'Опубликовать' ?>
+              </button>
             </form>
-            <?php endif; ?>
             <form method="post" style="display:inline;" onsubmit="return confirm('Удалить отзыв?');">
               <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
               <input type="hidden" name="id" value="<?= (int)$r['id'] ?>">

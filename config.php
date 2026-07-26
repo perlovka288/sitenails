@@ -5,7 +5,31 @@
  * и общие настройки сайта.
  */
 
-session_start();
+// ==== СЕССИЯ ====
+// На некоторых бесплатных хостингах (например, InfinityFree) файлы сессий
+// живут недолго, из-за чего вход в панель управления "слетал". Чтобы мама
+// оставалась в панели авторизованной подолгу, куки сессии выставляем
+// на 30 дней вперёд, а также отдельно используем "запоминающую" куку
+// (см. issueRememberCookie() в includes/functions.php) — она переживает
+// даже полную очистку файлов сессий на хостинге.
+if (session_status() !== PHP_SESSION_ACTIVE) {
+    $__sessionLifetime = 60 * 60 * 24 * 30; // 30 дней
+    session_set_cookie_params([
+        'lifetime' => $__sessionLifetime,
+        'path'     => '/',
+        'secure'   => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
+    session_start();
+}
+
+// ==== СЕКРЕТНЫЙ КОД ДЛЯ ПЕРВИЧНОЙ РЕГИСТРАЦИИ МАМЫ В ПАНЕЛИ ====
+// Мама один раз открывает admin-x7k9m2/register.php?code=ЭТОТ_КОД,
+// придумывает свой логин/пароль — и дальше входит уже под ним.
+// После использования регистрация сама себя отключает (см. register.php).
+// Хотите — смените код на свой, любую строку без пробелов.
+define('ADMIN_REGISTER_CODE', 'mama-nails-2026-secret');
 
 // ==== ОБЩИЕ НАСТРОЙКИ САЙТА ====
 define('DB_PATH', __DIR__ . '/data/database.sqlite');
@@ -91,6 +115,17 @@ function migrateSchema(PDO $pdo): void
     }
     if (!$hasPhotoPath) {
         $pdo->exec('ALTER TABLE reviews ADD COLUMN photo_path TEXT');
+    }
+
+    // remember_token / remember_expires — токен "долгого входа" в панель,
+    // чтобы авторизация мамы не слетала (см. issueRememberCookie()).
+    $adminColumns = $pdo->query('PRAGMA table_info(admin_users)')->fetchAll(PDO::FETCH_ASSOC);
+    $adminColNames = array_column($adminColumns, 'name');
+    if (!in_array('remember_token', $adminColNames, true)) {
+        $pdo->exec('ALTER TABLE admin_users ADD COLUMN remember_token TEXT');
+    }
+    if (!in_array('remember_expires', $adminColNames, true)) {
+        $pdo->exec('ALTER TABLE admin_users ADD COLUMN remember_expires TEXT');
     }
 }
 

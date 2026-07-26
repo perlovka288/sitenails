@@ -29,7 +29,7 @@ $freeSlots     = $pdo->query("SELECT COUNT(*) FROM available_slots WHERE is_book
       <a href="bookings.php">Посмотреть →</a>
     </div>
     <div class="card">
-      <div style="font-size:13px;color:var(--ink-soft);">Отзывы на проверке</div>
+      <div style="font-size:13px;color:var(--ink-soft);">Скрытых отзывов</div>
       <div style="font-size:32px;font-family:'Manrope',sans-serif;font-weight:800;"><?= (int)$pendingReviews ?></div>
       <a href="reviews.php">Посмотреть →</a>
     </div>

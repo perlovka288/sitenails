@@ -30,6 +30,10 @@ $__callPhone  = getSetting('social_phone', '');
       /admin-x7k9m2/login.php  — эту ссылку лучше просто сохранить в закладки браузера.
     -->
     <a href="admin-x7k9m2/login.php" class="admin-dot" aria-hidden="true" tabindex="-1">•</a>
+
+    <?php if (isAdmin()): ?>
+      <a href="admin-x7k9m2/dashboard.php" class="admin-panel-btn"><?= e(t('admin_panel_button')) ?></a>
+    <?php endif; ?>
   </div>
 </footer>
 

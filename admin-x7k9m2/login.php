@@ -21,7 +21,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $user = $stmt->fetch();
 
         if ($user && password_verify($password, $user['password_hash'])) {
+            session_regenerate_id(true);
             $_SESSION['admin_id'] = $user['id'];
+            issueRememberCookie($user['id']);
             redirect('dashboard.php');
         } else {
             $error = 'Неверный логин или пароль.';

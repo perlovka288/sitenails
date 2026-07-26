@@ -118,6 +118,85 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  // ===== Красивая квадратная кнопка "+" для фото отзыва с превью =====
+  var reviewPhotoInput = document.getElementById('reviewPhotoInput');
+  var reviewPhotoPreview = document.getElementById('reviewPhotoPreview');
+  var reviewPhotoPlus = document.getElementById('reviewPhotoPlus');
+  var reviewPhotoBox = document.getElementById('reviewPhotoBox');
+  if (reviewPhotoInput && reviewPhotoPreview && reviewPhotoBox) {
+    reviewPhotoInput.addEventListener('change', function () {
+      var file = reviewPhotoInput.files && reviewPhotoInput.files[0];
+      if (!file) {
+        reviewPhotoPreview.style.display = 'none';
+        reviewPhotoPlus.style.display = 'block';
+        reviewPhotoBox.classList.remove('has-image');
+        return;
+      }
+      var reader = new FileReader();
+      reader.onload = function (ev) {
+        reviewPhotoPreview.src = ev.target.result;
+        reviewPhotoPreview.style.display = 'block';
+        reviewPhotoPlus.style.display = 'none';
+        reviewPhotoBox.classList.add('has-image');
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // ===== Модалка "Позиция прайса" (админ: добавить / изменить) =====
+  var priceModalOverlay = document.getElementById('priceModalOverlay');
+  var priceModalTitle = document.getElementById('priceModalTitle');
+  var priceModalAction = document.getElementById('priceModalAction');
+  var priceModalId = document.getElementById('priceModalId');
+  var priceModalCategory = document.getElementById('priceModalCategory');
+  var priceModalCategoryUa = document.getElementById('priceModalCategoryUa');
+  var priceModalTitleField = document.getElementById('priceModalTitleField');
+  var priceModalTitleUa = document.getElementById('priceModalTitleUa');
+  var priceModalPrice = document.getElementById('priceModalPrice');
+  var openPriceAddBtn = document.getElementById('openPriceAddBtn');
+  var closePriceModalBtn = document.getElementById('closePriceModalBtn');
+  var priceEditButtons = document.querySelectorAll('.price-edit-btn');
+
+  function openPriceModal(mode, data) {
+    if (!priceModalOverlay) return;
+    priceModalAction.value = mode === 'edit' ? 'price_edit' : 'price_add';
+    priceModalId.value = data && data.id ? data.id : '';
+    priceModalCategory.value = data && data.category ? data.category : '';
+    priceModalCategoryUa.value = data && data.categoryUa ? data.categoryUa : '';
+    priceModalTitleField.value = data && data.title ? data.title : '';
+    priceModalTitleUa.value = data && data.titleUa ? data.titleUa : '';
+    priceModalPrice.value = data && data.price ? data.price : '';
+    priceModalOverlay.classList.add('open');
+  }
+
+  if (openPriceAddBtn) {
+    openPriceAddBtn.addEventListener('click', function () {
+      openPriceModal('add', null);
+    });
+  }
+
+  priceEditButtons.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      openPriceModal('edit', {
+        id: btn.dataset.id,
+        category: btn.dataset.category,
+        categoryUa: btn.dataset.categoryUa,
+        title: btn.dataset.title,
+        titleUa: btn.dataset.titleUa,
+        price: btn.dataset.price
+      });
+    });
+  });
+
+  if (closePriceModalBtn && priceModalOverlay) {
+    closePriceModalBtn.addEventListener('click', function () {
+      priceModalOverlay.classList.remove('open');
+    });
+    priceModalOverlay.addEventListener('click', function (ev) {
+      if (ev.target === priceModalOverlay) priceModalOverlay.classList.remove('open');
+    });
+  }
+
   // ===== Безопасный fetch->json: не падает, если сервер вернул не-JSON =====
   function fetchJSON(url, options) {
     return fetch(url, options).then(function (r) {
@@ -143,6 +222,62 @@ document.addEventListener('DOMContentLoaded', function () {
     var labels = window.SITE_BOOKING_LABELS || { none: 'Время не выбрано', selected: 'Вы выбрали: ', booked: 'занято', noSlots: 'Свободного времени нет' };
 
     var selectedSlot = null; // { id, dateLabel, time }
+
+    // ===== Модалка "Свободное время" (админ: добавить / изменить / удалить) =====
+    var slotModalOverlay = document.getElementById('slotModalOverlay');
+    var slotModalForm = document.getElementById('slotModalForm');
+    var slotModalAction = document.getElementById('slotModalAction');
+    var slotModalId = document.getElementById('slotModalId');
+    var slotModalDate = document.getElementById('slotModalDate');
+    var slotModalTime = document.getElementById('slotModalTime');
+    var slotModalStatusField = document.getElementById('slotModalStatusField');
+    var slotModalBooked = document.getElementById('slotModalBooked');
+    var slotModalDeleteBtn = document.getElementById('slotModalDeleteBtn');
+    var slotDeleteForm = document.getElementById('slotDeleteForm');
+    var slotDeleteId = document.getElementById('slotDeleteId');
+    var closeSlotModalBtn = document.getElementById('closeSlotModalBtn');
+    var openSlotAddBtn = document.getElementById('openSlotAddBtn');
+
+    function openSlotEditModal(slot, day) {
+      if (!slotModalOverlay) return;
+      slotModalAction.value = 'slot_edit';
+      slotModalId.value = slot.id;
+      slotModalDate.value = day.date;
+      slotModalTime.value = slot.time;
+      slotModalStatusField.style.display = 'block';
+      slotModalBooked.checked = !!slot.booked;
+      slotModalDeleteBtn.style.display = 'block';
+      slotDeleteId.value = slot.id;
+      slotModalOverlay.classList.add('open');
+    }
+
+    if (openSlotAddBtn && slotModalOverlay) {
+      openSlotAddBtn.addEventListener('click', function () {
+        slotModalAction.value = 'slot_add';
+        slotModalId.value = '';
+        slotModalDate.value = '';
+        slotModalTime.value = '';
+        slotModalStatusField.style.display = 'none';
+        slotModalBooked.checked = false;
+        slotModalDeleteBtn.style.display = 'none';
+        slotModalOverlay.classList.add('open');
+      });
+    }
+
+    if (slotModalDeleteBtn && slotDeleteForm) {
+      slotModalDeleteBtn.addEventListener('click', function () {
+        slotDeleteForm.submit();
+      });
+    }
+
+    if (closeSlotModalBtn && slotModalOverlay) {
+      closeSlotModalBtn.addEventListener('click', function () {
+        slotModalOverlay.classList.remove('open');
+      });
+      slotModalOverlay.addEventListener('click', function (ev) {
+        if (ev.target === slotModalOverlay) slotModalOverlay.classList.remove('open');
+      });
+    }
 
     function fmtDateLabel(day) {
       return day.day + ' ' + day.month + ' (' + day.weekday + ')';
@@ -181,8 +316,9 @@ document.addEventListener('DOMContentLoaded', function () {
             anySlots = true;
             var btn = document.createElement('button');
             btn.type = 'button';
-            var isDisabled = slot.booked || day.is_past;
-            btn.className = 'cal-slot' + (slot.booked ? ' booked' : '');
+            var isAdminMode = !!window.SITE_IS_ADMIN;
+            var isDisabled = (slot.booked || day.is_past) && !isAdminMode;
+            btn.className = 'cal-slot' + (slot.booked ? ' booked' : '') + (isAdminMode ? ' admin-editable' : '');
             btn.textContent = slot.booked ? (slot.time + ' (' + labels.booked + ')') : slot.time;
             btn.disabled = isDisabled;
 
@@ -191,6 +327,10 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             btn.addEventListener('click', function () {
+              if (isAdminMode) {
+                openSlotEditModal(slot, day);
+                return;
+              }
               if (isDisabled) return;
               calendarGrid.querySelectorAll('.cal-slot.selected').forEach(function (el) {
                 el.classList.remove('selected');
@@ -217,6 +357,29 @@ document.addEventListener('DOMContentLoaded', function () {
       fetchJSON('get_slots.php').then(renderWeek);
     }
 
+    var bookingConfirmOverlay = document.getElementById('bookingConfirmOverlay');
+    var bookingConfirmYes = document.getElementById('bookingConfirmYes');
+    var bookingConfirmNo = document.getElementById('bookingConfirmNo');
+
+    function doBookSlot() {
+      var body = new URLSearchParams();
+      body.set('csrf_token', window.SITE_CSRF_TOKEN || '');
+      body.set('slot_id', selectedSlot.id);
+      body.set('visitor_name', localStorage.getItem('visitor_name') || '');
+
+      fetchJSON('select_slot.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: body.toString()
+      }).then(function (res) {
+        bookingContacts.style.display = 'block';
+        if (res && res.success) {
+          // Обновляем календарь, чтобы слот стал отмечен как занятый
+          loadWeek();
+        }
+      });
+    }
+
     if (bookingCta) {
       bookingCta.addEventListener('click', function () {
         if (!selectedSlot) {
@@ -226,22 +389,30 @@ document.addEventListener('DOMContentLoaded', function () {
           return;
         }
 
-        var body = new URLSearchParams();
-        body.set('csrf_token', window.SITE_CSRF_TOKEN || '');
-        body.set('slot_id', selectedSlot.id);
-        body.set('visitor_name', localStorage.getItem('visitor_name') || '');
+        // Спрашиваем подтверждение перед отправкой — чтобы случайный
+        // повторный клик по кнопке не создавал заявку по ошибке.
+        if (bookingConfirmOverlay) {
+          bookingConfirmOverlay.classList.add('open');
+        } else {
+          doBookSlot();
+        }
+      });
+    }
 
-        fetchJSON('select_slot.php', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: body.toString()
-        }).then(function (res) {
-          bookingContacts.style.display = 'block';
-          if (res && res.success) {
-            // Обновляем календарь, чтобы слот стал отмечен как занятый
-            loadWeek();
-          }
-        });
+    if (bookingConfirmYes) {
+      bookingConfirmYes.addEventListener('click', function () {
+        bookingConfirmOverlay.classList.remove('open');
+        if (selectedSlot) doBookSlot();
+      });
+    }
+    if (bookingConfirmNo) {
+      bookingConfirmNo.addEventListener('click', function () {
+        bookingConfirmOverlay.classList.remove('open');
+      });
+    }
+    if (bookingConfirmOverlay) {
+      bookingConfirmOverlay.addEventListener('click', function (ev) {
+        if (ev.target === bookingConfirmOverlay) bookingConfirmOverlay.classList.remove('open');
       });
     }
 

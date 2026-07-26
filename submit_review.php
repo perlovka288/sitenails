@@ -52,8 +52,11 @@ if (!empty($_FILES['photo']) && $_FILES['photo']['error'] !== UPLOAD_ERR_NO_FILE
     }
 }
 
+// Отзыв публикуется на сайте сразу же — мама, если что, всегда может
+// скрыть его или удалить в панели управления (раздел «Отзывы») или
+// прямо на сайте, если она вошла в браузере как администратор.
 $pdo = getDB();
-$stmt = $pdo->prepare("INSERT INTO reviews (author_name, rating, message, photo_path, is_approved) VALUES (?, ?, ?, ?, 0)");
+$stmt = $pdo->prepare("INSERT INTO reviews (author_name, rating, message, photo_path, is_approved) VALUES (?, ?, ?, ?, 1)");
 $stmt->execute([$name, $rating, $message, $photoPath]);
 
 redirect('index.php?tab=reviews&review_sent=1');

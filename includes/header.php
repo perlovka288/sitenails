@@ -10,6 +10,8 @@ $__siteTitle = $__siteName !== '' ? $__siteName : 'Мастер маникюра
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title><?= e($__siteTitle) ?></title>
+<link rel="icon" type="image/png" href="assets/img/social/nails.png">
+<link rel="apple-touch-icon" href="assets/img/social/nails.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,500&family=Jost:wght@300;400;500;600&family=Tangerine:wght@700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/css/style.css">
@@ -23,6 +25,9 @@ $__siteTitle = $__siteName !== '' ? $__siteName : 'Мастер маникюра
     <?php else: ?>
     <div class="brand">&nbsp;</div>
     <?php endif; ?>
+    <a href="index.php" class="site-logo" aria-hidden="true" tabindex="-1">
+      <img src="assets/img/social/nails.png" alt="<?= e($__siteTitle) ?>">
+    </a>
     <div class="lang-switch">
       <a href="?lang=ru<?= $__tabParam ?>" class="<?= $__lang === 'ru' ? 'active' : '' ?>">РУС</a>
       <a href="?lang=ua<?= $__tabParam ?>" class="<?= $__lang === 'ua' ? 'active' : '' ?>">УКР</a>
@@ -53,6 +58,7 @@ $__siteTitle = $__siteName !== '' ? $__siteName : 'Мастер маникюра
   window.SITE_GREET_TEMPLATE = <?= json_encode(t('greet_hello')) ?>;
   window.SITE_CSRF_TOKEN = <?= json_encode(csrfToken()) ?>;
   window.SITE_LANG_CODE = <?= json_encode($__lang) ?>;
+  window.SITE_IS_ADMIN = <?= json_encode(isAdmin()) ?>;
   window.SITE_BOOKING_LABELS = {
     none: <?= json_encode(t('booking_none')) ?>,
     selected: <?= json_encode(t('booking_selected')) ?>,
