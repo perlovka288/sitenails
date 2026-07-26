@@ -351,7 +351,41 @@ section.block { padding: 28px 0; }
 }
 .review-head-info { display: flex; flex-direction: column; gap: 3px; }
 .review-name { font-weight: 600; color: var(--ink); font-size: 15px; }
+.review-date { color: var(--ink-faint); font-size: 12px; margin: -6px 0 12px; }
 .review-message { color: var(--ink-soft); white-space: pre-line; }
+
+/* Средняя оценка по всем отзывам */
+.reviews-summary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 4px 0 18px;
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+.reviews-summary-stars { color: var(--star-gold); letter-spacing: 1px; font-size: 16px; }
+.reviews-summary-value { font-weight: 700; color: var(--ink); }
+.reviews-summary-count { color: var(--ink-faint); font-size: 13px; }
+
+/* Сортировка отзывов */
+.reviews-sort {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+.reviews-sort select {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  font-size: 13px;
+}
 
 .review-photos {
   display: flex;

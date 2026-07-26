@@ -26,7 +26,29 @@ function reviewPhotoPaths(?string $photoPath): array
     return [$photoPath];
 }
 
-// Название "запоминающей" куки — переживает даже потерю сессии на хостинге
+// Форматирует дату отзыва ("2026-07-26 14:32:10" из базы) в читаемый вид,
+// используя названия месяцев текущего языка сайта (из includes/lang.php).
+function formatReviewDate(?string $createdAt): string
+{
+    if (!$createdAt) {
+        return '';
+    }
+
+    $ts = strtotime($createdAt);
+    if ($ts === false) {
+        return '';
+    }
+
+    $months = t('months');
+    $day    = (int)date('j', $ts);
+    $month  = $months[(int)date('n', $ts) - 1] ?? '';
+    $year   = date('Y', $ts);
+    $time   = date('H:i', $ts);
+
+    return trim("{$day} {$month} {$year}, {$time}");
+}
+
+
 const REMEMBER_COOKIE_NAME = 'nails_remember';
 const REMEMBER_LIFETIME    = 60 * 60 * 24 * 90; // 90 дней
 

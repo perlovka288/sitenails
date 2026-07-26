@@ -7,12 +7,31 @@ $pdo = getDB();
 $lang = currentLang();
 $__isAdmin = isAdmin();
 
+// Сортировка отзывов: по дате (новые/старые сначала) или по оценке.
+$validReviewSorts = ['new', 'old', 'rating_high', 'rating_low'];
+$reviewSort = $_GET['review_sort'] ?? 'new';
+if (!in_array($reviewSort, $validReviewSorts, true)) {
+    $reviewSort = 'new';
+}
+$reviewOrderSql = match ($reviewSort) {
+    'old'         => 'created_at ASC',
+    'rating_high' => 'rating DESC, created_at DESC',
+    'rating_low'  => 'rating ASC, created_at DESC',
+    default       => 'created_at DESC',
+};
+
 // Мама (авторизованная как админ в этом же браузере) видит и скрытые
 // отзывы тоже — чтобы могла управлять ими прямо на сайте, не заходя
 // в отдельную панель. Обычные посетители видят только опубликованные.
 $reviews = $__isAdmin
-    ? $pdo->query("SELECT * FROM reviews ORDER BY created_at DESC")->fetchAll()
-    : $pdo->query("SELECT * FROM reviews WHERE is_approved = 1 ORDER BY created_at DESC")->fetchAll();
+    ? $pdo->query("SELECT * FROM reviews ORDER BY {$reviewOrderSql}")->fetchAll()
+    : $pdo->query("SELECT * FROM reviews WHERE is_approved = 1 ORDER BY {$reviewOrderSql}")->fetchAll();
+
+// Среднестатистическая оценка считается только по опубликованным отзывам
+// (даже если мама смотрит страницу и видит скрытые тоже).
+$reviewStats = $pdo->query("SELECT COUNT(*) AS cnt, AVG(rating) AS avg_rating FROM reviews WHERE is_approved = 1")->fetch();
+$reviewsCount = $reviewStats ? (int)$reviewStats['cnt'] : 0;
+$reviewsAvgRating = $reviewsCount > 0 ? round((float)$reviewStats['avg_rating'], 1) : null;
 
 $priceItems = $pdo->query("SELECT * FROM price_items ORDER BY category, sort_order")->fetchAll();
 
@@ -53,8 +72,29 @@ require __DIR__ . '/includes/header.php';
   <section class="panel" id="reviews" data-panel="reviews">
     <h2 class="section-title"><?= e(t('reviews_title')) ?></h2>
 
+    <?php if ($reviewsAvgRating !== null): ?>
+      <div class="reviews-summary">
+        <span class="reviews-summary-stars"><?= str_repeat('★', (int)round($reviewsAvgRating)) . str_repeat('☆', 5 - (int)round($reviewsAvgRating)) ?></span>
+        <span class="reviews-summary-value"><?= e(number_format($reviewsAvgRating, 1)) ?></span>
+        <span class="reviews-summary-count">(<?= (int)$reviewsCount ?> <?= e(t('reviews_count_word')) ?>)</span>
+      </div>
+    <?php endif; ?>
+
     <?php if ($reviewSent): ?>
       <div class="alert success"><?= e(t('reviews_sent')) ?></div>
+    <?php endif; ?>
+
+    <?php if ($reviews): ?>
+      <form method="get" class="reviews-sort" id="reviewsSortForm">
+        <input type="hidden" name="tab" value="reviews">
+        <label for="reviewSortSelect"><?= e(t('reviews_sort_label')) ?></label>
+        <select name="review_sort" id="reviewSortSelect" onchange="document.getElementById('reviewsSortForm').submit()">
+          <option value="new" <?= $reviewSort === 'new' ? 'selected' : '' ?>><?= e(t('reviews_sort_new')) ?></option>
+          <option value="old" <?= $reviewSort === 'old' ? 'selected' : '' ?>><?= e(t('reviews_sort_old')) ?></option>
+          <option value="rating_high" <?= $reviewSort === 'rating_high' ? 'selected' : '' ?>><?= e(t('reviews_sort_rating_high')) ?></option>
+          <option value="rating_low" <?= $reviewSort === 'rating_low' ? 'selected' : '' ?>><?= e(t('reviews_sort_rating_low')) ?></option>
+        </select>
+      </form>
     <?php endif; ?>
 
     <?php if (!$reviews): ?>
@@ -77,6 +117,8 @@ require __DIR__ . '/includes/header.php';
             <div class="stars"><?= str_repeat('★', (int)$r['rating']) . str_repeat('☆', 5 - (int)$r['rating']) ?></div>
           </div>
         </div>
+
+        <div class="review-date"><?= e(formatReviewDate($r['created_at'])) ?></div>
 
         <div class="review-message"><?= nl2br(e($r['message'])) ?></div>
 

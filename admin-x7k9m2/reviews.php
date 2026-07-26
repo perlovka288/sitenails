@@ -38,7 +38,7 @@ $reviews = $pdo->query('SELECT * FROM reviews ORDER BY is_approved ASC, created_
 
   <table class="admin-table">
     <thead>
-      <tr><th>Статус</th><th>Автор</th><th>Оценка</th><th>Текст</th><th>Фото</th><th>Действия</th></tr>
+      <tr><th>Статус</th><th>Автор</th><th>Оценка</th><th>Дата</th><th>Текст</th><th>Фото</th><th>Действия</th></tr>
     </thead>
     <tbody>
       <?php foreach ($reviews as $r): ?>
@@ -46,6 +46,7 @@ $reviews = $pdo->query('SELECT * FROM reviews ORDER BY is_approved ASC, created_
           <td><span class="badge <?= $r['is_approved'] ? 'done' : 'new' ?>"><?= $r['is_approved'] ? 'Опубликован' : 'Скрыт' ?></span></td>
           <td><?= e($r['author_name']) ?></td>
           <td><?= str_repeat('★', (int)$r['rating']) ?></td>
+          <td style="white-space:nowrap; color:var(--ink-faint); font-size:12px;"><?= e(date('d.m.Y H:i', strtotime($r['created_at']))) ?></td>
           <td><?= e($r['message']) ?></td>
           <td>
             <?php $__adminPhotos = reviewPhotoPaths($r['photo_path']); ?>
