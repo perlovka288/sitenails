@@ -62,6 +62,6 @@ $__callPhone  = getSetting('social_phone', '');
 </div>
 
 <script>window.SITE_LANG = <?= json_encode(currentLang()) ?>;</script>
-<script src="assets/js/script.js"></script>
+<script src="assets/js/script.js?v=<?= filemtime(__DIR__ . '/../assets/js/script.js') ?>"></script>
 </body>
 </html>
