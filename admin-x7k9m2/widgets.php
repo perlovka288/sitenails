@@ -180,7 +180,7 @@ $typeLabels = ['photo' => 'Фото (галерея)', 'video' => 'Видео', 
             <?php endif; ?>
           </button>
         <?php endforeach; ?>
-        <button type="button" class="admin-square-add-tile" data-modal-open="addItemModal-<?= $__catId ?>" aria-label="Добавить файл">+</button>
+        <button type="button" class="admin-square-add-tile" data-modal-open="addItemModal-<?= $__catId ?>" aria-label="Добавить файл"><span class="admin-plus-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span><span>Добавить</span></button>
       </div>
     </div>
   <?php endforeach; ?>

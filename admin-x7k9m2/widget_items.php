@@ -151,10 +151,13 @@ $typeAccept = [
         <input type="text" name="title" maxlength="100">
       </div>
       <?php if ($category['type'] === 'video'): ?>
-      <div class="form-field" style="display:flex; align-items:center; gap:8px;">
-        <input type="checkbox" id="compressVideoToggle" checked style="width:auto;">
-        <label for="compressVideoToggle" style="margin:0; font-weight:400;">Сжать видео перед загрузкой (рекомендуется — многие бесплатные хостинги режут большие файлы сильнее, чем указано в настройках)</label>
-      </div>
+      <label class="switch-field switch-field--row">
+        <span class="switch-field-label" style="text-transform:none; font-weight:400;">Сжать видео перед загрузкой (рекомендуется — многие бесплатные хостинги режут большие файлы сильнее, чем указано в настройках)</span>
+        <span class="switch">
+          <input type="checkbox" id="compressVideoToggle" checked>
+          <span class="switch-slider"></span>
+        </span>
+      </label>
       <p class="field-hint" id="compressVideoStatus" style="display:none;"></p>
       <?php endif; ?>
       <div class="form-field">

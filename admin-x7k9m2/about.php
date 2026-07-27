@@ -244,7 +244,7 @@ $buttons = $pdo->query('SELECT * FROM about_buttons ORDER BY sort_order, id')->f
         </div>
       <?php endif; ?>
 
-      <button type="button" class="admin-add-tile-btn" data-btn-add-open>+ Добавить кнопку</button>
+      <button type="button" class="admin-add-tile-btn" data-btn-add-open><span class="admin-plus-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span><span>Добавить кнопку</span></button>
     </div>
 
     <!-- ==================== 3. СТАТИСТИКА ==================== -->
@@ -270,7 +270,7 @@ $buttons = $pdo->query('SELECT * FROM about_buttons ORDER BY sort_order, id')->f
           <?php endforeach; ?>
         </div>
       <?php endif; ?>
-      <button type="button" class="admin-add-tile-btn" data-modal-open="modalStatAdd">+ Добавить статистику</button>
+      <button type="button" class="admin-add-tile-btn" data-modal-open="modalStatAdd"><span class="admin-plus-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span><span>Добавить статистику</span></button>
     </div>
 
     <!-- ==================== 4. НАВЫКИ / ИНСТРУМЕНТЫ ==================== -->
@@ -303,7 +303,7 @@ $buttons = $pdo->query('SELECT * FROM about_buttons ORDER BY sort_order, id')->f
           <?php endforeach; ?>
         </div>
       <?php endif; ?>
-      <button type="button" class="admin-add-tile-btn" data-modal-open="modalSkillAdd">+ Добавить навык</button>
+      <button type="button" class="admin-add-tile-btn" data-modal-open="modalSkillAdd"><span class="admin-plus-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span><span>Добавить навык</span></button>
     </div>
 
   </div>
@@ -324,18 +324,33 @@ $buttons = $pdo->query('SELECT * FROM about_buttons ORDER BY sort_order, id')->f
 
         <div class="form-field">
           <label>Фото / аватар</label>
-          <?php if (!empty($about['photo_path'])): ?>
-            <div class="admin-upload-current">
-              <img src="../<?= e($about['photo_path']) ?>" alt="">
-              <label style="display:flex; align-items:center; gap:6px; font-weight:400; text-transform:none;">
-                <input type="checkbox" name="remove_photo" value="1" style="width:auto;"> удалить текущее фото
-              </label>
+          <div class="admin-avatar-field">
+            <div class="admin-avatar-frame" id="aboutPhotoFrame" role="button" tabindex="0" aria-label="Выбрать/сменить фото">
+              <?php if (!empty($about['photo_path'])): ?>
+                <img src="../<?= e($about['photo_path']) ?>" alt="" id="aboutPhotoFrameImg">
+              <?php else: ?>
+                <span class="admin-avatar-frame-placeholder" id="aboutPhotoFramePlaceholder">
+                  <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>
+                </span>
+              <?php endif; ?>
+              <span class="admin-avatar-frame-hint">Изменить</span>
             </div>
-          <?php endif; ?>
-          <label class="file-input-styled">
-            <span>Выбрать файл</span>
-            <input type="file" name="photo" accept="image/png,image/jpeg,image/webp">
-          </label>
+            <div class="admin-avatar-field-actions">
+              <label class="file-input-styled">
+                <span>Выбрать файл</span>
+                <input type="file" name="photo" id="aboutPhotoInput" accept="image/png,image/jpeg,image/webp">
+              </label>
+              <?php if (!empty($about['photo_path'])): ?>
+                <label class="switch-field">
+                  <span class="switch-field-label">Удалить текущее фото</span>
+                  <span class="switch">
+                    <input type="checkbox" name="remove_photo" value="1">
+                    <span class="switch-slider"></span>
+                  </span>
+                </label>
+              <?php endif; ?>
+            </div>
+          </div>
         </div>
 
         <div class="form-field">
@@ -382,8 +397,88 @@ $buttons = $pdo->query('SELECT * FROM about_buttons ORDER BY sort_order, id')->f
           <textarea id="bio_ua" name="bio_ua" maxlength="800"><?= e($about['bio_ua'] ?? '') ?></textarea>
         </div>
 
-        <button type="submit" class="btn full">Сохранить</button>
+        <div class="admin-form-actions">
+          <button type="button" class="btn ghost" id="aboutPreviewBtn">👁 Предпросмотр</button>
+          <button type="submit" class="btn">Сохранить</button>
+        </div>
       </form>
+    </div>
+  </div>
+
+  <!-- ==================== МОДАЛКА: Предпросмотр блока «О мне» ====================
+       Показывает точную копию публичного блока «О мне» (та же вёрстка/классы,
+       что и на сайте), обновляется в реальном времени по мере ввода текста —
+       ничего сохранять и никуда переходить для этого не нужно. -->
+  <div class="modal-overlay" id="modalPreview">
+    <div class="modal-box" style="max-width:640px; text-align:left;">
+      <button type="button" class="modal-close" data-modal-close style="position:static; margin:0 0 8px auto; display:block;">✕</button>
+      <h3 style="text-align:left;">Предпросмотр</h3>
+      <p style="color:var(--ink-soft); font-size:13px; margin-top:0;">
+        Так этот блок будет выглядеть на сайте прямо сейчас, с учётом
+        текущих несохранённых изменений в форме.
+      </p>
+      <div class="admin-preview-frame" id="aboutLivePreview">
+        <div class="about-me">
+          <div class="about-me-photo">
+            <span data-preview="photo">
+              <?php if (!empty($about['photo_path'])): ?>
+                <img src="../<?= e($about['photo_path']) ?>" alt="">
+              <?php else: ?>
+                <div class="about-me-photo-placeholder" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" width="48" height="48" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>
+                </div>
+              <?php endif; ?>
+            </span>
+          </div>
+          <div class="about-me-content">
+            <span class="about-me-eyebrow" data-preview="greeting"><?= e($about['greeting'] ?? '') ?></span>
+            <h1 class="about-me-title" data-preview="title"><?= e($about['title'] ?: 'Заголовок появится здесь') ?></h1>
+            <p class="about-me-subtitle" data-preview="subtitle"><?= e($about['subtitle'] ?? '') ?></p>
+            <p class="about-me-bio" data-preview="bio"><?= nl2br(e($about['bio'] ?: 'Текст «о себе» появится здесь')) ?></p>
+
+            <?php if ($stats): ?>
+              <div class="about-me-stats">
+                <?php foreach ($stats as $__s): ?>
+                  <div class="about-me-stat">
+                    <div class="about-me-stat-value"><?= e($__s['value']) ?></div>
+                    <div class="about-me-stat-label"><?= e($__s['label']) ?></div>
+                  </div>
+                <?php endforeach; ?>
+              </div>
+            <?php endif; ?>
+
+            <?php if ($skills): ?>
+              <div class="about-me-skills">
+                <?php foreach ($skills as $__sk): ?>
+                  <div class="about-me-skill">
+                    <?php if (!empty($__sk['icon_image'])): ?>
+                      <span class="about-me-skill-icon about-me-skill-icon--img"><img src="../<?= e($__sk['icon_image']) ?>" alt=""></span>
+                    <?php else: ?>
+                      <span class="about-me-skill-icon"><?= e($__sk['icon_text'] ?: '★') ?></span>
+                    <?php endif; ?>
+                    <span><?= e($__sk['name']) ?></span>
+                  </div>
+                <?php endforeach; ?>
+              </div>
+            <?php endif; ?>
+
+            <?php
+              $__previewBtns = [];
+              foreach ($buttons as $__b) {
+                  if (!$__b['enabled']) continue;
+                  $__previewBtns[] = $__b['text'];
+              }
+            ?>
+            <?php if ($__previewBtns): ?>
+              <div class="about-me-actions">
+                <?php foreach ($__previewBtns as $__i => $__t): ?>
+                  <span class="btn<?= $__i > 0 ? ' ghost' : '' ?>" style="pointer-events:none;"><?= e($__t) ?></span>
+                <?php endforeach; ?>
+              </div>
+            <?php endif; ?>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 

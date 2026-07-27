@@ -1330,7 +1330,10 @@ button.admin-widget-item-card:hover { transform: translateY(-2px); }
   border: 1px dashed var(--line-strong);
   background: none;
   color: var(--ink-soft);
-  font-size: 30px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .03em;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1544,3 +1547,131 @@ button.admin-widget-item-card:hover { transform: translateY(-2px); }
 .admin-shell .modal-overlay { align-items: center; z-index: 500; }
 .admin-shell .modal-box { text-align: left; }
 .admin-shell .modal-box h3 { text-align: left; }
+
+/* Кнопки перевода — компактнее, чтобы не перегружать интерфейс. */
+.admin-translate-btn {
+  padding: 2px 9px;
+  font-size: 10.5px;
+  border-radius: 999px;
+  margin-left: 8px;
+  vertical-align: middle;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 600;
+}
+
+/* ===== Кликабельная рамка аватарки — клик по самому фото/заглушке
+   открывает выбор файла, так же как и кнопка "Выбрать файл" рядом. ===== */
+.admin-avatar-field {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.admin-avatar-frame {
+  position: relative;
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--surface-2);
+  border: 2px solid var(--line-strong);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-faint);
+  cursor: pointer;
+  transition: border-color .15s ease;
+}
+.admin-avatar-frame:hover,
+.admin-avatar-frame:focus-visible { border-color: var(--primary); outline: none; }
+.admin-avatar-frame img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.admin-avatar-frame-placeholder { display: flex; align-items: center; justify-content: center; }
+.admin-avatar-frame-hint {
+  position: absolute;
+  inset: auto 0 0 0;
+  background: rgba(0,0,0,.62);
+  color: var(--ink);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  padding: 5px 0;
+  text-align: center;
+  opacity: 0;
+  transition: opacity .15s ease;
+}
+.admin-avatar-frame:hover .admin-avatar-frame-hint,
+.admin-avatar-frame:focus-visible .admin-avatar-frame-hint { opacity: 1; }
+.admin-avatar-field-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+/* ===== Строка "тумблер + подпись", используется вместо голых
+   <input type="checkbox"> где угодно в админке. ===== */
+.switch-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+.switch-field-label { font-size: 13.5px; font-weight: 400; color: var(--ink); }
+.switch-field--row {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  gap: 14px;
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+}
+
+/* Действия формы «О мне»: предпросмотр слева, сохранить справа. */
+.admin-form-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.admin-form-actions .btn { width: auto; flex: 1; }
+
+/* Рамка предпросмотра — тёмная карточка внутри модалки, чтобы блок «О
+   мне» (со светлыми акцентами публичного сайта) не терялся на фоне
+   модалки панели управления. */
+.admin-preview-frame {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 24px 16px;
+}
+.admin-preview-frame .about-me { max-width: 100%; }
+
+/* ===== Крупные, аккуратные иконки "+" вместо мелких дефолтных плюсиков —
+   используются и на плитках виджетов, и на карточках "О мне". ===== */
+.admin-plus-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform .15s ease;
+}
+.admin-plus-icon svg { width: 16px; height: 16px; }
+.admin-add-tile-btn:hover .admin-plus-icon,
+.admin-square-add-tile:hover .admin-plus-icon { transform: rotate(90deg); }
+
+.admin-add-tile-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+.admin-square-add-tile { flex-direction: column; gap: 6px; font-size: 11px; }
+.admin-square-add-tile .admin-plus-icon { width: 38px; height: 38px; }
+.admin-square-add-tile .admin-plus-icon svg { width: 20px; height: 20px; }

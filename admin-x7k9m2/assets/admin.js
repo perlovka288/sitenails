@@ -54,6 +54,9 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   // ===== Живой предпросмотр «О мне» =====
+  // Кнопка "Предпросмотр" открывает модалку с точной копией публичного
+  // блока «О мне» — она обновляется по мере ввода текста в форме, ещё
+  // до сохранения, чтобы сразу видеть как всё будет смотреться на сайте.
   var preview = document.getElementById('aboutLivePreview');
   if (preview) {
     var pTitle = preview.querySelector('[data-preview="title"]');
@@ -61,13 +64,18 @@ document.addEventListener('DOMContentLoaded', function () {
     var pSubtitle = preview.querySelector('[data-preview="subtitle"]');
     var pBio = preview.querySelector('[data-preview="bio"]');
     var pPhoto = preview.querySelector('[data-preview="photo"]');
+    var pPhotoOriginalHtml = pPhoto ? pPhoto.innerHTML : '';
 
-    function bindText(fieldId, target, fallback) {
+    function bindText(fieldId, target, fallback, isBlock) {
       var field = document.getElementById(fieldId);
       if (!field || !target) return;
       var update = function () {
         var val = (field.value || '').trim();
-        target.textContent = val !== '' ? val : (fallback || '');
+        if (isBlock) {
+          target.innerHTML = (val !== '' ? val : (fallback || '')).replace(/\n/g, '<br>');
+        } else {
+          target.textContent = val !== '' ? val : (fallback || '');
+        }
         target.style.display = val !== '' ? '' : (fallback ? '' : 'none');
       };
       field.addEventListener('input', update);
@@ -77,13 +85,16 @@ document.addEventListener('DOMContentLoaded', function () {
     bindText('greeting', pGreeting, '');
     bindText('title', pTitle, 'Заголовок появится здесь');
     bindText('subtitle', pSubtitle, '');
-    bindText('bio', pBio, 'Текст «о себе» появится здесь');
+    bindText('bio', pBio, 'Текст «о себе» появится здесь', true);
 
-    var photoInput = document.querySelector('input[name="photo"]');
+    var photoInput = document.getElementById('aboutPhotoInput');
     if (photoInput && pPhoto) {
       photoInput.addEventListener('change', function () {
         var file = photoInput.files && photoInput.files[0];
-        if (!file) return;
+        if (!file) {
+          pPhoto.innerHTML = pPhotoOriginalHtml;
+          return;
+        }
         var reader = new FileReader();
         reader.onload = function (ev) {
           pPhoto.innerHTML = '<img src="' + ev.target.result + '" alt="" style="width:100%;height:100%;object-fit:cover;">';
@@ -91,6 +102,50 @@ document.addEventListener('DOMContentLoaded', function () {
         reader.readAsDataURL(file);
       });
     }
+
+    var previewBtn = document.getElementById('aboutPreviewBtn');
+    var previewModal = document.getElementById('modalPreview');
+    if (previewBtn && previewModal) {
+      previewBtn.addEventListener('click', function () {
+        previewModal.classList.add('open');
+      });
+    }
+  }
+
+  // ===== Клик по рамке аватарки — открывает выбор файла напрямую,
+  // без необходимости нажимать отдельную кнопку "Выбрать файл". =====
+  var avatarFrame = document.getElementById('aboutPhotoFrame');
+  var avatarInput = document.getElementById('aboutPhotoInput');
+  if (avatarFrame && avatarInput) {
+    avatarFrame.addEventListener('click', function () {
+      avatarInput.click();
+    });
+    avatarFrame.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        avatarInput.click();
+      }
+    });
+    avatarInput.addEventListener('change', function () {
+      var file = avatarInput.files && avatarInput.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function (ev) {
+        var placeholder = document.getElementById('aboutPhotoFramePlaceholder');
+        var existingImg = document.getElementById('aboutPhotoFrameImg');
+        if (existingImg) {
+          existingImg.src = ev.target.result;
+        } else {
+          var img = document.createElement('img');
+          img.id = 'aboutPhotoFrameImg';
+          img.src = ev.target.result;
+          img.alt = '';
+          if (placeholder) placeholder.replaceWith(img);
+          else avatarFrame.insertBefore(img, avatarFrame.firstChild);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
   }
 
   // ===== Кнопки блока «О мне»: показываем поле "своя ссылка" только
