@@ -76,6 +76,7 @@ $typeLabels = ['photo' => 'Фото (галерея)', 'video' => 'Видео', 
 <title>Виджеты — Панель управления</title>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../assets/css/style.css">
+<script>window.ADMIN_CSRF_TOKEN = <?= json_encode(csrfToken()) ?>;</script>
 </head>
 <body>
 <div class="admin-shell">
@@ -83,9 +84,10 @@ $typeLabels = ['photo' => 'Фото (галерея)', 'video' => 'Видео', 
 
   <p style="color:var(--ink-soft); font-size:13px;">
     Создайте категорию (например «Портфолио», «Сертификаты», «Видео-отзывы»),
-    выберите её тип, а затем нажмите «+ Добавить» на карточке категории ниже,
-    чтобы загрузить в неё фото, видео или PDF. На сайте содержимое категории
-    листается горизонтально (карусель).
+    выберите её тип, а затем нажмите на квадратную плитку «+» на карточке
+    категории ниже, чтобы загрузить в неё фото, видео или PDF — окно
+    загрузки откроется прямо здесь, переходить никуда не нужно. На сайте
+    содержимое категории листается горизонтально (карусель).
   </p>
 
   <div class="settings-group">
@@ -164,7 +166,11 @@ $typeLabels = ['photo' => 'Фото (галерея)', 'video' => 'Видео', 
       </div>
       <div class="admin-widget-item-grid">
         <?php foreach ($__catItems as $__it): ?>
-          <div class="admin-widget-item-card">
+          <button type="button" class="admin-widget-item-card"
+            data-item-edit
+            data-id="<?= (int)$__it['id'] ?>"
+            data-category-id="<?= $__catId ?>"
+            data-title="<?= e($__it['title'] ?? '') ?>">
             <?php if ($cat['type'] === 'photo'): ?>
               <img src="../<?= e($__it['file_path']) ?>" alt="">
             <?php elseif ($cat['type'] === 'video'): ?>
@@ -172,18 +178,78 @@ $typeLabels = ['photo' => 'Фото (галерея)', 'video' => 'Видео', 
             <?php else: ?>
               <div class="admin-widget-item-card-pdf">📄</div>
             <?php endif; ?>
-          </div>
+          </button>
         <?php endforeach; ?>
-        <a href="widget_items.php?category_id=<?= $__catId ?>" class="admin-widget-item-add-tile">
-          <span>+</span>
-          Добавить
-        </a>
+        <button type="button" class="admin-square-add-tile" data-modal-open="addItemModal-<?= $__catId ?>" aria-label="Добавить файл">+</button>
       </div>
     </div>
   <?php endforeach; ?>
   <?php if (!$categories): ?>
     <p style="color:var(--ink-soft); font-size:13px;">Пока нет ни одной категории — создайте первую в форме выше.</p>
   <?php endif; ?>
+
+  <!-- ==== Модалки "Добавить файл" — по одной на категорию (у каждой свой
+       допустимый тип файла и лимит размера) ==== -->
+  <?php foreach ($categories as $cat): ?>
+    <?php
+      $__catId = (int)$cat['id'];
+      $__catMaxBytes = $cat['type'] === 'video' ? 60 * 1024 * 1024 : 8 * 1024 * 1024;
+      $__typeAccept = [
+          'photo' => 'image/jpeg,image/png,image/webp,image/gif',
+          'video' => 'video/mp4,video/webm,video/quicktime',
+          'pdf'   => 'application/pdf',
+      ];
+    ?>
+    <div class="modal-overlay" id="addItemModal-<?= $__catId ?>">
+      <div class="modal-box" style="max-width:420px; text-align:left;">
+        <button type="button" class="modal-close" data-modal-close style="position:static; margin:0 0 8px auto; display:block;">✕</button>
+        <h3 style="text-align:left;">Добавить в «<?= e($cat['name']) ?>»</h3>
+        <form method="post" action="widget_items.php" enctype="multipart/form-data">
+          <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+          <input type="hidden" name="action" value="upload">
+          <input type="hidden" name="category_id" value="<?= $__catId ?>">
+          <div class="form-field">
+            <label>Подпись (необязательно)</label>
+            <input type="text" name="title" maxlength="100">
+          </div>
+          <div class="form-field">
+            <label>Файл (<?= e($typeLabels[$cat['type']] ?? '') ?>), максимум <?= round($__catMaxBytes / 1024 / 1024) ?> МБ</label>
+            <label class="file-input-styled">
+              <span>Выбрать файл</span>
+              <input type="file" name="file" accept="<?= e($__typeAccept[$cat['type']] ?? '') ?>" required>
+            </label>
+          </div>
+          <button type="submit" class="btn full">Загрузить</button>
+        </form>
+      </div>
+    </div>
+  <?php endforeach; ?>
+
+  <!-- ==== Модалка редактирования файла (переименовать / удалить) ==== -->
+  <div class="modal-overlay" id="editItemModal">
+    <div class="modal-box" style="max-width:400px; text-align:left;">
+      <button type="button" class="modal-close" data-modal-close style="position:static; margin:0 0 8px auto; display:block;">✕</button>
+      <h3 style="text-align:left;">Файл</h3>
+      <form method="post" action="widget_items.php" id="itemUpdateForm">
+        <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+        <input type="hidden" name="action" value="update_title">
+        <input type="hidden" name="category_id" id="editItemCategoryId" value="">
+        <input type="hidden" name="id" id="editItemId" value="">
+        <div class="form-field">
+          <label>Подпись</label>
+          <input type="text" name="title" id="editItemTitle" maxlength="100">
+        </div>
+        <button type="submit" class="btn full">Сохранить</button>
+      </form>
+      <form method="post" action="widget_items.php" id="itemDeleteForm" onsubmit="return confirm('Удалить этот файл?');" style="margin-top:8px;">
+        <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+        <input type="hidden" name="action" value="delete">
+        <input type="hidden" name="category_id" id="deleteItemCategoryId" value="">
+        <input type="hidden" name="id" id="deleteItemId" value="">
+        <button type="submit" class="btn ghost full">Удалить файл</button>
+      </form>
+    </div>
+  </div>
 </div>
 <script src="assets/admin.js" defer></script>
 </body>

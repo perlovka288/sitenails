@@ -75,6 +75,7 @@ $items = $pdo->query('SELECT * FROM social_links ORDER BY sort_order, id')->fetc
 <title>Соцсети — Панель управления</title>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../assets/css/style.css">
+<script>window.ADMIN_CSRF_TOKEN = <?= json_encode(csrfToken()) ?>;</script>
 </head>
 <body>
 <div class="admin-shell">
@@ -117,7 +118,10 @@ $items = $pdo->query('SELECT * FROM social_links ORDER BY sort_order, id')->fetc
         <?php if (!empty($editItem['icon_image'])): ?>
           <div class="admin-upload-current"><img src="../<?= e($editItem['icon_image']) ?>" alt=""></div>
         <?php endif; ?>
-        <input type="file" name="icon_image" accept="image/png,image/jpeg,image/webp">
+        <label class="file-input-styled">
+          <span>Выбрать файл</span>
+          <input type="file" name="icon_image" accept="image/png,image/jpeg,image/webp">
+        </label>
       </div>
 
       <button type="submit" class="btn full"><?= $editItem ? 'Сохранить' : 'Добавить' ?></button>

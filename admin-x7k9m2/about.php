@@ -5,11 +5,17 @@ require __DIR__ . '/includes/auth_check.php';
 
 $pdo = getDB();
 $message = '';
+$btnTypeLabels = [
+    'custom'    => 'Своя ссылка',
+    'instagram' => 'Instagram',
+    'reviews'   => 'Раздел «Отзывы» на сайте',
+    'viber'     => 'Открыть Viber-чат',
+];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrfCheck()) {
     $form = $_POST['form'] ?? '';
 
-    // ===== Основной блок «О мне» =====
+    // ===== Основной блок «О мне»: фото + приветствие/заголовок/текст =====
     if ($form === 'about_main') {
         $current = $pdo->query('SELECT * FROM about_me WHERE id = 1')->fetch();
 
@@ -33,9 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrfCheck()) {
         $pdo->prepare('
             UPDATE about_me SET
                 photo_path = ?, greeting = ?, greeting_ua = ?, title = ?, title_ua = ?,
-                subtitle = ?, subtitle_ua = ?, bio = ?, bio_ua = ?,
-                btn1_text = ?, btn1_text_ua = ?, btn1_url = ?, btn1_type = ?, btn1_enabled = ?,
-                btn2_text = ?, btn2_text_ua = ?, btn2_url = ?, btn2_type = ?, btn2_enabled = ?
+                subtitle = ?, subtitle_ua = ?, bio = ?, bio_ua = ?
             WHERE id = 1
         ')->execute([
             $photoPath,
@@ -43,14 +47,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrfCheck()) {
             trim($_POST['title'] ?? ''), trim($_POST['title_ua'] ?? '') ?: null,
             trim($_POST['subtitle'] ?? ''), trim($_POST['subtitle_ua'] ?? '') ?: null,
             trim($_POST['bio'] ?? ''), trim($_POST['bio_ua'] ?? '') ?: null,
-            trim($_POST['btn1_text'] ?? '') ?: null, trim($_POST['btn1_text_ua'] ?? '') ?: null, trim($_POST['btn1_url'] ?? '') ?: null,
-            in_array($_POST['btn1_type'] ?? '', ['custom', 'instagram', 'reviews', 'viber'], true) ? $_POST['btn1_type'] : 'custom',
-            isset($_POST['btn1_enabled']) ? 1 : 0,
-            trim($_POST['btn2_text'] ?? '') ?: null, trim($_POST['btn2_text_ua'] ?? '') ?: null, trim($_POST['btn2_url'] ?? '') ?: null,
-            in_array($_POST['btn2_type'] ?? '', ['custom', 'instagram', 'reviews', 'viber'], true) ? $_POST['btn2_type'] : 'custom',
-            isset($_POST['btn2_enabled']) ? 1 : 0,
         ]);
-        $message = 'Блок «О мне» сохранён.';
+        redirect('about.php');
+    }
+
+    // ===== Кнопки: добавить или изменить =====
+    if ($form === 'btn_save') {
+        $id = (int)($_POST['id'] ?? 0);
+        $text = trim($_POST['text'] ?? '');
+        $textUa = trim($_POST['text_ua'] ?? '');
+        $type = in_array($_POST['type'] ?? '', ['custom', 'instagram', 'reviews', 'viber'], true) ? $_POST['type'] : 'custom';
+        $url = trim($_POST['url'] ?? '');
+        $iconText = trim($_POST['icon_text'] ?? '');
+
+        if ($text !== '') {
+            if ($id > 0) {
+                $pdo->prepare('UPDATE about_buttons SET text = ?, text_ua = ?, type = ?, url = ?, icon_text = ? WHERE id = ?')
+                    ->execute([$text, $textUa ?: null, $type, $url ?: null, $iconText ?: null, $id]);
+            } else {
+                $maxOrder = (int)$pdo->query('SELECT COALESCE(MAX(sort_order), 0) FROM about_buttons')->fetchColumn();
+                $pdo->prepare('INSERT INTO about_buttons (text, text_ua, type, url, icon_text, enabled, sort_order) VALUES (?, ?, ?, ?, ?, 1, ?)')
+                    ->execute([$text, $textUa ?: null, $type, $url ?: null, $iconText ?: null, $maxOrder + 1]);
+            }
+        }
+        redirect('about.php');
+    }
+
+    // ===== Кнопки: вкл/выкл тумблером прямо из списка =====
+    if ($form === 'btn_toggle') {
+        $id = (int)($_POST['id'] ?? 0);
+        $pdo->prepare('UPDATE about_buttons SET enabled = ? WHERE id = ?')
+            ->execute([isset($_POST['enabled']) ? 1 : 0, $id]);
+        redirect('about.php');
+    }
+
+    // ===== Кнопки: удалить =====
+    if ($form === 'btn_delete') {
+        $pdo->prepare('DELETE FROM about_buttons WHERE id = ?')->execute([(int)($_POST['id'] ?? 0)]);
+        redirect('about.php');
     }
 
     // ===== Статистика: добавить =====
@@ -109,12 +143,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrfCheck()) {
 $about = $pdo->query('SELECT * FROM about_me WHERE id = 1')->fetch();
 $stats = $pdo->query('SELECT * FROM about_stats ORDER BY sort_order, id')->fetchAll();
 $skills = $pdo->query('SELECT * FROM about_skills ORDER BY sort_order, id')->fetchAll();
-$btnTypeLabels = [
-    'custom'    => 'Своя ссылка',
-    'instagram' => 'Instagram',
-    'reviews'   => 'Раздел «Отзывы» на сайте',
-    'viber'     => 'Открыть Viber-чат',
-];
+$buttons = $pdo->query('SELECT * FROM about_buttons ORDER BY sort_order, id')->fetchAll();
 ?>
 <!DOCTYPE html>
 <html lang="ru">
@@ -124,31 +153,7 @@ $btnTypeLabels = [
 <title>О мне — Панель управления</title>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../assets/css/style.css">
-<style>
-  .admin-translate-btn { padding: 3px 10px; font-size: 11px; margin-left: 8px; vertical-align: middle; }
-  .about-live-preview {
-    background: var(--surface, #f7f2ec);
-    border: 1px dashed var(--line-strong, #ccc);
-    border-radius: 12px;
-    padding: 18px;
-    margin-bottom: 18px;
-    display: flex;
-    gap: 16px;
-    align-items: center;
-    flex-wrap: wrap;
-  }
-  .about-live-preview-photo {
-    width: 84px; height: 84px; border-radius: 50%; overflow: hidden;
-    background: var(--surface-2, #eee); flex-shrink: 0;
-    display: flex; align-items: center; justify-content: center; font-size: 11px; color: var(--ink-soft, #888);
-  }
-  .about-live-preview-text { flex: 1 1 260px; }
-  .about-live-preview-label { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-soft, #888); margin-bottom: 6px; }
-  .form-field--switch { display: flex; align-items: center; gap: 12px; }
-  .form-field--switch span { font-size: 13px; color: var(--ink-soft); }
-</style>
 <script>window.ADMIN_CSRF_TOKEN = <?= json_encode(csrfToken()) ?>;</script>
-<script src="assets/admin.js" defer></script>
 </head>
 <body>
 <div class="admin-shell">
@@ -156,271 +161,336 @@ $btnTypeLabels = [
 
   <?php if ($message): ?><div class="alert success"><?= e($message) ?></div><?php endif; ?>
 
-  <div class="card">
-    <h3>Блок «О мне» (первый блок сайта)</h3>
-    <p style="color:var(--ink-soft); font-size:13px; margin-top:0;">
-      Фото слева, текст справа. Поля с пометкой «укр.» необязательны — если
-      их не заполнить, на украинской версии сайта будет показан русский текст.
-      Если оставить заголовок и текст «о себе» пустыми, блок на сайте вообще
-      не появится.
-    </p>
+  <p style="color:var(--ink-soft); font-size:13px;">
+    Блок «О мне» состоит из 4 частей. У каждой — своя карточка ниже:
+    нажмите на значок <strong>⚙</strong>, чтобы открыть окно редактирования,
+    ничего никуда переходить не нужно.
+  </p>
 
-    <div class="about-live-preview" id="aboutLivePreview">
-      <div class="about-live-preview-photo" data-preview="photo">
-        <?php if (!empty($about['photo_path'])): ?>
-          <img src="../<?= e($about['photo_path']) ?>" alt="" style="width:100%;height:100%;object-fit:cover;">
-        <?php else: ?>
-          нет фото
-        <?php endif; ?>
+  <div class="about-overview-grid">
+
+    <!-- ==================== 1. ИНФОРМАЦИЯ ==================== -->
+    <div class="card about-overview-card">
+      <div class="about-overview-card-head">
+        <div>
+          <h3>Информация</h3>
+          <p class="about-overview-card-sub">Фото, приветствие, заголовок, подзаголовок и текст «о себе».</p>
+        </div>
+        <button type="button" class="icon-btn" data-modal-open="modalInfo" aria-label="Настроить">⚙</button>
       </div>
-      <div class="about-live-preview-text">
-        <div class="about-live-preview-label">Так это будет выглядеть на сайте</div>
-        <div data-preview="greeting" style="font-size:12px; color:var(--ink-soft);"><?= e($about['greeting'] ?? '') ?></div>
-        <div data-preview="title" style="font-family:'Playfair Display',serif; font-weight:700; font-size:20px;"><?= e($about['title'] ?: 'Заголовок появится здесь') ?></div>
-        <div data-preview="subtitle" style="color:var(--primary); font-weight:600; font-size:13px;"><?= e($about['subtitle'] ?? '') ?></div>
-        <div data-preview="bio" style="font-size:13px; color:var(--ink-soft); margin-top:4px;"><?= e($about['bio'] ?: 'Текст «о себе» появится здесь') ?></div>
+      <div class="about-overview-preview">
+        <div class="about-overview-preview-photo">
+          <?php if (!empty($about['photo_path'])): ?>
+            <img src="../<?= e($about['photo_path']) ?>" alt="">
+          <?php else: ?>
+            <span>нет фото</span>
+          <?php endif; ?>
+        </div>
+        <div class="about-overview-preview-text">
+          <div class="about-overview-preview-title"><?= e($about['title'] ?: 'Заголовок пока не задан') ?></div>
+          <div class="about-overview-preview-sub"><?= e($about['subtitle'] ?? '') ?></div>
+        </div>
       </div>
     </div>
 
-    <form method="post" enctype="multipart/form-data">
-      <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
-      <input type="hidden" name="form" value="about_main">
-
-      <div class="form-field">
-        <label>Фото / аватар</label>
-        <?php if (!empty($about['photo_path'])): ?>
-          <div class="admin-upload-current">
-            <img src="../<?= e($about['photo_path']) ?>" alt="">
-            <label style="display:flex; align-items:center; gap:6px; font-weight:400; text-transform:none;">
-              <input type="checkbox" name="remove_photo" value="1" style="width:auto;"> удалить текущее фото
-            </label>
-          </div>
-        <?php endif; ?>
-        <input type="file" name="photo" accept="image/png,image/jpeg,image/webp">
-      </div>
-
-      <div class="form-field">
-        <label>Приветствие (рус.), например «Привет, я»</label>
-        <input type="text" id="greeting" name="greeting" value="<?= e($about['greeting'] ?? '') ?>" maxlength="60">
-      </div>
-      <div class="form-field">
-        <label>Приветствие (укр., необязательно)
-          <button type="button" class="btn ghost admin-translate-btn" data-translate-from="greeting" data-translate-to="greeting_ua">⇄ Перевести с рус.</button>
-        </label>
-        <input type="text" id="greeting_ua" name="greeting_ua" value="<?= e($about['greeting_ua'] ?? '') ?>" maxlength="60">
-      </div>
-
-      <div class="form-field">
-        <label>Заголовок (рус.), например «Меня зовут Мария»</label>
-        <input type="text" id="title" name="title" value="<?= e($about['title'] ?? '') ?>" maxlength="100">
-      </div>
-      <div class="form-field">
-        <label>Заголовок (укр., необязательно)
-          <button type="button" class="btn ghost admin-translate-btn" data-translate-from="title" data-translate-to="title_ua">⇄ Перевести с рус.</button>
-        </label>
-        <input type="text" id="title_ua" name="title_ua" value="<?= e($about['title_ua'] ?? '') ?>" maxlength="100">
-      </div>
-
-      <div class="form-field">
-        <label>Подзаголовок (рус.), например «Мастер маникюра»</label>
-        <input type="text" id="subtitle" name="subtitle" value="<?= e($about['subtitle'] ?? '') ?>" maxlength="120">
-      </div>
-      <div class="form-field">
-        <label>Подзаголовок (укр., необязательно)
-          <button type="button" class="btn ghost admin-translate-btn" data-translate-from="subtitle" data-translate-to="subtitle_ua">⇄ Перевести с рус.</button>
-        </label>
-        <input type="text" id="subtitle_ua" name="subtitle_ua" value="<?= e($about['subtitle_ua'] ?? '') ?>" maxlength="120">
-      </div>
-
-      <div class="form-field">
-        <label>Текст «О себе» (рус.)</label>
-        <textarea id="bio" name="bio" maxlength="800"><?= e($about['bio'] ?? '') ?></textarea>
-      </div>
-      <div class="form-field">
-        <label>Текст «О себе» (укр., необязательно)
-          <button type="button" class="btn ghost admin-translate-btn" data-translate-from="bio" data-translate-to="bio_ua">⇄ Перевести с рус.</button>
-        </label>
-        <textarea id="bio_ua" name="bio_ua" maxlength="800"><?= e($about['bio_ua'] ?? '') ?></textarea>
-      </div>
-
-      <div class="form-field">
-        <label>Кнопка 1 — текст (рус.), например «Смотреть работы»</label>
-        <input type="text" id="btn1_text" name="btn1_text" value="<?= e($about['btn1_text'] ?? '') ?>" maxlength="40">
-      </div>
-      <div class="form-field">
-        <label>Кнопка 1 — текст (укр., необязательно)
-          <button type="button" class="btn ghost admin-translate-btn" data-translate-from="btn1_text" data-translate-to="btn1_text_ua">⇄ Перевести с рус.</button>
-        </label>
-        <input type="text" id="btn1_text_ua" name="btn1_text_ua" value="<?= e($about['btn1_text_ua'] ?? '') ?>" maxlength="40">
-      </div>
-      <div class="settings-group">
-        <div class="settings-row">
-          <div class="settings-row-label">Кнопка 1 — куда ведёт</div>
-          <select name="btn1_type" class="admin-btn-type-select settings-row-control" data-url-field="btn1_url_field">
-            <?php foreach ($btnTypeLabels as $__val => $__label): ?>
-              <option value="<?= e($__val) ?>"<?= ($about['btn1_type'] ?? 'custom') === $__val ? ' selected' : '' ?>><?= e($__label) ?></option>
-            <?php endforeach; ?>
-          </select>
-        </div>
-        <div class="settings-row" id="btn1_url_field">
-          <div>
-            <div class="settings-row-label" style="font-weight:400;">Своя ссылка</div>
-            <div class="settings-row-sub">Только для типа «Своя ссылка», например #widget-1 или https://...</div>
-          </div>
-          <input type="text" name="btn1_url" class="settings-row-control" style="max-width:200px;" value="<?= e($about['btn1_url'] ?? '') ?>">
-        </div>
-        <div class="settings-row">
-          <div class="settings-row-label">Показывать кнопку 1 на сайте</div>
-          <label class="switch settings-row-control">
-            <input type="checkbox" name="btn1_enabled" value="1" <?= ($about['btn1_enabled'] ?? 1) ? 'checked' : '' ?>>
-            <span class="switch-slider"></span>
-          </label>
+    <!-- ==================== 2. КНОПКИ ==================== -->
+    <div class="card about-overview-card">
+      <div class="about-overview-card-head">
+        <div>
+          <h3>Кнопки</h3>
+          <p class="about-overview-card-sub">Кнопок можно добавить сколько угодно — каждую можно включить/выключить.</p>
         </div>
       </div>
 
-      <div class="form-field">
-        <label>Кнопка 2 — текст (рус.), например «Связаться»</label>
-        <input type="text" id="btn2_text" name="btn2_text" value="<?= e($about['btn2_text'] ?? '') ?>" maxlength="40">
-      </div>
-      <div class="form-field">
-        <label>Кнопка 2 — текст (укр., необязательно)
-          <button type="button" class="btn ghost admin-translate-btn" data-translate-from="btn2_text" data-translate-to="btn2_text_ua">⇄ Перевести с рус.</button>
-        </label>
-        <input type="text" id="btn2_text_ua" name="btn2_text_ua" value="<?= e($about['btn2_text_ua'] ?? '') ?>" maxlength="40">
-      </div>
-      <div class="settings-group">
-        <div class="settings-row">
-          <div class="settings-row-label">Кнопка 2 — куда ведёт</div>
-          <select name="btn2_type" class="admin-btn-type-select settings-row-control" data-url-field="btn2_url_field">
-            <?php foreach ($btnTypeLabels as $__val => $__label): ?>
-              <option value="<?= e($__val) ?>"<?= ($about['btn2_type'] ?? 'custom') === $__val ? ' selected' : '' ?>><?= e($__label) ?></option>
-            <?php endforeach; ?>
-          </select>
+      <?php if ($buttons): ?>
+        <div class="settings-group" style="margin-top:10px;">
+          <?php foreach ($buttons as $b): ?>
+            <div class="settings-row">
+              <div style="display:flex; align-items:center; gap:10px; min-width:0;">
+                <span class="about-btn-row-icon"><?= e($b['icon_text'] ?: '🔘') ?></span>
+                <div style="min-width:0;">
+                  <div class="settings-row-label"><?= e($b['text']) ?><?= $b['text_ua'] ? ' / ' . e($b['text_ua']) : '' ?></div>
+                  <div class="settings-row-sub"><?= e($btnTypeLabels[$b['type']] ?? $b['type']) ?></div>
+                </div>
+              </div>
+              <div style="display:flex; align-items:center; gap:10px; flex-shrink:0;">
+                <button type="button" class="icon-btn icon-btn--sm"
+                  data-btn-edit
+                  data-id="<?= (int)$b['id'] ?>"
+                  data-text="<?= e($b['text']) ?>"
+                  data-text-ua="<?= e($b['text_ua'] ?? '') ?>"
+                  data-type="<?= e($b['type']) ?>"
+                  data-url="<?= e($b['url'] ?? '') ?>"
+                  data-icon="<?= e($b['icon_text'] ?? '') ?>"
+                  aria-label="Изменить">✎</button>
+                <form method="post" onsubmit="return confirm('Удалить эту кнопку?');">
+                  <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+                  <input type="hidden" name="form" value="btn_delete">
+                  <input type="hidden" name="id" value="<?= (int)$b['id'] ?>">
+                  <button type="submit" class="icon-btn icon-btn--sm" aria-label="Удалить">✕</button>
+                </form>
+                <form method="post" onchange="this.submit()">
+                  <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+                  <input type="hidden" name="form" value="btn_toggle">
+                  <input type="hidden" name="id" value="<?= (int)$b['id'] ?>">
+                  <label class="switch">
+                    <input type="checkbox" name="enabled" value="1" <?= $b['enabled'] ? 'checked' : '' ?>>
+                    <span class="switch-slider"></span>
+                  </label>
+                </form>
+              </div>
+            </div>
+          <?php endforeach; ?>
         </div>
-        <div class="settings-row" id="btn2_url_field">
-          <div>
-            <div class="settings-row-label" style="font-weight:400;">Своя ссылка</div>
-            <div class="settings-row-sub">Только для типа «Своя ссылка»</div>
-          </div>
-          <input type="text" name="btn2_url" class="settings-row-control" style="max-width:200px;" value="<?= e($about['btn2_url'] ?? '') ?>">
-        </div>
-        <div class="settings-row">
-          <div class="settings-row-label">Показывать кнопку 2 на сайте</div>
-          <label class="switch settings-row-control">
-            <input type="checkbox" name="btn2_enabled" value="1" <?= ($about['btn2_enabled'] ?? 1) ? 'checked' : '' ?>>
-            <span class="switch-slider"></span>
-          </label>
+      <?php endif; ?>
+
+      <button type="button" class="admin-add-tile-btn" data-btn-add-open>+ Добавить кнопку</button>
+    </div>
+
+    <!-- ==================== 3. СТАТИСТИКА ==================== -->
+    <div class="card about-overview-card">
+      <div class="about-overview-card-head">
+        <div>
+          <h3>Статистика</h3>
+          <p class="about-overview-card-sub">Например «4+ — Года опыта».</p>
         </div>
       </div>
-
-      <p class="field-hint">
-        «Instagram» и «Открыть Viber-чат» берут ссылку/номер из раздела
-        «Настройки» автоматически. «Раздел Отзывы» сразу переключает
-        посетителя на вкладку «Отзывы» этого же сайта. Поле «своя ссылка»
-        используется только когда выбран тип «Своя ссылка».
-      </p>
-
-      <button type="submit" class="btn full">Сохранить блок «О мне»</button>
-    </form>
-  </div>
-
-  <div class="card">
-    <h3>Статистика (например «4+ — Года опыта»)</h3>
-    <form method="post" style="margin-bottom:16px;">
-      <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
-      <input type="hidden" name="form" value="stat_add">
-      <div class="form-field">
-        <label>Значение (например «4+», «50+»)</label>
-        <input type="text" name="value" required maxlength="20">
-      </div>
-      <div class="form-field">
-        <label>Подпись, рус. (например «Года опыта»)</label>
-        <input type="text" id="stat_label" name="label" required maxlength="60">
-      </div>
-      <div class="form-field">
-        <label>Подпись, укр. (необязательно)
-          <button type="button" class="btn ghost admin-translate-btn" data-translate-from="stat_label" data-translate-to="stat_label_ua">⇄ Перевести с рус.</button>
-        </label>
-        <input type="text" id="stat_label_ua" name="label_ua" maxlength="60">
-      </div>
-      <button type="submit" class="btn full">Добавить статистику</button>
-    </form>
-
-    <table class="admin-table">
-      <thead><tr><th>Значение</th><th>Подпись</th><th></th></tr></thead>
-      <tbody>
-        <?php foreach ($stats as $s): ?>
-          <tr>
-            <td><?= e($s['value']) ?></td>
-            <td><?= e($s['label']) ?><?= $s['label_ua'] ? ' / ' . e($s['label_ua']) : '' ?></td>
-            <td>
+      <?php if ($stats): ?>
+        <div class="settings-group" style="margin-top:10px;">
+          <?php foreach ($stats as $s): ?>
+            <div class="settings-row">
+              <div class="settings-row-label"><?= e($s['value']) ?> — <?= e($s['label']) ?><?= $s['label_ua'] ? ' / ' . e($s['label_ua']) : '' ?></div>
               <form method="post" onsubmit="return confirm('Удалить эту статистику?');">
                 <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
                 <input type="hidden" name="form" value="stat_delete">
                 <input type="hidden" name="id" value="<?= (int)$s['id'] ?>">
-                <button class="btn ghost" style="padding:6px 12px;font-size:12px;">Удалить</button>
+                <button type="submit" class="icon-btn icon-btn--sm" aria-label="Удалить">✕</button>
               </form>
-            </td>
-          </tr>
-        <?php endforeach; ?>
-        <?php if (!$stats): ?><tr><td colspan="3">Пока нет статистики.</td></tr><?php endif; ?>
-      </tbody>
-    </table>
-  </div>
+            </div>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
+      <button type="button" class="admin-add-tile-btn" data-modal-open="modalStatAdd">+ Добавить статистику</button>
+    </div>
 
-  <div class="card">
-    <h3>Навыки / инструменты</h3>
-    <form method="post" enctype="multipart/form-data" style="margin-bottom:16px;">
-      <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
-      <input type="hidden" name="form" value="skill_add">
-      <div class="form-field">
-        <label>Название, рус. (например «Premiere Pro»)</label>
-        <input type="text" id="skill_name" name="name" required maxlength="60">
+    <!-- ==================== 4. НАВЫКИ / ИНСТРУМЕНТЫ ==================== -->
+    <div class="card about-overview-card">
+      <div class="about-overview-card-head">
+        <div>
+          <h3>Навыки / инструменты</h3>
+          <p class="about-overview-card-sub">Иконки с подписью — например используемые инструменты.</p>
+        </div>
       </div>
-      <div class="form-field">
-        <label>Название, укр. (необязательно)
-          <button type="button" class="btn ghost admin-translate-btn" data-translate-from="skill_name" data-translate-to="skill_name_ua">⇄ Перевести с рус.</button>
-        </label>
-        <input type="text" id="skill_name_ua" name="name_ua" maxlength="60">
-      </div>
-      <div class="form-field">
-        <label>Короткая иконка-текст (например «Pr»), если нет картинки</label>
-        <input type="text" name="icon_text" maxlength="4">
-      </div>
-      <div class="form-field">
-        <label>Иконка-картинка (необязательно, заменяет текст выше)</label>
-        <input type="file" name="icon_image" accept="image/png,image/jpeg,image/webp">
-      </div>
-      <button type="submit" class="btn full">Добавить навык</button>
-    </form>
-
-    <table class="admin-table">
-      <thead><tr><th>Иконка</th><th>Название</th><th></th></tr></thead>
-      <tbody>
-        <?php foreach ($skills as $sk): ?>
-          <tr>
-            <td>
-              <?php if (!empty($sk['icon_image'])): ?>
-                <img src="../<?= e($sk['icon_image']) ?>" style="width:28px;height:28px;object-fit:cover;border-radius:6px;">
-              <?php else: ?>
-                <?= e($sk['icon_text'] ?: '—') ?>
-              <?php endif; ?>
-            </td>
-            <td><?= e($sk['name']) ?><?= $sk['name_ua'] ? ' / ' . e($sk['name_ua']) : '' ?></td>
-            <td>
+      <?php if ($skills): ?>
+        <div class="settings-group" style="margin-top:10px;">
+          <?php foreach ($skills as $sk): ?>
+            <div class="settings-row">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <?php if (!empty($sk['icon_image'])): ?>
+                  <img src="../<?= e($sk['icon_image']) ?>" style="width:26px;height:26px;object-fit:cover;border-radius:6px;">
+                <?php else: ?>
+                  <span class="about-btn-row-icon"><?= e($sk['icon_text'] ?: '★') ?></span>
+                <?php endif; ?>
+                <div class="settings-row-label"><?= e($sk['name']) ?><?= $sk['name_ua'] ? ' / ' . e($sk['name_ua']) : '' ?></div>
+              </div>
               <form method="post" onsubmit="return confirm('Удалить этот навык?');">
                 <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
                 <input type="hidden" name="form" value="skill_delete">
                 <input type="hidden" name="id" value="<?= (int)$sk['id'] ?>">
-                <button class="btn ghost" style="padding:6px 12px;font-size:12px;">Удалить</button>
+                <button type="submit" class="icon-btn icon-btn--sm" aria-label="Удалить">✕</button>
               </form>
-            </td>
-          </tr>
-        <?php endforeach; ?>
-        <?php if (!$skills): ?><tr><td colspan="3">Пока нет навыков.</td></tr><?php endif; ?>
-      </tbody>
-    </table>
+            </div>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
+      <button type="button" class="admin-add-tile-btn" data-modal-open="modalSkillAdd">+ Добавить навык</button>
+    </div>
+
   </div>
+
+  <!-- ==================== МОДАЛКА: Информация ==================== -->
+  <div class="modal-overlay" id="modalInfo">
+    <div class="modal-box" style="max-width:600px; text-align:left;">
+      <button type="button" class="modal-close" data-modal-close style="position:static; margin:0 0 8px auto; display:block;">✕</button>
+      <h3 style="text-align:left;">Информация</h3>
+      <p style="color:var(--ink-soft); font-size:13px; margin-top:0;">
+        Поля с пометкой «укр.» необязательны — если не заполнить, на украинской
+        версии сайта будет показан русский текст. Если оставить заголовок и
+        текст «о себе» пустыми, блок на сайте вообще не появится.
+      </p>
+      <form method="post" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+        <input type="hidden" name="form" value="about_main">
+
+        <div class="form-field">
+          <label>Фото / аватар</label>
+          <?php if (!empty($about['photo_path'])): ?>
+            <div class="admin-upload-current">
+              <img src="../<?= e($about['photo_path']) ?>" alt="">
+              <label style="display:flex; align-items:center; gap:6px; font-weight:400; text-transform:none;">
+                <input type="checkbox" name="remove_photo" value="1" style="width:auto;"> удалить текущее фото
+              </label>
+            </div>
+          <?php endif; ?>
+          <label class="file-input-styled">
+            <span>Выбрать файл</span>
+            <input type="file" name="photo" accept="image/png,image/jpeg,image/webp">
+          </label>
+        </div>
+
+        <div class="form-field">
+          <label>Приветствие (рус.), например «Привет, я»</label>
+          <input type="text" id="greeting" name="greeting" value="<?= e($about['greeting'] ?? '') ?>" maxlength="60">
+        </div>
+        <div class="form-field">
+          <label>Приветствие (укр., необязательно)
+            <button type="button" class="btn ghost admin-translate-btn" data-translate-from="greeting" data-translate-to="greeting_ua">⇄ Перевести с рус.</button>
+          </label>
+          <input type="text" id="greeting_ua" name="greeting_ua" value="<?= e($about['greeting_ua'] ?? '') ?>" maxlength="60">
+        </div>
+
+        <div class="form-field">
+          <label>Заголовок (рус.), например «Меня зовут Мария»</label>
+          <input type="text" id="title" name="title" value="<?= e($about['title'] ?? '') ?>" maxlength="100">
+        </div>
+        <div class="form-field">
+          <label>Заголовок (укр., необязательно)
+            <button type="button" class="btn ghost admin-translate-btn" data-translate-from="title" data-translate-to="title_ua">⇄ Перевести с рус.</button>
+          </label>
+          <input type="text" id="title_ua" name="title_ua" value="<?= e($about['title_ua'] ?? '') ?>" maxlength="100">
+        </div>
+
+        <div class="form-field">
+          <label>Подзаголовок (рус.), например «Мастер маникюра»</label>
+          <input type="text" id="subtitle" name="subtitle" value="<?= e($about['subtitle'] ?? '') ?>" maxlength="120">
+        </div>
+        <div class="form-field">
+          <label>Подзаголовок (укр., необязательно)
+            <button type="button" class="btn ghost admin-translate-btn" data-translate-from="subtitle" data-translate-to="subtitle_ua">⇄ Перевести с рус.</button>
+          </label>
+          <input type="text" id="subtitle_ua" name="subtitle_ua" value="<?= e($about['subtitle_ua'] ?? '') ?>" maxlength="120">
+        </div>
+
+        <div class="form-field">
+          <label>Текст «О себе» (рус.)</label>
+          <textarea id="bio" name="bio" maxlength="800"><?= e($about['bio'] ?? '') ?></textarea>
+        </div>
+        <div class="form-field">
+          <label>Текст «О себе» (укр., необязательно)
+            <button type="button" class="btn ghost admin-translate-btn" data-translate-from="bio" data-translate-to="bio_ua">⇄ Перевести с рус.</button>
+          </label>
+          <textarea id="bio_ua" name="bio_ua" maxlength="800"><?= e($about['bio_ua'] ?? '') ?></textarea>
+        </div>
+
+        <button type="submit" class="btn full">Сохранить</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== МОДАЛКА: Кнопка (добавить / изменить) ==================== -->
+  <div class="modal-overlay" id="modalButton">
+    <div class="modal-box" style="max-width:480px; text-align:left;">
+      <button type="button" class="modal-close" data-modal-close style="position:static; margin:0 0 8px auto; display:block;">✕</button>
+      <h3 id="modalButtonTitle" style="text-align:left;">Новая кнопка</h3>
+      <form method="post" id="buttonForm">
+        <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+        <input type="hidden" name="form" value="btn_save">
+        <input type="hidden" name="id" id="btn_id" value="">
+
+        <div class="form-field">
+          <label>Название (рус.), например «Смотреть работы»</label>
+          <input type="text" id="btn_text" name="text" required maxlength="40">
+        </div>
+        <div class="form-field">
+          <label>Название (укр., необязательно)
+            <button type="button" class="btn ghost admin-translate-btn" data-translate-from="btn_text" data-translate-to="btn_text_ua">⇄ Перевести с рус.</button>
+          </label>
+          <input type="text" id="btn_text_ua" name="text_ua" maxlength="40">
+        </div>
+        <div class="form-field">
+          <label>Иконка (эмодзи, необязательно), например 📸</label>
+          <input type="text" id="btn_icon_text" name="icon_text" maxlength="4">
+        </div>
+        <div class="form-field">
+          <label>Куда ведёт</label>
+          <select name="type" id="btn_type" class="admin-btn-type-select" data-url-field="btn_url_field">
+            <?php foreach ($btnTypeLabels as $__val => $__label): ?>
+              <option value="<?= e($__val) ?>"><?= e($__label) ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+        <div class="form-field" id="btn_url_field">
+          <label>Ссылка (для типа «Своя ссылка»)</label>
+          <input type="text" id="btn_url" name="url" placeholder="например #widget-1 или https://...">
+        </div>
+
+        <button type="submit" class="btn full">Сохранить кнопку</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== МОДАЛКА: Добавить статистику ==================== -->
+  <div class="modal-overlay" id="modalStatAdd">
+    <div class="modal-box" style="max-width:420px; text-align:left;">
+      <button type="button" class="modal-close" data-modal-close style="position:static; margin:0 0 8px auto; display:block;">✕</button>
+      <h3 style="text-align:left;">Новая статистика</h3>
+      <form method="post">
+        <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+        <input type="hidden" name="form" value="stat_add">
+        <div class="form-field">
+          <label>Значение (например «4+», «50+»)</label>
+          <input type="text" name="value" required maxlength="20">
+        </div>
+        <div class="form-field">
+          <label>Подпись, рус. (например «Года опыта»)</label>
+          <input type="text" id="stat_label" name="label" required maxlength="60">
+        </div>
+        <div class="form-field">
+          <label>Подпись, укр. (необязательно)
+            <button type="button" class="btn ghost admin-translate-btn" data-translate-from="stat_label" data-translate-to="stat_label_ua">⇄ Перевести с рус.</button>
+          </label>
+          <input type="text" id="stat_label_ua" name="label_ua" maxlength="60">
+        </div>
+        <button type="submit" class="btn full">Добавить</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== МОДАЛКА: Добавить навык ==================== -->
+  <div class="modal-overlay" id="modalSkillAdd">
+    <div class="modal-box" style="max-width:420px; text-align:left;">
+      <button type="button" class="modal-close" data-modal-close style="position:static; margin:0 0 8px auto; display:block;">✕</button>
+      <h3 style="text-align:left;">Новый навык</h3>
+      <form method="post" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+        <input type="hidden" name="form" value="skill_add">
+        <div class="form-field">
+          <label>Название, рус. (например «Premiere Pro»)</label>
+          <input type="text" id="skill_name" name="name" required maxlength="60">
+        </div>
+        <div class="form-field">
+          <label>Название, укр. (необязательно)
+            <button type="button" class="btn ghost admin-translate-btn" data-translate-from="skill_name" data-translate-to="skill_name_ua">⇄ Перевести с рус.</button>
+          </label>
+          <input type="text" id="skill_name_ua" name="name_ua" maxlength="60">
+        </div>
+        <div class="form-field">
+          <label>Короткая иконка-текст (например «Pr»), если нет картинки</label>
+          <input type="text" name="icon_text" maxlength="4">
+        </div>
+        <div class="form-field">
+          <label>Иконка-картинка (необязательно, заменяет текст выше)</label>
+          <label class="file-input-styled">
+            <span>Выбрать файл</span>
+            <input type="file" name="icon_image" accept="image/png,image/jpeg,image/webp">
+          </label>
+        </div>
+        <button type="submit" class="btn full">Добавить</button>
+      </form>
+    </div>
+  </div>
+
 </div>
+<script src="assets/admin.js" defer></script>
 </body>
 </html>

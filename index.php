@@ -49,6 +49,7 @@ foreach ($priceItems as $item) {
 $about = $pdo->query('SELECT * FROM about_me WHERE id = 1')->fetch();
 $aboutStats = $pdo->query('SELECT * FROM about_stats ORDER BY sort_order, id')->fetchAll();
 $aboutSkills = $pdo->query('SELECT * FROM about_skills ORDER BY sort_order, id')->fetchAll();
+$aboutButtons = $pdo->query('SELECT * FROM about_buttons ORDER BY sort_order, id')->fetchAll();
 $workExperience = $pdo->query('SELECT * FROM work_experience ORDER BY sort_order, id')->fetchAll();
 $aboutHasContent = $about && (
     trim((string)($about['title'] ?? '')) !== ''
@@ -116,18 +117,6 @@ require __DIR__ . '/includes/header.php';
             $__aboutTitle    = ($lang === 'ua' && !empty($about['title_ua']))    ? $about['title_ua']    : ($about['title'] ?? '');
             $__aboutSubtitle = ($lang === 'ua' && !empty($about['subtitle_ua'])) ? $about['subtitle_ua'] : ($about['subtitle'] ?? '');
             $__aboutBio      = ($lang === 'ua' && !empty($about['bio_ua']))      ? $about['bio_ua']      : ($about['bio'] ?? '');
-            $__btn1Text = ($lang === 'ua' && !empty($about['btn1_text_ua'])) ? $about['btn1_text_ua'] : ($about['btn1_text'] ?? '');
-            $__btn2Text = ($lang === 'ua' && !empty($about['btn2_text_ua'])) ? $about['btn2_text_ua'] : ($about['btn2_text'] ?? '');
-
-            // Кнопки могут быть выключены тумблером в панели управления,
-            // а их ссылка — либо своя (custom), либо один из готовых
-            // сценариев (Instagram / вкладка "Отзывы" / чат Viber).
-            $__btn1Enabled = ($about['btn1_enabled'] ?? 1) == 1;
-            $__btn2Enabled = ($about['btn2_enabled'] ?? 1) == 1;
-            $__btn1Href = $__btn1Enabled ? aboutButtonHref($about['btn1_type'] ?? 'custom', $about['btn1_url'] ?? null) : '';
-            $__btn2Href = $__btn2Enabled ? aboutButtonHref($about['btn2_type'] ?? 'custom', $about['btn2_url'] ?? null) : '';
-            $__btn1Show = $__btn1Enabled && $__btn1Text !== '' && $__btn1Href !== '';
-            $__btn2Show = $__btn2Enabled && $__btn2Text !== '' && $__btn2Href !== '';
           ?>
           <?php if ($__aboutGreeting !== ''): ?><span class="about-me-eyebrow"><?= e($__aboutGreeting) ?></span><?php endif; ?>
           <?php if ($__aboutTitle !== ''): ?><h1 class="about-me-title"><?= e($__aboutTitle) ?></h1><?php endif; ?>
@@ -160,14 +149,24 @@ require __DIR__ . '/includes/header.php';
             </div>
           <?php endif; ?>
 
-          <?php if ($__btn1Show || $__btn2Show): ?>
+          <?php
+            // Кнопки блока «О мне» теперь в отдельной таблице — их можно
+            // добавлять сколько угодно в панели управления. У каждой —
+            // свой тумблер вкл/выкл и тип назначения ссылки.
+            $__aboutBtnsToShow = [];
+            foreach ($aboutButtons as $__b) {
+              if (!$__b['enabled']) continue;
+              $__bText = ($lang === 'ua' && !empty($__b['text_ua'])) ? $__b['text_ua'] : $__b['text'];
+              $__bHref = aboutButtonHref($__b['type'], $__b['url']);
+              if ($__bText === '' || $__bHref === '') continue;
+              $__aboutBtnsToShow[] = ['text' => $__bText, 'href' => $__bHref];
+            }
+          ?>
+          <?php if ($__aboutBtnsToShow): ?>
             <div class="about-me-actions">
-              <?php if ($__btn1Show): ?>
-                <a href="<?= e($__btn1Href) ?>" class="btn"<?= aboutButtonIsExternal($__btn1Href) ? ' target="_blank" rel="noopener"' : '' ?>><?= e($__btn1Text) ?></a>
-              <?php endif; ?>
-              <?php if ($__btn2Show): ?>
-                <a href="<?= e($__btn2Href) ?>" class="btn ghost"<?= aboutButtonIsExternal($__btn2Href) ? ' target="_blank" rel="noopener"' : '' ?>><?= e($__btn2Text) ?></a>
-              <?php endif; ?>
+              <?php foreach ($__aboutBtnsToShow as $__i => $__b): ?>
+                <a href="<?= e($__b['href']) ?>" class="btn<?= $__i > 0 ? ' ghost' : '' ?>"<?= aboutButtonIsExternal($__b['href']) ? ' target="_blank" rel="noopener"' : '' ?>><?= e($__b['text']) ?></a>
+              <?php endforeach; ?>
             </div>
           <?php endif; ?>
         </div>

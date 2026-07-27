@@ -106,4 +106,95 @@ document.addEventListener('DOMContentLoaded', function () {
     select.addEventListener('change', sync);
     sync();
   });
+
+  // ===== Модальные окна панели управления (карточки "О мне", виджеты
+  // и т.д.) — открытие/закрытие без перехода на другую страницу. =====
+  function openModal(modal) {
+    if (!modal) return;
+    modal.classList.add('open');
+  }
+  function closeModal(modal) {
+    if (!modal) return;
+    modal.classList.remove('open');
+  }
+
+  document.querySelectorAll('[data-modal-open]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      openModal(document.getElementById(btn.dataset.modalOpen));
+    });
+  });
+  document.querySelectorAll('[data-modal-close]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      closeModal(btn.closest('.modal-overlay'));
+    });
+  });
+  document.querySelectorAll('.modal-overlay').forEach(function (overlay) {
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) closeModal(overlay);
+    });
+  });
+
+  // ===== Кнопки блока «О мне»: одна и та же модалка используется и для
+  // добавления новой кнопки, и для редактирования существующей — при
+  // клике на карандаш поля заполняются текущими значениями. =====
+  var buttonModal = document.getElementById('modalButton');
+  if (buttonModal) {
+    var btnModalTitle = document.getElementById('modalButtonTitle');
+    var btnIdField = document.getElementById('btn_id');
+    var btnTextField = document.getElementById('btn_text');
+    var btnTextUaField = document.getElementById('btn_text_ua');
+    var btnIconField = document.getElementById('btn_icon_text');
+    var btnTypeField = document.getElementById('btn_type');
+    var btnUrlField = document.getElementById('btn_url');
+
+    document.querySelectorAll('[data-btn-add-open]').forEach(function (el) {
+      el.addEventListener('click', function () {
+        btnModalTitle.textContent = 'Новая кнопка';
+        btnIdField.value = '';
+        btnTextField.value = '';
+        btnTextUaField.value = '';
+        btnIconField.value = '';
+        btnTypeField.value = 'custom';
+        btnTypeField.dispatchEvent(new Event('change'));
+        btnUrlField.value = '';
+        openModal(buttonModal);
+      });
+    });
+
+    document.querySelectorAll('[data-btn-edit]').forEach(function (el) {
+      el.addEventListener('click', function () {
+        btnModalTitle.textContent = 'Изменить кнопку';
+        btnIdField.value = el.dataset.id || '';
+        btnTextField.value = el.dataset.text || '';
+        btnTextUaField.value = el.dataset.textUa || '';
+        btnIconField.value = el.dataset.icon || '';
+        btnTypeField.value = el.dataset.type || 'custom';
+        btnTypeField.dispatchEvent(new Event('change'));
+        btnUrlField.value = el.dataset.url || '';
+        openModal(buttonModal);
+      });
+    });
+  }
+
+  // ===== Виджеты: клик по существующему файлу открывает окно
+  // "переименовать / удалить" вместо перехода на отдельную страницу. =====
+  var editItemModal = document.getElementById('editItemModal');
+  if (editItemModal) {
+    var editItemId = document.getElementById('editItemId');
+    var editItemCategoryId = document.getElementById('editItemCategoryId');
+    var editItemTitle = document.getElementById('editItemTitle');
+    var deleteItemId = document.getElementById('deleteItemId');
+    var deleteItemCategoryId = document.getElementById('deleteItemCategoryId');
+
+    document.querySelectorAll('[data-item-edit]').forEach(function (el) {
+      el.addEventListener('click', function () {
+        editItemId.value = el.dataset.id || '';
+        editItemCategoryId.value = el.dataset.categoryId || '';
+        editItemTitle.value = el.dataset.title || '';
+        deleteItemId.value = el.dataset.id || '';
+        deleteItemCategoryId.value = el.dataset.categoryId || '';
+        openModal(editItemModal);
+      });
+    });
+  }
 });

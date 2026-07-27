@@ -56,6 +56,7 @@ $items = $pdo->query('SELECT * FROM work_experience ORDER BY sort_order, id DESC
 <title>Опыт работы — Панель управления</title>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../assets/css/style.css">
+<script>window.ADMIN_CSRF_TOKEN = <?= json_encode(csrfToken()) ?>;</script>
 </head>
 <body>
 <div class="admin-shell">

@@ -253,6 +253,49 @@ function migrateSchema(PDO $pdo): void
             $pdo->exec($__sql);
         }
     }
+
+    // Кнопки блока «О мне» — теперь ИХ МОЖНО ДОБАВЛЯТЬ СКОЛЬКО УГОДНО
+    // (раньше было жёстко 2 кнопки в самой таблице about_me). Старые
+    // столбцы btn1_*/btn2_* оставлены в about_me для обратной совместимости,
+    // но больше не используются для отображения — см. бэкафилл ниже.
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS about_buttons (
+            id           INTEGER PRIMARY KEY AUTOINCREMENT,
+            text         TEXT NOT NULL,
+            text_ua      TEXT,
+            type         TEXT NOT NULL DEFAULT 'custom',
+            url          TEXT,
+            icon_text    TEXT,
+            enabled      INTEGER NOT NULL DEFAULT 1,
+            sort_order   INTEGER NOT NULL DEFAULT 0
+        )
+    ");
+    // Один раз переносим старые кнопки 1/2 (если они были заполнены и
+    // таблица about_buttons ещё пустая) в новую таблицу, чтобы ничего
+    // не потерялось при обновлении сайта.
+    $__btnCount = (int)$pdo->query('SELECT COUNT(*) FROM about_buttons')->fetchColumn();
+    if ($__btnCount === 0) {
+        $__legacyAbout = $pdo->query('SELECT * FROM about_me WHERE id = 1')->fetch(PDO::FETCH_ASSOC);
+        if ($__legacyAbout) {
+            $__order = 1;
+            foreach ([1, 2] as $__n) {
+                $__text = trim((string)($__legacyAbout["btn{$__n}_text"] ?? ''));
+                if ($__text === '') {
+                    continue;
+                }
+                $pdo->prepare('INSERT INTO about_buttons (text, text_ua, type, url, icon_text, enabled, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)')
+                    ->execute([
+                        $__text,
+                        $__legacyAbout["btn{$__n}_text_ua"] ?? null,
+                        in_array($__legacyAbout["btn{$__n}_type"] ?? '', ['custom', 'instagram', 'reviews', 'viber'], true) ? $__legacyAbout["btn{$__n}_type"] : 'custom',
+                        $__legacyAbout["btn{$__n}_url"] ?? null,
+                        null,
+                        ($__legacyAbout["btn{$__n}_enabled"] ?? 1) ? 1 : 0,
+                        $__order++,
+                    ]);
+            }
+        }
+    }
 }
 
 // ==== НАСТРОЙКИ САЙТА (название, телефон, соцсети) — читаем/пишем из БД ====

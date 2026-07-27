@@ -1293,6 +1293,7 @@ table.admin-table th { background: var(--surface-2); font-size: 11px; text-trans
 /* ===== Админка: загрузка файлов / карточки ===== */
 .admin-upload-current { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
 .admin-upload-current img { width: 56px; height: 56px; object-fit: cover; border-radius: 8px; }
+.admin-translate-btn { padding: 3px 10px; font-size: 11px; margin-left: 8px; vertical-align: middle; }
 .admin-widget-item-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
@@ -1309,6 +1310,34 @@ table.admin-table th { background: var(--surface-2); font-size: 11px; text-trans
 .admin-widget-item-card video { width: 100%; aspect-ratio: 9 / 16; object-fit: cover; border-radius: 8px; }
 .admin-widget-item-card-pdf { width: 100%; aspect-ratio: 9 / 16; display: flex; align-items: center; justify-content: center; font-size: 32px; background: var(--surface-2); border-radius: 8px; }
 .admin-widget-item-card form { margin-top: 8px; }
+/* Карточка файла — теперь кнопка: клик открывает окно редактирования
+   вместо перехода на другую страницу. */
+button.admin-widget-item-card {
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  display: block;
+  width: 100%;
+  transition: transform .15s ease;
+}
+button.admin-widget-item-card:hover { transform: translateY(-2px); }
+/* Квадратная плитка "+" со скруглёнными углами — вместо текстовой
+   ссылки "Добавить" открывает модалку загрузки файла. */
+.admin-square-add-tile {
+  aspect-ratio: 9 / 16;
+  border-radius: 12px;
+  border: 1px dashed var(--line-strong);
+  background: none;
+  color: var(--ink-soft);
+  font-size: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color .15s ease, color .15s ease;
+}
+.admin-square-add-tile:hover { border-color: var(--primary); color: var(--primary); }
 
 /* ===== Виджеты: карточка категории с превью файлов сеткой + тайл
    "+ Добавить" — чтобы сразу было видно содержимое категории, без
@@ -1324,22 +1353,6 @@ table.admin-table th { background: var(--surface-2); font-size: 11px; text-trans
 }
 .widget-cat-card-meta { font-size: 12px; color: var(--ink-faint); }
 .widget-cat-card-actions { display: flex; gap: 8px; flex-shrink: 0; }
-.admin-widget-item-add-tile {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  aspect-ratio: 9 / 16;
-  border-radius: 8px;
-  border: 1px dashed var(--line-strong);
-  color: var(--ink-soft);
-  text-decoration: none;
-  font-size: 12.5px;
-  transition: border-color .15s ease, color .15s ease;
-}
-.admin-widget-item-add-tile span { font-size: 26px; line-height: 1; }
-.admin-widget-item-add-tile:hover { border-color: var(--primary); color: var(--primary); }
 
 /* ===== Группы настроек в стиле мобильных "Настроек" — заголовок слева,
    тумблер/контрол справа, аккуратные строки без нагромождения полей. ===== */
@@ -1425,3 +1438,109 @@ table.admin-table th { background: var(--surface-2); font-size: 11px; text-trans
     transition: none;
   }
 }
+
+/* ===== Панель управления «О мне»: 4 карточки-категории + модалки =====
+   Вместо одной длинной формы на 1000 строк — компактные карточки, а
+   редактирование каждой части происходит в аккуратном всплывающем окне
+   в общем стиле сайта. ===== */
+.about-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+}
+.about-overview-card { margin-bottom: 0; }
+.about-overview-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+.about-overview-card-head h3 { margin-bottom: 2px; }
+.about-overview-card-sub { font-size: 12.5px; color: var(--ink-faint); margin: 0; max-width: 90%; }
+.about-overview-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.about-overview-preview-photo {
+  width: 48px; height: 48px; border-radius: 50%; overflow: hidden; flex-shrink: 0;
+  background: var(--surface-2); display: flex; align-items: center; justify-content: center;
+  font-size: 9px; color: var(--ink-faint); text-align: center;
+}
+.about-overview-preview-photo img { width: 100%; height: 100%; object-fit: cover; }
+.about-overview-preview-title { font-weight: 700; font-size: 14px; }
+.about-overview-preview-sub { font-size: 12px; color: var(--ink-soft); }
+.about-btn-row-icon { font-size: 18px; flex-shrink: 0; width: 24px; text-align: center; }
+
+/* Небольшая круглая иконка-кнопка (шестерёнка / карандаш / крестик) —
+   используется вместо текстовых "Изменить"/"Удалить", чтобы строки не
+   были перегружены и выглядели современно. */
+.icon-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--line-strong);
+  background: var(--surface-2);
+  color: var(--ink);
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: border-color .15s ease, color .15s ease, background .15s ease;
+}
+.icon-btn:hover { border-color: var(--primary); color: var(--primary); }
+.icon-btn--sm { width: 28px; height: 28px; font-size: 13px; }
+
+/* Плитка "+ Добавить..." — та же идея, что и у виджетов, только как
+   кнопка на всю ширину карточки внизу списка. */
+.admin-add-tile-btn {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  border: 1px dashed var(--line-strong);
+  background: none;
+  color: var(--ink-soft);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color .15s ease, color .15s ease;
+}
+.admin-add-tile-btn:hover { border-color: var(--primary); color: var(--primary); }
+
+/* ===== Красивая кнопка выбора файла вместо белой системной ===== */
+.file-input-styled {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: #1a1310;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid var(--primary);
+}
+.file-input-styled input[type="file"] {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Модалки внутри админки используют те же .modal-overlay/.modal-box, что
+   и лайтбокс на сайте — но им нужен текст по левому краю и разрешено
+   быть по центру экрана на любой ширине. */
+.admin-shell .modal-overlay { align-items: center; z-index: 500; }
+.admin-shell .modal-box { text-align: left; }
+.admin-shell .modal-box h3 { text-align: left; }

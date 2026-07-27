@@ -64,6 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrfCheck()) {
                 $maxOrder = (int)$pdo->query('SELECT COALESCE(MAX(sort_order), 0) FROM widget_items WHERE category_id = ' . (int)$categoryId)->fetchColumn();
                 $pdo->prepare('INSERT INTO widget_items (category_id, file_path, title, sort_order) VALUES (?, ?, ?, ?)')
                     ->execute([$categoryId, $filePath, $title ?: null, $maxOrder + 1]);
+                redirect('widgets.php');
             } elseif (($_FILES['file']['size'] ?? 0) > $maxBytes) {
                 $uploadError = 'Файл слишком большой. Максимум для этого раздела — '
                     . round($maxBytes / 1024 / 1024) . ' МБ.';
@@ -71,6 +72,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrfCheck()) {
                 $uploadError = 'Файл не загружен — проверьте формат (' . implode(', ', $allowed) . ') и размер файла.';
             }
         }
+    } elseif ($action === 'update_title') {
+        $id = (int)($_POST['id'] ?? 0);
+        $title = trim($_POST['title'] ?? '');
+        $pdo->prepare('UPDATE widget_items SET title = ? WHERE id = ? AND category_id = ?')
+            ->execute([$title ?: null, $id, $categoryId]);
+        redirect('widgets.php');
     } elseif ($action === 'delete') {
         $id = (int)($_POST['id'] ?? 0);
         $itemStmt = $pdo->prepare('SELECT file_path FROM widget_items WHERE id = ? AND category_id = ?');
@@ -80,7 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrfCheck()) {
             deleteUploadedFile($item['file_path']);
             $pdo->prepare('DELETE FROM widget_items WHERE id = ?')->execute([$id]);
         }
-        redirect('widget_items.php?category_id=' . $categoryId);
+        redirect('widgets.php');
     } elseif ($action === 'move_up' || $action === 'move_down') {
         $id = (int)($_POST['id'] ?? 0);
         $items = $pdo->prepare('SELECT id, sort_order FROM widget_items WHERE category_id = ? ORDER BY sort_order, id');
@@ -152,7 +159,10 @@ $typeAccept = [
       <?php endif; ?>
       <div class="form-field">
         <label>Файл (<?= e($typeLabels[$category['type']] ?? '') ?>)</label>
-        <input type="file" name="file" id="widgetFileInput" accept="<?= e($typeAccept[$category['type']] ?? '') ?>" required>
+        <label class="file-input-styled">
+          <span>Выбрать файл</span>
+          <input type="file" name="file" id="widgetFileInput" accept="<?= e($typeAccept[$category['type']] ?? '') ?>" required>
+        </label>
         <?php
           $__catMaxBytes = $category['type'] === 'video' ? 60 * 1024 * 1024 : 8 * 1024 * 1024;
           $__serverLimitBytes = currentServerUploadLimitBytes();

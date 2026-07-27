@@ -55,7 +55,6 @@ $items = $pdo->query('SELECT * FROM price_items ORDER BY category, sort_order')-
 <title>Прайс — Панель управления</title>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../assets/css/style.css">
-<style>.admin-translate-btn { padding: 3px 10px; font-size: 11px; margin-left: 8px; vertical-align: middle; }</style>
 <script>window.ADMIN_CSRF_TOKEN = <?= json_encode(csrfToken()) ?>;</script>
 <script src="assets/admin.js" defer></script>
 </head>
