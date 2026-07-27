@@ -1148,7 +1148,7 @@ if ($socialEditItem) { $autoOpenSection = 'about-acc-social'; }
       </div>
     </div>
   <?php endforeach; ?>
-  <script src="../assets/js/video-compress.js"></script>
+  <script src="../assets/js/video-compress.js?v=<?= filemtime(__DIR__ . '/../assets/js/video-compress.js') ?>"></script>
 
   <!-- ==================== МОДАЛКА: Виджеты — файл (переименовать / удалить) ==================== -->
   <div class="modal-overlay" id="editItemModal">

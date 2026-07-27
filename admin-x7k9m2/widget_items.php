@@ -222,7 +222,7 @@ $typeAccept = [
   </div>
 
   <?php if ($category['type'] === 'video'): ?>
-  <script src="../assets/js/video-compress.js"></script>
+  <script src="../assets/js/video-compress.js?v=<?= filemtime(__DIR__ . '/../assets/js/video-compress.js') ?>"></script>
   <?php endif; ?>
   <script src="assets/admin.js?v=<?= filemtime(__DIR__ . '/assets/admin.js') ?>" defer></script>
 
