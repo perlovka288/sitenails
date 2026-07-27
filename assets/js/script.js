@@ -268,7 +268,7 @@ document.addEventListener('DOMContentLoaded', function () {
   var lightboxClose = document.getElementById('photoLightboxClose');
 
   function closeLightbox() {
-    lightboxOverlay.classList.remove('open');
+    lightboxOverlay.classList.remove('open', 'lightbox-mode-photo', 'lightbox-mode-video');
     if (lightboxImg) lightboxImg.src = '';
     if (lightboxVideo) {
       lightboxVideo.pause();
@@ -281,7 +281,8 @@ document.addEventListener('DOMContentLoaded', function () {
       btn.addEventListener('click', function () {
         if (lightboxVideo) { lightboxVideo.pause(); lightboxVideo.src = ''; }
         lightboxImg.src = btn.dataset.photoSrc;
-        lightboxOverlay.classList.add('open');
+        lightboxOverlay.classList.remove('lightbox-mode-video');
+        lightboxOverlay.classList.add('open', 'lightbox-mode-photo');
       });
     });
     document.querySelectorAll('.widget-video-thumb').forEach(function (btn) {
@@ -289,7 +290,8 @@ document.addEventListener('DOMContentLoaded', function () {
         lightboxImg.src = '';
         if (lightboxVideo) {
           lightboxVideo.src = btn.dataset.videoSrc;
-          lightboxOverlay.classList.add('open');
+          lightboxOverlay.classList.remove('lightbox-mode-photo');
+          lightboxOverlay.classList.add('open', 'lightbox-mode-video');
           lightboxVideo.play().catch(function () {});
         }
       });

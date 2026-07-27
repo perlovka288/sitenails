@@ -288,4 +288,27 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     }
   }
+
+  // ===== Показываем имя выбранного файла под кнопкой "Выбрать файл" =====
+  // Работает для ЛЮБОГО input[type=file] внутри .file-input-styled на
+  // странице — не нужно отдельно дописывать разметку под каждую форму
+  // (аватар, иконка навыка/соцсети, файл виджета и т.д.).
+  document.querySelectorAll('.file-input-styled input[type="file"]').forEach(function (input) {
+    var wrapper = input.closest('.file-input-styled');
+    if (!wrapper) return;
+    var nameEl = document.createElement('span');
+    nameEl.className = 'file-input-name';
+    wrapper.insertAdjacentElement('afterend', nameEl);
+    input.addEventListener('change', function () {
+      var file = input.files && input.files[0];
+      if (!file) {
+        nameEl.textContent = '';
+        nameEl.classList.remove('has-file');
+        return;
+      }
+      var sizeMb = (file.size / 1024 / 1024).toFixed(1);
+      nameEl.textContent = '✓ ' + file.name + ' (' + sizeMb + ' МБ)';
+      nameEl.classList.add('has-file');
+    });
+  });
 });

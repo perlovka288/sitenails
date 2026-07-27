@@ -1097,7 +1097,7 @@ if ($socialEditItem) { $autoOpenSection = 'about-acc-social'; }
       <div class="modal-box" style="max-width:420px; text-align:left;">
         <button type="button" class="modal-close" data-modal-close style="position:static; margin:0 0 8px auto; display:block;">✕</button>
         <h3 style="text-align:left;">Добавить в «<?= e($cat['name']) ?>»</h3>
-        <form method="post" action="widget_items.php" enctype="multipart/form-data">
+        <form method="post" action="widget_items.php" enctype="multipart/form-data" class="js-widget-upload-form" data-type="<?= e($cat['type']) ?>">
           <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
           <input type="hidden" name="action" value="upload">
           <input type="hidden" name="category_id" value="<?= $__catId ?>">
@@ -1105,18 +1105,38 @@ if ($socialEditItem) { $autoOpenSection = 'about-acc-social'; }
             <label>Подпись (необязательно)</label>
             <input type="text" name="title" maxlength="100">
           </div>
+          <?php if ($cat['type'] === 'video'): ?>
+          <label class="switch-field switch-field--row">
+            <span class="switch-field-label" style="text-transform:none; font-weight:400;">Сжать видео перед загрузкой (рекомендуется)</span>
+            <span class="switch">
+              <input type="checkbox" class="js-compress-toggle" checked>
+              <span class="switch-slider"></span>
+            </span>
+          </label>
+          <p class="field-hint js-compress-status" style="display:none;"></p>
+          <?php endif; ?>
           <div class="form-field">
-            <label>Файл (<?= e($widgetTypeLabels[$cat['type']] ?? '') ?>), максимум <?= round($__catMaxBytes / 1024 / 1024) ?> МБ</label>
+            <label>Файл (<?= e($widgetTypeLabels[$cat['type']] ?? '') ?>)</label>
             <label class="file-input-styled">
               <span>Выбрать файл</span>
-              <input type="file" name="file" accept="<?= e($widgetTypeAccept[$cat['type']] ?? '') ?>" required>
+              <input type="file" name="file" class="js-widget-file-input" accept="<?= e($widgetTypeAccept[$cat['type']] ?? '') ?>" required>
             </label>
+            <?php
+              $__serverLimitBytes = currentServerUploadLimitBytes();
+              $__effectiveBytes = $__serverLimitBytes > 0 ? min($__catMaxBytes, $__serverLimitBytes) : $__catMaxBytes;
+            ?>
+            <p class="field-hint">
+              Максимальный размер файла: <?= round($__effectiveBytes / 1024 / 1024) ?> МБ
+              (лимит раздела — <?= round($__catMaxBytes / 1024 / 1024) ?> МБ,
+              текущий лимит хостинга — <?= $__serverLimitBytes > 0 ? round($__serverLimitBytes / 1024 / 1024) . ' МБ' : 'неизвестен' ?>).
+            </p>
           </div>
-          <button type="submit" class="btn full">Загрузить</button>
+          <button type="submit" class="btn full js-widget-submit-btn">Загрузить</button>
         </form>
       </div>
     </div>
   <?php endforeach; ?>
+  <script src="../assets/js/video-compress.js"></script>
 
   <!-- ==================== МОДАЛКА: Виджеты — файл (переименовать / удалить) ==================== -->
   <div class="modal-overlay" id="editItemModal">

@@ -16,26 +16,17 @@
  *
  * Если браузер не поддерживает MediaRecorder (очень старые браузеры) —
  * форма просто отправляет исходный файл как раньше, ничего не ломается.
+ *
+ * Работает с ЛЮБЫМ количеством форм на странице (.js-widget-upload-form
+ * с data-type="video") — например с модалками загрузки на вкладке
+ * «О мне», где на каждую категорию своя отдельная форма/модалка, а не
+ * только со страницей widget_items.php с одной формой.
  */
 (function () {
-  var form = document.getElementById('widgetUploadForm');
-  var fileInput = document.getElementById('widgetFileInput');
-  var toggle = document.getElementById('compressVideoToggle');
-  var status = document.getElementById('compressVideoStatus');
-  var submitBtn = document.getElementById('widgetUploadSubmitBtn');
+  if (!window.MediaRecorder) return;
 
-  if (!form || !fileInput || !toggle || !window.MediaRecorder) {
-    return;
-  }
-
-  var MAX_DIMENSION = 960;   // сторона по большей стороне кадра
+  var MAX_DIMENSION = 960;        // сторона по большей стороне кадра
   var TARGET_BITRATE = 1_500_000; // ~1.5 Мбит/с — компромисс качество/размер
-
-  function setStatus(text) {
-    if (!status) return;
-    status.textContent = text;
-    status.style.display = text ? 'block' : 'none';
-  }
 
   function pickMimeType() {
     var candidates = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'];
@@ -119,53 +110,79 @@
     });
   }
 
-  form.addEventListener('submit', function (ev) {
-    if (form.dataset.compressed === '1') {
-      return; // уже сжали, отправляем как есть
-    }
-    if (!toggle.checked) {
-      return; // сжатие отключено пользователем — грузим оригинал
-    }
-    var file = fileInput.files && fileInput.files[0];
-    if (!file || !file.type.startsWith('video/')) {
-      return;
-    }
-    // Если файл и так маленький — сжимать незачем, не тратим время.
-    if (file.size <= 8 * 1024 * 1024) {
-      return;
+  // Подключает сжатие к ОДНОЙ форме — вызывается для каждой найденной
+  // формы загрузки видео на странице.
+  function wireForm(form) {
+    var fileInput = form.querySelector('.js-widget-file-input');
+    var toggle = form.querySelector('.js-compress-toggle');
+    var status = form.querySelector('.js-compress-status');
+    var submitBtn = form.querySelector('.js-widget-submit-btn');
+    if (!fileInput || !toggle || !submitBtn) return;
+
+    function setStatus(text) {
+      if (!status) return;
+      status.textContent = text;
+      status.style.display = text ? 'block' : 'none';
     }
 
-    ev.preventDefault();
-    submitBtn.disabled = true;
-    setStatus('Сжимаем видео в браузере, это может занять до минуты…');
-
-    compressVideo(file).then(function (blob) {
-      if (blob.size >= file.size) {
-        // Сжатая версия не меньше оригинала (бывает с уже сжатыми видео) —
-        // грузим оригинал, чтобы не терять качество зря.
-        setStatus('Сжатие не дало выигрыша в размере — загружаем оригинал.');
-        form.dataset.compressed = '1';
-        form.submit();
+    form.addEventListener('submit', function (ev) {
+      if (form.dataset.compressed === '1') {
+        return; // уже сжали, отправляем как есть
+      }
+      if (!toggle.checked) {
+        return; // сжатие отключено пользователем — грузим оригинал
+      }
+      var file = fileInput.files && fileInput.files[0];
+      if (!file || !file.type.startsWith('video/')) {
         return;
       }
-      var newFile = new File([blob], file.name.replace(/\.[^.]+$/, '') + '.webm', { type: 'video/webm' });
-      var dt = new DataTransfer();
-      dt.items.add(newFile);
-      fileInput.files = dt.files;
+      // Если файл и так маленький — сжимать незачем, не тратим время.
+      if (file.size <= 8 * 1024 * 1024) {
+        return;
+      }
 
-      var before = (file.size / 1024 / 1024).toFixed(1);
-      var after = (blob.size / 1024 / 1024).toFixed(1);
-      setStatus('Готово: ' + before + ' МБ → ' + after + ' МБ. Загружаем…');
+      ev.preventDefault();
+      submitBtn.disabled = true;
+      setStatus('Сжимаем видео в браузере, это может занять до минуты…');
 
-      form.dataset.compressed = '1';
-      form.submit();
-    }).catch(function (err) {
-      console.error('Video compress error:', err);
-      setStatus('Не получилось сжать видео в этом браузере — загружаем оригинал файла.');
-      form.dataset.compressed = '1';
-      form.submit();
-    }).finally(function () {
-      submitBtn.disabled = false;
+      compressVideo(file).then(function (blob) {
+        if (blob.size >= file.size) {
+          // Сжатая версия не меньше оригинала (бывает с уже сжатыми видео) —
+          // грузим оригинал, чтобы не терять качество зря.
+          setStatus('Сжатие не дало выигрыша в размере — загружаем оригинал.');
+          form.dataset.compressed = '1';
+          form.submit();
+          return;
+        }
+        var newFile = new File([blob], file.name.replace(/\.[^.]+$/, '') + '.webm', { type: 'video/webm' });
+        var dt = new DataTransfer();
+        dt.items.add(newFile);
+        fileInput.files = dt.files;
+        // Обновляем подпись выбранного файла (см. admin.js), если она есть.
+        var nameEl = form.querySelector('.file-input-name');
+        if (nameEl) {
+          nameEl.textContent = '✓ ' + newFile.name + ' (' + (blob.size / 1024 / 1024).toFixed(1) + ' МБ)';
+          nameEl.classList.add('has-file');
+        }
+
+        var before = (file.size / 1024 / 1024).toFixed(1);
+        var after = (blob.size / 1024 / 1024).toFixed(1);
+        setStatus('Готово: ' + before + ' МБ → ' + after + ' МБ. Загружаем…');
+
+        form.dataset.compressed = '1';
+        form.submit();
+      }).catch(function (err) {
+        console.error('Video compress error:', err);
+        setStatus('Не получилось сжать видео в этом браузере — загружаем оригинал файла.');
+        form.dataset.compressed = '1';
+        form.submit();
+      }).finally(function () {
+        submitBtn.disabled = false;
+      });
     });
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.js-widget-upload-form[data-type="video"]').forEach(wireForm);
   });
 })();

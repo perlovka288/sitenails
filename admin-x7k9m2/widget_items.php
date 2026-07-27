@@ -142,7 +142,7 @@ $typeAccept = [
 
     <?php if (!empty($uploadError)): ?><div class="alert error"><?= e($uploadError) ?></div><?php endif; ?>
 
-    <form method="post" enctype="multipart/form-data" id="widgetUploadForm">
+    <form method="post" enctype="multipart/form-data" class="js-widget-upload-form" data-type="<?= e($category['type']) ?>">
       <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
       <input type="hidden" name="action" value="upload">
       <input type="hidden" name="category_id" value="<?= (int)$categoryId ?>">
@@ -154,17 +154,17 @@ $typeAccept = [
       <label class="switch-field switch-field--row">
         <span class="switch-field-label" style="text-transform:none; font-weight:400;">Сжать видео перед загрузкой (рекомендуется — многие бесплатные хостинги режут большие файлы сильнее, чем указано в настройках)</span>
         <span class="switch">
-          <input type="checkbox" id="compressVideoToggle" checked>
+          <input type="checkbox" class="js-compress-toggle" checked>
           <span class="switch-slider"></span>
         </span>
       </label>
-      <p class="field-hint" id="compressVideoStatus" style="display:none;"></p>
+      <p class="field-hint js-compress-status" style="display:none;"></p>
       <?php endif; ?>
       <div class="form-field">
         <label>Файл (<?= e($typeLabels[$category['type']] ?? '') ?>)</label>
         <label class="file-input-styled">
           <span>Выбрать файл</span>
-          <input type="file" name="file" id="widgetFileInput" accept="<?= e($typeAccept[$category['type']] ?? '') ?>" required>
+          <input type="file" name="file" class="js-widget-file-input" accept="<?= e($typeAccept[$category['type']] ?? '') ?>" required>
         </label>
         <?php
           $__catMaxBytes = $category['type'] === 'video' ? 60 * 1024 * 1024 : 8 * 1024 * 1024;
@@ -181,13 +181,14 @@ $typeAccept = [
           и <code>post_max_size</code>. Иначе — сожмите файл и попробуйте снова.
         </p>
       </div>
-      <button type="submit" class="btn full" id="widgetUploadSubmitBtn">Загрузить</button>
+      <button type="submit" class="btn full js-widget-submit-btn">Загрузить</button>
     </form>
   </div>
 
   <?php if ($category['type'] === 'video'): ?>
   <script src="../assets/js/video-compress.js"></script>
   <?php endif; ?>
+  <script src="assets/admin.js?v=<?= filemtime(__DIR__ . '/assets/admin.js') ?>" defer></script>
 
   <div class="admin-widget-item-grid">
     <?php foreach ($items as $i => $item): ?>
