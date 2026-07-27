@@ -24,7 +24,7 @@ $reviews = $pdo->query('SELECT * FROM reviews ORDER BY is_approved ASC, created_
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Отзывы — Панель управления</title>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../assets/css/style.css">
+<link rel="stylesheet" href="../assets/css/style.css?v=<?= filemtime(__DIR__ . '/../assets/css/style.css') ?>">
 </head>
 <body>
 <div class="admin-shell">

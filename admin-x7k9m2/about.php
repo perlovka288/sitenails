@@ -330,7 +330,7 @@ if ($socialEditItem) { $autoOpenSection = 'about-acc-social'; }
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>О мне (опыт, виджеты, соцсети) — Панель управления</title>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../assets/css/style.css">
+<link rel="stylesheet" href="../assets/css/style.css?v=<?= filemtime(__DIR__ . '/../assets/css/style.css') ?>">
 <script>window.ADMIN_CSRF_TOKEN = <?= json_encode(csrfToken()) ?>;</script>
 </head>
 <body>
@@ -361,7 +361,7 @@ if ($socialEditItem) { $autoOpenSection = 'about-acc-social'; }
         </span>
         <span class="about-accordion-header-right">
           <?php if ($count !== null): ?><span class="about-accordion-count"><?= e($count) ?></span><?php endif; ?>
-          <svg class="about-accordion-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          <svg class="about-accordion-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>
         </span>
       </button>
     <?php
@@ -440,7 +440,7 @@ if ($socialEditItem) { $autoOpenSection = 'about-acc-social'; }
                 <?php endforeach; ?>
               </div>
             <?php endif; ?>
-            <button type="button" class="admin-add-tile-btn" data-btn-add-open><span class="admin-plus-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span><span>Добавить кнопку</span></button>
+            <button type="button" class="admin-add-tile-btn" data-btn-add-open><span class="admin-plus-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span><span>Добавить кнопку</span></button>
           </div>
         </div>
       </div>
@@ -467,7 +467,7 @@ if ($socialEditItem) { $autoOpenSection = 'about-acc-social'; }
                 <?php endforeach; ?>
               </div>
             <?php endif; ?>
-            <button type="button" class="admin-add-tile-btn" data-modal-open="modalStatAdd"><span class="admin-plus-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span><span>Добавить статистику</span></button>
+            <button type="button" class="admin-add-tile-btn" data-modal-open="modalStatAdd"><span class="admin-plus-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span><span>Добавить статистику</span></button>
           </div>
         </div>
       </div>
@@ -501,7 +501,7 @@ if ($socialEditItem) { $autoOpenSection = 'about-acc-social'; }
                 <?php endforeach; ?>
               </div>
             <?php endif; ?>
-            <button type="button" class="admin-add-tile-btn" data-modal-open="modalSkillAdd"><span class="admin-plus-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span><span>Добавить навык</span></button>
+            <button type="button" class="admin-add-tile-btn" data-modal-open="modalSkillAdd"><span class="admin-plus-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span><span>Добавить навык</span></button>
           </div>
         </div>
       </div>
@@ -701,7 +701,7 @@ if ($socialEditItem) { $autoOpenSection = 'about-acc-social'; }
                       <?php endif; ?>
                     </button>
                   <?php endforeach; ?>
-                  <button type="button" class="admin-square-add-tile" data-modal-open="addItemModal-<?= $__catId ?>" aria-label="Добавить файл"><span class="admin-plus-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span><span>Добавить</span></button>
+                  <button type="button" class="admin-square-add-tile" data-modal-open="addItemModal-<?= $__catId ?>" aria-label="Добавить файл"><span class="admin-plus-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span><span>Добавить</span></button>
                 </div>
               </div>
             <?php endforeach; ?>
@@ -1152,6 +1152,6 @@ if ($socialEditItem) { $autoOpenSection = 'about-acc-social'; }
   // реализованы в assets/admin.js.
   window.ADMIN_ABOUT_AUTOOPEN = <?= json_encode($autoOpenSection) ?>;
 </script>
-<script src="assets/admin.js" defer></script>
+<script src="assets/admin.js?v=<?= filemtime(__DIR__ . '/assets/admin.js') ?>" defer></script>
 </body>
 </html>

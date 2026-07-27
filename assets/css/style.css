@@ -1530,14 +1530,17 @@ button.admin-widget-item-card:hover { transform: translateY(-2px); }
 }
 
 .about-accordion-chevron {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  max-width: 18px;
   flex-shrink: 0;
   color: var(--ink-faint);
   transition: transform .3s ease, color .2s ease;
 }
 .about-accordion-header:hover .about-accordion-chevron { color: var(--ink-soft); }
-.about-accordion-item.open .about-accordion-chevron { transform: rotate(180deg); color: var(--primary); }
+/* Закрыто — стрелочка смотрит вправо »; раскрыто — поворачивается на 90° и смотрит вниз v */
+.about-accordion-item.open .about-accordion-chevron { transform: rotate(90deg); color: var(--primary); }
 
 /* Плавная анимация высоты без JS: тело растягивается по grid-строке
    от 0fr до 1fr, внутренний враппер обрезает overflow во время анимации. */
@@ -1740,6 +1743,8 @@ button.admin-widget-item-card:hover { transform: translateY(-2px); }
 .admin-plus-icon {
   width: 30px;
   height: 30px;
+  min-width: 30px;
+  max-width: 30px;
   border-radius: 50%;
   border: 1.5px solid currentColor;
   display: inline-flex;
@@ -1748,7 +1753,7 @@ button.admin-widget-item-card:hover { transform: translateY(-2px); }
   flex-shrink: 0;
   transition: transform .15s ease;
 }
-.admin-plus-icon svg { width: 16px; height: 16px; }
+.admin-plus-icon svg { width: 16px; height: 16px; max-width: 16px; max-height: 16px; }
 .admin-add-tile-btn:hover .admin-plus-icon,
 .admin-square-add-tile:hover .admin-plus-icon { transform: rotate(90deg); }
 
