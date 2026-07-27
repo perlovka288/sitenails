@@ -1478,6 +1478,92 @@ button.admin-widget-item-card:hover { transform: translateY(-2px); }
 .about-overview-preview-sub { font-size: 12px; color: var(--ink-soft); }
 .about-btn-row-icon { font-size: 18px; flex-shrink: 0; width: 24px; text-align: center; }
 
+/* ===== Аккордеон категорий вкладки «О мне» =====
+   Информация / Кнопки / Статистика / Навыки / Опыт работы / Виджеты / Соцсети
+   собраны в единый список сворачиваемых плашек. Раскрытие/сворачивание —
+   на чистом CSS (grid-template-rows 0fr -> 1fr), без "прыжков" высоты и
+   без необходимости вычислять пиксели в JS. */
+.about-accordion { display: flex; flex-direction: column; gap: 12px; }
+
+.about-accordion-item {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  transition: border-color .2s ease;
+}
+.about-accordion-item.open { border-color: var(--line-strong); }
+
+.about-accordion-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  width: 100%;
+  padding: 18px 22px;
+  background: none;
+  border: none;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
+  transition: background .2s ease;
+}
+.about-accordion-header:hover { background: rgba(255, 255, 255, .04); }
+.about-accordion-header:active { transform: scale(.995); }
+.about-accordion-header-text { min-width: 0; }
+.about-accordion-header-text h3 { margin: 0 0 3px; font-size: 16px; }
+.about-accordion-header-text p { margin: 0; font-size: 12.5px; color: var(--ink-faint); font-weight: 300; max-width: 520px; }
+.about-accordion-header-right { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+
+.about-accordion-count {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 3px 10px;
+  line-height: 1.4;
+}
+
+.about-accordion-chevron {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  color: var(--ink-faint);
+  transition: transform .3s ease, color .2s ease;
+}
+.about-accordion-header:hover .about-accordion-chevron { color: var(--ink-soft); }
+.about-accordion-item.open .about-accordion-chevron { transform: rotate(180deg); color: var(--primary); }
+
+/* Плавная анимация высоты без JS: тело растягивается по grid-строке
+   от 0fr до 1fr, внутренний враппер обрезает overflow во время анимации. */
+.about-accordion-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows .35s cubic-bezier(.4, 0, .2, 1);
+}
+.about-accordion-item.open .about-accordion-body { grid-template-rows: 1fr; }
+.about-accordion-body-inner { overflow: hidden; min-height: 0; }
+.about-accordion-content {
+  padding: 2px 22px 22px;
+  border-top: 1px solid var(--line);
+  margin-top: 2px;
+  padding-top: 18px;
+}
+.about-accordion-content > .card:first-child,
+.about-accordion-content > p:first-child { margin-top: 0; }
+.about-accordion-content .settings-group { margin-top: 10px; margin-bottom: 14px; }
+.about-accordion-content .settings-group:last-child { margin-bottom: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .about-accordion-body { transition: none; }
+  .about-accordion-chevron { transition: none; }
+}
+
 /* Небольшая круглая иконка-кнопка (шестерёнка / карандаш / крестик) —
    используется вместо текстовых "Изменить"/"Удалить", чтобы строки не
    были перегружены и выглядели современно. */

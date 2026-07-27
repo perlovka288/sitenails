@@ -11,7 +11,7 @@ $stmt->execute([$categoryId]);
 $category = $stmt->fetch();
 
 if (!$category) {
-    redirect('widgets.php');
+    redirect('about.php#about-acc-widgets');
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($_POST) && empty($_FILES)) {
@@ -64,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrfCheck()) {
                 $maxOrder = (int)$pdo->query('SELECT COALESCE(MAX(sort_order), 0) FROM widget_items WHERE category_id = ' . (int)$categoryId)->fetchColumn();
                 $pdo->prepare('INSERT INTO widget_items (category_id, file_path, title, sort_order) VALUES (?, ?, ?, ?)')
                     ->execute([$categoryId, $filePath, $title ?: null, $maxOrder + 1]);
-                redirect('widgets.php');
+                redirect('about.php#about-acc-widgets');
             } elseif (($_FILES['file']['size'] ?? 0) > $maxBytes) {
                 $uploadError = 'Файл слишком большой. Максимум для этого раздела — '
                     . round($maxBytes / 1024 / 1024) . ' МБ.';
@@ -77,7 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrfCheck()) {
         $title = trim($_POST['title'] ?? '');
         $pdo->prepare('UPDATE widget_items SET title = ? WHERE id = ? AND category_id = ?')
             ->execute([$title ?: null, $id, $categoryId]);
-        redirect('widgets.php');
+        redirect('about.php#about-acc-widgets');
     } elseif ($action === 'delete') {
         $id = (int)($_POST['id'] ?? 0);
         $itemStmt = $pdo->prepare('SELECT file_path FROM widget_items WHERE id = ? AND category_id = ?');
@@ -87,7 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrfCheck()) {
             deleteUploadedFile($item['file_path']);
             $pdo->prepare('DELETE FROM widget_items WHERE id = ?')->execute([$id]);
         }
-        redirect('widgets.php');
+        redirect('about.php#about-acc-widgets');
     } elseif ($action === 'move_up' || $action === 'move_down') {
         $id = (int)($_POST['id'] ?? 0);
         $items = $pdo->prepare('SELECT id, sort_order FROM widget_items WHERE category_id = ? ORDER BY sort_order, id');
@@ -107,7 +107,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrfCheck()) {
             $pdo->prepare('UPDATE widget_items SET sort_order = ? WHERE id = ?')->execute([$b['sort_order'], $a['id']]);
             $pdo->prepare('UPDATE widget_items SET sort_order = ? WHERE id = ?')->execute([$a['sort_order'], $b['id']]);
         }
-        redirect('widget_items.php?category_id=' . $categoryId);
+        redirect('about.php#about-acc-widgets');
     }
 }
 

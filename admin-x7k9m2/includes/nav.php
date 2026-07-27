@@ -5,10 +5,7 @@
 </div>
 <div class="admin-nav">
   <a href="dashboard.php" class="<?= $current === 'dashboard.php' ? 'active' : '' ?>">Главная</a>
-  <a href="about.php" class="<?= $current === 'about.php' ? 'active' : '' ?>">О мне</a>
-  <a href="experience.php" class="<?= $current === 'experience.php' ? 'active' : '' ?>">Опыт работы</a>
-  <a href="widgets.php" class="<?= in_array($current, ['widgets.php', 'widget_items.php'], true) ? 'active' : '' ?>">Виджеты</a>
-  <a href="social.php" class="<?= $current === 'social.php' ? 'active' : '' ?>">Соцсети</a>
+  <a href="about.php" class="<?= in_array($current, ['about.php', 'experience.php', 'widgets.php', 'widget_items.php', 'social.php'], true) ? 'active' : '' ?>">О мне</a>
   <a href="reviews.php" class="<?= $current === 'reviews.php' ? 'active' : '' ?>">Отзывы</a>
   <a href="prices.php" class="<?= $current === 'prices.php' ? 'active' : '' ?>">Прайс</a>
   <a href="slots.php" class="<?= $current === 'slots.php' ? 'active' : '' ?>">Свободное время</a>

@@ -252,4 +252,40 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     });
   }
+
+  // ===== Аккордеон вкладки «О мне» (Информация / Кнопки / Статистика /
+  // Навыки / Опыт работы / Виджеты / Соцсети) — клик по плашке раскрывает
+  // или сворачивает категорию, анимация — на CSS (grid-template-rows). =====
+  var accordionItems = document.querySelectorAll('.about-accordion-item');
+  if (accordionItems.length) {
+    accordionItems.forEach(function (item) {
+      var header = item.querySelector('.about-accordion-header');
+      if (!header) return;
+      header.setAttribute('aria-expanded', item.classList.contains('open') ? 'true' : 'false');
+      header.addEventListener('click', function () {
+        var willOpen = !item.classList.contains('open');
+        item.classList.toggle('open', willOpen);
+        header.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+      });
+    });
+
+    // Автоматически раскрыть нужную секцию: либо по хэшу в адресе
+    // (например about.php#about-acc-widgets), либо по значению,
+    // которое сервер передал через window.ADMIN_ABOUT_AUTOOPEN — это
+    // происходит, когда мы вернулись на страницу после редактирования
+    // записи (опыт работы / категория виджетов / соцсеть) через ссылку
+    // "Изменить" и форма уже заполнена нужными значениями.
+    var autoOpenId = (window.location.hash || '').replace('#', '') || window.ADMIN_ABOUT_AUTOOPEN || null;
+    if (autoOpenId) {
+      var target = document.getElementById(autoOpenId);
+      if (target && target.classList.contains('about-accordion-item')) {
+        target.classList.add('open');
+        var targetHeader = target.querySelector('.about-accordion-header');
+        if (targetHeader) targetHeader.setAttribute('aria-expanded', 'true');
+        window.requestAnimationFrame(function () {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+      }
+    }
+  }
 });
