@@ -1,32 +1,40 @@
 /**
  * assets/js/video-compress.js
  *
- * Сжимает видео прямо в браузере перед загрузкой в раздел "Достижения".
- * Зачем: некоторые бесплатные хостинги режут загрузку файлов гораздо
- * жёстче, чем указано в настройках сайта (.user.ini/.htaccess) — например,
- * даже видео весом 20-30 МБ может быть отклонено. Пережимая видео в
- * браузере до меньшего разрешения/битрейта, мы уменьшаем размер файла
- * ДО того, как он вообще уйдёт на сервер — это обходит любые серверные
- * лимиты, так как на сервер отправляется уже маленький файл.
+ * Загружает видео из раздела "Достижения" НАПРЯМУЮ из браузера в облако
+ * (Cloudinary), минуя сам хостинг. Зачем: бесплатные хостинги режут
+ * загрузку файлов через PHP (upload_max_filesize/post_max_size) намного
+ * жёстче, чем указано в настройках сайта — даже видео весом 20-30 МБ
+ * могло быть отклонено. Раньше мы пытались сжать видео в браузере и всё
+ * равно отправить его на сервер — но и сжатый файл мог не пройти лимиты
+ * хостинга. Теперь видео (по возможности — сжатое, для скорости) летит
+ * прямо в Cloudinary через их публичный "unsigned" upload endpoint, а на
+ * сервер уходит только маленькая ссылка на готовый файл в текстовых полях
+ * формы (cloud_url / cloud_public_id) — лимиты хостинга тут вообще не
+ * при чём, так как большой файл сервер даже не видит.
  *
- * Работает через стандартные браузерные API (video + canvas +
- * MediaRecorder) — никаких сторонних библиотек и серверных зависимостей
- * не требуется. Результат сохраняется в формате WebM (VP8/9 + Opus),
- * который прекрасно воспроизводится во всех современных браузерах.
+ * Сжатие (через video + canvas + MediaRecorder) остаётся как раньше —
+ * оно просто уменьшает файл ПЕРЕД отправкой в облако, чтобы загрузка
+ * была быстрее на медленном интернете. Если браузер не поддерживает
+ * MediaRecorder (очень старые браузеры) — сжатие пропускается, но
+ * загрузка в облако всё равно происходит с оригинальным файлом.
  *
- * Если браузер не поддерживает MediaRecorder (очень старые браузеры) —
- * форма просто отправляет исходный файл как раньше, ничего не ломается.
+ * Если в браузере вообще отключён JavaScript — форма отправляется как
+ * обычная HTML-форма, и сервер обрабатывает файл по старому способу
+ * (см. admin-x7k9m2/widget_items.php), с обычными лимитами хостинга.
  *
  * Работает с ЛЮБЫМ количеством форм на странице (.js-widget-upload-form
- * с data-type="video") — например с модалками загрузки на вкладке
- * «О мне», где на каждую категорию своя отдельная форма/модалка, а не
- * только со страницей widget_items.php с одной формой.
+ * с data-type="video") — и на странице widget_items.php, и в модалках
+ * на вкладке «О мне».
  */
 (function () {
-  if (!window.MediaRecorder) return;
+  var CLOUDINARY_CLOUD_NAME = 'ds6buwmpj';
+  var CLOUDINARY_UPLOAD_PRESET = 'widgets_unsigned';
+  var CLOUDINARY_UPLOAD_URL = 'https://api.cloudinary.com/v1_1/' + CLOUDINARY_CLOUD_NAME + '/video/upload';
 
-  var MAX_DIMENSION = 960;        // сторона по большей стороне кадра
-  var TARGET_BITRATE = 1_500_000; // ~1.5 Мбит/с — компромисс качество/размер
+  var MAX_DIMENSION = 960;         // сторона по большей стороне кадра при сжатии
+  var TARGET_BITRATE = 1_500_000;  // ~1.5 Мбит/с — компромисс качество/размер
+  var SOFT_MAX_BYTES = 300 * 1024 * 1024; // защита от случайной загрузки огромного файла
 
   function pickMimeType() {
     var candidates = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'];
@@ -110,14 +118,59 @@
     });
   }
 
-  // Подключает сжатие к ОДНОЙ форме — вызывается для каждой найденной
-  // формы загрузки видео на странице.
+  // Загружает готовый файл прямо в Cloudinary (unsigned preset) и
+  // возвращает Promise с { secure_url, public_id }.
+  function uploadToCloudinary(file, onProgress) {
+    return new Promise(function (resolve, reject) {
+      var xhr = new XMLHttpRequest();
+      xhr.open('POST', CLOUDINARY_UPLOAD_URL, true);
+
+      xhr.upload.onprogress = function (e) {
+        if (e.lengthComputable && onProgress) {
+          onProgress(e.loaded / e.total);
+        }
+      };
+
+      xhr.onload = function () {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            resolve(JSON.parse(xhr.responseText));
+          } catch (e) {
+            reject(new Error('Некорректный ответ облака'));
+          }
+        } else {
+          var message = 'облако вернуло ошибку ' + xhr.status;
+          try {
+            var errData = JSON.parse(xhr.responseText);
+            if (errData && errData.error && errData.error.message) {
+              message = errData.error.message;
+            }
+          } catch (e) { /* ignore */ }
+          reject(new Error(message));
+        }
+      };
+
+      xhr.onerror = function () {
+        reject(new Error('ошибка сети при загрузке в облако'));
+      };
+
+      var formData = new FormData();
+      formData.append('file', file, file.name);
+      formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+      xhr.send(formData);
+    });
+  }
+
+  // Подключает загрузку в облако к ОДНОЙ форме — вызывается для каждой
+  // найденной формы загрузки видео на странице.
   function wireForm(form) {
     var fileInput = form.querySelector('.js-widget-file-input');
     var toggle = form.querySelector('.js-compress-toggle');
     var status = form.querySelector('.js-compress-status');
     var submitBtn = form.querySelector('.js-widget-submit-btn');
-    if (!fileInput || !toggle || !submitBtn) return;
+    var cloudUrlInput = form.querySelector('.js-cloud-url');
+    var cloudPublicIdInput = form.querySelector('.js-cloud-public-id');
+    if (!fileInput || !submitBtn || !cloudUrlInput) return;
 
     function setStatus(text) {
       if (!status) return;
@@ -126,57 +179,73 @@
     }
 
     form.addEventListener('submit', function (ev) {
-      if (form.dataset.compressed === '1') {
-        return; // уже сжали, отправляем как есть
+      if (form.dataset.uploaded === '1') {
+        return; // файл уже загружен в облако, ссылка в форме — отправляем как есть
       }
-      if (!toggle.checked) {
-        return; // сжатие отключено пользователем — грузим оригинал
-      }
+
       var file = fileInput.files && fileInput.files[0];
       if (!file || !file.type.startsWith('video/')) {
         return;
       }
-      // Если файл и так маленький — сжимать незачем, не тратим время.
-      if (file.size <= 8 * 1024 * 1024) {
+
+      if (file.size > SOFT_MAX_BYTES) {
+        ev.preventDefault();
+        setStatus('Файл слишком большой (максимум ' + Math.round(SOFT_MAX_BYTES / 1024 / 1024) + ' МБ). Выберите файл поменьше.');
         return;
       }
 
       ev.preventDefault();
       submitBtn.disabled = true;
-      setStatus('Сжимаем видео в браузере, это может занять до минуты…');
 
-      compressVideo(file).then(function (blob) {
-        if (blob.size >= file.size) {
-          // Сжатая версия не меньше оригинала (бывает с уже сжатыми видео) —
-          // грузим оригинал, чтобы не терять качество зря.
-          setStatus('Сжатие не дало выигрыша в размере — загружаем оригинал.');
-          form.dataset.compressed = '1';
-          form.submit();
-          return;
+      var shouldCompress = (toggle ? toggle.checked : true)
+        && window.MediaRecorder
+        && file.size > 8 * 1024 * 1024;
+
+      var prepared = shouldCompress
+        ? (function () {
+            setStatus('Сжимаем видео в браузере, это может занять до минуты…');
+            return compressVideo(file).then(function (blob) {
+              if (blob.size >= file.size) {
+                // Сжатая версия не меньше оригинала (бывает с уже сжатыми
+                // видео) — грузим оригинал, чтобы не терять качество зря.
+                return file;
+              }
+              var before = (file.size / 1024 / 1024).toFixed(1);
+              var after = (blob.size / 1024 / 1024).toFixed(1);
+              setStatus('Сжали: ' + before + ' МБ → ' + after + ' МБ. Загружаем в облако…');
+              return new File([blob], file.name.replace(/\.[^.]+$/, '') + '.webm', { type: 'video/webm' });
+            }).catch(function (err) {
+              console.error('Video compress error:', err);
+              setStatus('Не получилось сжать видео в этом браузере — загружаем оригинал.');
+              return file;
+            });
+          })()
+        : Promise.resolve(file);
+
+      prepared.then(function (finalFile) {
+        setStatus('Загружаем в облако: 0%…');
+        return uploadToCloudinary(finalFile, function (pct) {
+          setStatus('Загружаем в облако: ' + Math.round(pct * 100) + '%…');
+        });
+      }).then(function (result) {
+        if (!result || !result.secure_url) {
+          throw new Error('облако не вернуло ссылку на файл');
         }
-        var newFile = new File([blob], file.name.replace(/\.[^.]+$/, '') + '.webm', { type: 'video/webm' });
-        var dt = new DataTransfer();
-        dt.items.add(newFile);
-        fileInput.files = dt.files;
-        // Обновляем подпись выбранного файла (см. admin.js), если она есть.
-        var nameEl = form.querySelector('.file-input-name');
-        if (nameEl) {
-          nameEl.textContent = '✓ ' + newFile.name + ' (' + (blob.size / 1024 / 1024).toFixed(1) + ' МБ)';
-          nameEl.classList.add('has-file');
+        cloudUrlInput.value = result.secure_url;
+        if (cloudPublicIdInput) {
+          cloudPublicIdInput.value = result.public_id || '';
         }
+        // Сам файл на сервер больше не отправляем — очищаем поле, чтобы
+        // не гонять его лишний раз (и не упереться в лимиты хостинга).
+        fileInput.value = '';
+        fileInput.removeAttribute('required');
 
-        var before = (file.size / 1024 / 1024).toFixed(1);
-        var after = (blob.size / 1024 / 1024).toFixed(1);
-        setStatus('Готово: ' + before + ' МБ → ' + after + ' МБ. Загружаем…');
-
-        form.dataset.compressed = '1';
+        setStatus('Готово, сохраняем…');
+        form.dataset.uploaded = '1';
         form.submit();
       }).catch(function (err) {
-        console.error('Video compress error:', err);
-        setStatus('Не получилось сжать видео в этом браузере — загружаем оригинал файла.');
-        form.dataset.compressed = '1';
-        form.submit();
-      }).finally(function () {
+        console.error('Cloudinary upload error:', err);
+        setStatus('Не получилось загрузить видео в облако (' + err.message + '). Проверьте интернет и попробуйте ещё раз.');
         submitBtn.disabled = false;
       });
     });

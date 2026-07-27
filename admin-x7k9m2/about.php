@@ -210,10 +210,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrfCheck()) {
     // ===== Виджеты: категория — удалить (вместе со всеми файлами) =====
     if ($form === 'widgetcat_delete') {
         $id = (int)($_POST['id'] ?? 0);
-        $stmt = $pdo->prepare('SELECT file_path FROM widget_items WHERE category_id = ?');
+        $stmt = $pdo->prepare('SELECT file_path, cloud_public_id FROM widget_items WHERE category_id = ?');
         $stmt->execute([$id]);
         foreach ($stmt->fetchAll() as $row) {
-            deleteUploadedFile($row['file_path']);
+            deleteWidgetItemFile($row);
         }
         $pdo->prepare('DELETE FROM widget_categories WHERE id = ?')->execute([$id]);
         redirect('about.php#about-acc-widgets');
@@ -693,9 +693,9 @@ if ($socialEditItem) { $autoOpenSection = 'about-acc-social'; }
                       data-category-id="<?= $__catId ?>"
                       data-title="<?= e($__it['title'] ?? '') ?>">
                       <?php if ($cat['type'] === 'photo'): ?>
-                        <img src="../<?= e($__it['file_path']) ?>" alt="">
+                        <img src="<?= e(widgetAdminSrc($__it['file_path'])) ?>" alt="">
                       <?php elseif ($cat['type'] === 'video'): ?>
-                        <video src="../<?= e($__it['file_path']) ?>#t=0.1" preload="metadata" muted></video>
+                        <video src="<?= e(widgetAdminSrc($__it['file_path'])) ?>#t=0.1" preload="metadata" muted></video>
                       <?php else: ?>
                         <div class="admin-widget-item-card-pdf">📄</div>
                       <?php endif; ?>
@@ -1101,13 +1101,17 @@ if ($socialEditItem) { $autoOpenSection = 'about-acc-social'; }
           <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
           <input type="hidden" name="action" value="upload">
           <input type="hidden" name="category_id" value="<?= $__catId ?>">
+          <?php if ($cat['type'] === 'video'): ?>
+          <input type="hidden" name="cloud_url" class="js-cloud-url" value="">
+          <input type="hidden" name="cloud_public_id" class="js-cloud-public-id" value="">
+          <?php endif; ?>
           <div class="form-field">
             <label>Подпись (необязательно)</label>
             <input type="text" name="title" maxlength="100">
           </div>
           <?php if ($cat['type'] === 'video'): ?>
           <label class="switch-field switch-field--row">
-            <span class="switch-field-label" style="text-transform:none; font-weight:400;">Сжать видео перед загрузкой (рекомендуется)</span>
+            <span class="switch-field-label" style="text-transform:none; font-weight:400;">Сжать видео перед загрузкой (уменьшает размер и ускоряет загрузку на медленном интернете)</span>
             <span class="switch">
               <input type="checkbox" class="js-compress-toggle" checked>
               <span class="switch-slider"></span>
@@ -1121,6 +1125,13 @@ if ($socialEditItem) { $autoOpenSection = 'about-acc-social'; }
               <span>Выбрать файл</span>
               <input type="file" name="file" class="js-widget-file-input" accept="<?= e($widgetTypeAccept[$cat['type']] ?? '') ?>" required>
             </label>
+            <?php if ($cat['type'] === 'video'): ?>
+            <p class="field-hint">
+              Видео загружается напрямую в облако (Cloudinary), минуя лимиты хостинга —
+              лимит теперь до 300 МБ. Без JavaScript в браузере сработает старый способ
+              загрузки через хостинг с его обычными ограничениями.
+            </p>
+            <?php else: ?>
             <?php
               $__serverLimitBytes = currentServerUploadLimitBytes();
               $__effectiveBytes = $__serverLimitBytes > 0 ? min($__catMaxBytes, $__serverLimitBytes) : $__catMaxBytes;
@@ -1130,6 +1141,7 @@ if ($socialEditItem) { $autoOpenSection = 'about-acc-social'; }
               (лимит раздела — <?= round($__catMaxBytes / 1024 / 1024) ?> МБ,
               текущий лимит хостинга — <?= $__serverLimitBytes > 0 ? round($__serverLimitBytes / 1024 / 1024) . ' МБ' : 'неизвестен' ?>).
             </p>
+            <?php endif; ?>
           </div>
           <button type="submit" class="btn full js-widget-submit-btn">Загрузить</button>
         </form>

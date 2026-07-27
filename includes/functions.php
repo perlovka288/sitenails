@@ -243,6 +243,81 @@ function currentServerUploadLimitBytes(): int
     return min($upload, $post);
 }
 
+// ==== CLOUDINARY: файлы, загруженные прямо из браузера (см. video-compress.js) ====
+
+// Проверяет, что путь — это внешняя ссылка (Cloudinary), а не локальный
+// файл на диске хостинга. Старые записи (photo/pdf, старые видео) хранят
+// обычный относительный путь и сюда не попадают.
+function isCloudUrl(?string $path): bool
+{
+    return $path !== null && (str_starts_with($path, 'http://') || str_starts_with($path, 'https://'));
+}
+
+// В админке пути к локальным файлам выводятся с "../" (страница лежит в
+// подпапке admin-x7k9m2/), а ссылки на Cloudinary — уже полные и "../" им
+// только всё портит. Эта функция выбирает правильный вариант.
+function widgetAdminSrc(string $path): string
+{
+    return isCloudUrl($path) ? $path : '../' . $path;
+}
+
+// Удаляет файл из Cloudinary (используется при удалении записи в панели
+// управления для видео, загруженных напрямую из браузера). Тихо
+// возвращает false при любой ошибке — отсутствие файла в Cloudinary не
+// должно мешать удалить саму запись из базы.
+function cloudinaryDestroy(string $publicId, string $resourceType = 'video'): bool
+{
+    if ($publicId === '' || !defined('CLOUDINARY_API_SECRET') || !defined('CLOUDINARY_API_KEY') || !defined('CLOUDINARY_CLOUD_NAME')) {
+        return false;
+    }
+
+    $timestamp = time();
+    $signature = sha1('public_id=' . $publicId . '&timestamp=' . $timestamp . CLOUDINARY_API_SECRET);
+
+    $postFields = http_build_query([
+        'public_id' => $publicId,
+        'timestamp' => $timestamp,
+        'api_key'   => CLOUDINARY_API_KEY,
+        'signature' => $signature,
+    ]);
+
+    $url = 'https://api.cloudinary.com/v1_1/' . CLOUDINARY_CLOUD_NAME . '/' . $resourceType . '/destroy';
+
+    $context = stream_context_create([
+        'http' => [
+            'method'        => 'POST',
+            'header'        => "Content-Type: application/x-www-form-urlencoded\r\n",
+            'content'       => $postFields,
+            'timeout'       => 15,
+            'ignore_errors' => true,
+        ],
+    ]);
+
+    $response = @file_get_contents($url, false, $context);
+    if ($response === false) {
+        return false;
+    }
+
+    $data = json_decode($response, true);
+    return is_array($data) && ($data['result'] ?? '') === 'ok';
+}
+
+// Единая точка удаления файла записи виджета: сам решает, удалять с диска
+// хостинга (старые загрузки) или из Cloudinary (новые видео, загруженные
+// напрямую из браузера) — вызывающему коду разница не важна.
+function deleteWidgetItemFile(array $item): void
+{
+    $path = $item['file_path'] ?? null;
+    if (isCloudUrl($path)) {
+        $publicId = trim((string)($item['cloud_public_id'] ?? ''));
+        if ($publicId !== '') {
+            cloudinaryDestroy($publicId, 'video');
+        }
+        return;
+    }
+    deleteUploadedFile($path);
+}
+
 // ==== Кнопки блока «О мне»: превращает выбранный в панели управления
 // тип кнопки ('instagram' / 'reviews' / 'viber' / 'custom') в реальную
 // ссылку. Для 'custom' используется ссылка, вписанная мамой вручную. ====

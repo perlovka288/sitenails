@@ -34,6 +34,23 @@ define('ADMIN_REGISTER_CODE', 'mama-nails-2026-secret');
 // ==== ОБЩИЕ НАСТРОЙКИ САЙТА ====
 define('DB_PATH', __DIR__ . '/data/database.sqlite');
 
+// ==== CLOUDINARY (прямая загрузка видео из браузера в облако) ====
+// Раньше видео из формы "Достижения" шло через сам хостинг — а бесплатные
+// хостинги режут PHP upload_max_filesize/post_max_size намного строже, чем
+// указано в настройках сайта (даже 20-23 МБ файл мог не пройти). Теперь
+// видео летит СРАЗУ из браузера в Cloudinary (assets/js/video-compress.js),
+// а на сервер приходит только маленькая ссылка на готовый файл — лимиты
+// хостинга на PHP тут вообще ни при чём.
+// CLOUD_NAME и UPLOAD_PRESET не секретны (и так видны в JS-коде страницы —
+// иначе прямая загрузка была бы невозможна). API_KEY/API_SECRET нужны
+// только на сервере — для удаления файла из Cloudinary, когда мама удаляет
+// запись в панели управления; сама загрузка идёт по "unsigned" preset и
+// их не использует.
+define('CLOUDINARY_CLOUD_NAME', 'ds6buwmpj');
+define('CLOUDINARY_UPLOAD_PRESET', 'widgets_unsigned');
+define('CLOUDINARY_API_KEY', '699982791523863');
+define('CLOUDINARY_API_SECRET', 'frncYM33zozidBf5T35xNNjhl-o');
+
 // Значения ниже используются ТОЛЬКО один раз — как стартовые значения,
 // которые записываются в базу при самом первом запуске сайта.
 // Дальше название сайта, телефон и ссылки на соцсети мама меняет сама
@@ -226,14 +243,25 @@ function migrateSchema(PDO $pdo): void
     // Файлы внутри категории-виджета
     $pdo->exec("
         CREATE TABLE IF NOT EXISTS widget_items (
-            id            INTEGER PRIMARY KEY AUTOINCREMENT,
-            category_id   INTEGER NOT NULL REFERENCES widget_categories(id) ON DELETE CASCADE,
-            file_path     TEXT NOT NULL,
-            title         TEXT,
-            sort_order    INTEGER NOT NULL DEFAULT 0,
-            created_at    TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            id               INTEGER PRIMARY KEY AUTOINCREMENT,
+            category_id      INTEGER NOT NULL REFERENCES widget_categories(id) ON DELETE CASCADE,
+            file_path        TEXT NOT NULL,
+            cloud_public_id  TEXT,
+            title            TEXT,
+            sort_order       INTEGER NOT NULL DEFAULT 0,
+            created_at       TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
         )
     ");
+
+    // cloud_public_id — id файла в Cloudinary (для видео, загруженных
+    // напрямую из браузера), нужен только чтобы уметь удалить файл из
+    // облака при удалении записи в панели. Для старых файлов (на диске
+    // хостинга) остаётся NULL — с ними всё работает как раньше.
+    $widgetItemCols = $pdo->query('PRAGMA table_info(widget_items)')->fetchAll(PDO::FETCH_ASSOC);
+    $widgetItemColNames = array_column($widgetItemCols, 'name');
+    if ($widgetItemColNames && !in_array('cloud_public_id', $widgetItemColNames, true)) {
+        $pdo->exec('ALTER TABLE widget_items ADD COLUMN cloud_public_id TEXT');
+    }
 
     // ==== Кнопки блока «О мне»: тип поведения + вкл/выкл (тумблер) ====
     // btn{N}_type: 'custom' (своя ссылка, как раньше), 'instagram'

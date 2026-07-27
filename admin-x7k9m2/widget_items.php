@@ -30,46 +30,70 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrfCheck()) {
 
     if ($action === 'upload') {
         $title = trim($_POST['title'] ?? '');
-        $allowed = widgetAllowedMime($category['type']);
-        $maxBytes = $category['type'] === 'video' ? 60 * 1024 * 1024 : 8 * 1024 * 1024;
-        $serverLimitBytes = currentServerUploadLimitBytes();
+        $cloudUrl = trim($_POST['cloud_url'] ?? '');
+        $cloudPublicId = trim($_POST['cloud_public_id'] ?? '');
 
-        $fileErrorCode = $_FILES['file']['error'] ?? UPLOAD_ERR_NO_FILE;
-        if ($fileErrorCode === UPLOAD_ERR_INI_SIZE || $fileErrorCode === UPLOAD_ERR_FORM_SIZE) {
-            // PHP отклонил файл ещё на уровне php.ini/.user.ini хостинга —
-            // это НЕ лимит раздела (60 МБ), а более строгий лимит сервера.
-            // Показываем правду, чтобы не выглядело "видео 23 МБ, почему отказ".
-            if ($serverLimitBytes > 0 && $serverLimitBytes < $maxBytes) {
-                $uploadError = 'Хостинг сейчас пропускает файлы только до '
-                    . round($serverLimitBytes / 1024 / 1024) . ' МБ (лимит сервера upload_max_filesize/post_max_size), '
-                    . 'хотя лимит этого раздела — ' . round($maxBytes / 1024 / 1024) . ' МБ. '
-                    . 'Подождите немного, если недавно меняли .user.ini/.htaccess, либо попросите хостинг поднять эти лимиты, '
-                    . 'либо сожмите файл до ' . round($serverLimitBytes / 1024 / 1024) . ' МБ.';
+        if ($category['type'] === 'video' && $cloudUrl !== '') {
+            // Видео уже загружено напрямую из браузера в Cloudinary (см.
+            // assets/js/video-compress.js) — на сервер пришла только
+            // ссылка на готовый файл, а не сам файл. Лимиты хостинга
+            // (upload_max_filesize/post_max_size) тут вообще не участвуют,
+            // поэтому старые проверки размера ниже для этого пути не нужны.
+            $expectedPrefix = 'https://res.cloudinary.com/' . CLOUDINARY_CLOUD_NAME . '/';
+            if (!str_starts_with($cloudUrl, $expectedPrefix)) {
+                $uploadError = 'Ссылка на загруженное видео повреждена. Попробуйте загрузить файл ещё раз.';
             } else {
-                $uploadError = 'Файл слишком большой. Максимум для этого раздела — '
-                    . round($maxBytes / 1024 / 1024) . ' МБ. Сожмите видео и попробуйте снова.';
-            }
-        } elseif ($fileErrorCode !== UPLOAD_ERR_OK && $fileErrorCode !== UPLOAD_ERR_NO_FILE) {
-            $uploadError = 'Загрузка не удалась (код ошибки ' . (int)$fileErrorCode . '). Попробуйте ещё раз.';
-        } else {
-            $filePath = saveUploadedFile(
-                'file',
-                'assets/uploads/widgets/' . $categoryId,
-                $allowed,
-                $maxBytes,
-                $category['type']
-            );
-
-            if ($filePath !== null) {
                 $maxOrder = (int)$pdo->query('SELECT COALESCE(MAX(sort_order), 0) FROM widget_items WHERE category_id = ' . (int)$categoryId)->fetchColumn();
-                $pdo->prepare('INSERT INTO widget_items (category_id, file_path, title, sort_order) VALUES (?, ?, ?, ?)')
-                    ->execute([$categoryId, $filePath, $title ?: null, $maxOrder + 1]);
+                $pdo->prepare('INSERT INTO widget_items (category_id, file_path, cloud_public_id, title, sort_order) VALUES (?, ?, ?, ?, ?)')
+                    ->execute([$categoryId, $cloudUrl, $cloudPublicId ?: null, $title ?: null, $maxOrder + 1]);
                 redirect('about.php#about-acc-widgets');
-            } elseif (($_FILES['file']['size'] ?? 0) > $maxBytes) {
-                $uploadError = 'Файл слишком большой. Максимум для этого раздела — '
-                    . round($maxBytes / 1024 / 1024) . ' МБ.';
+            }
+        } else {
+            // Старый путь: файл идёт через сам сервер — используется для
+            // фото/PDF, а также как запасной вариант для видео, если в
+            // браузере отключён JavaScript (тогда ограничения хостинга
+            // всё же действуют, как и раньше).
+            $allowed = widgetAllowedMime($category['type']);
+            $maxBytes = $category['type'] === 'video' ? 60 * 1024 * 1024 : 8 * 1024 * 1024;
+            $serverLimitBytes = currentServerUploadLimitBytes();
+
+            $fileErrorCode = $_FILES['file']['error'] ?? UPLOAD_ERR_NO_FILE;
+            if ($fileErrorCode === UPLOAD_ERR_INI_SIZE || $fileErrorCode === UPLOAD_ERR_FORM_SIZE) {
+                // PHP отклонил файл ещё на уровне php.ini/.user.ini хостинга —
+                // это НЕ лимит раздела (60 МБ), а более строгий лимит сервера.
+                // Показываем правду, чтобы не выглядело "видео 23 МБ, почему отказ".
+                if ($serverLimitBytes > 0 && $serverLimitBytes < $maxBytes) {
+                    $uploadError = 'Хостинг сейчас пропускает файлы только до '
+                        . round($serverLimitBytes / 1024 / 1024) . ' МБ (лимит сервера upload_max_filesize/post_max_size), '
+                        . 'хотя лимит этого раздела — ' . round($maxBytes / 1024 / 1024) . ' МБ. '
+                        . 'Подождите немного, если недавно меняли .user.ini/.htaccess, либо попросите хостинг поднять эти лимиты, '
+                        . 'либо сожмите файл до ' . round($serverLimitBytes / 1024 / 1024) . ' МБ.';
+                } else {
+                    $uploadError = 'Файл слишком большой. Максимум для этого раздела — '
+                        . round($maxBytes / 1024 / 1024) . ' МБ. Сожмите видео и попробуйте снова.';
+                }
+            } elseif ($fileErrorCode !== UPLOAD_ERR_OK && $fileErrorCode !== UPLOAD_ERR_NO_FILE) {
+                $uploadError = 'Загрузка не удалась (код ошибки ' . (int)$fileErrorCode . '). Попробуйте ещё раз.';
             } else {
-                $uploadError = 'Файл не загружен — проверьте формат (' . implode(', ', $allowed) . ') и размер файла.';
+                $filePath = saveUploadedFile(
+                    'file',
+                    'assets/uploads/widgets/' . $categoryId,
+                    $allowed,
+                    $maxBytes,
+                    $category['type']
+                );
+
+                if ($filePath !== null) {
+                    $maxOrder = (int)$pdo->query('SELECT COALESCE(MAX(sort_order), 0) FROM widget_items WHERE category_id = ' . (int)$categoryId)->fetchColumn();
+                    $pdo->prepare('INSERT INTO widget_items (category_id, file_path, title, sort_order) VALUES (?, ?, ?, ?)')
+                        ->execute([$categoryId, $filePath, $title ?: null, $maxOrder + 1]);
+                    redirect('about.php#about-acc-widgets');
+                } elseif (($_FILES['file']['size'] ?? 0) > $maxBytes) {
+                    $uploadError = 'Файл слишком большой. Максимум для этого раздела — '
+                        . round($maxBytes / 1024 / 1024) . ' МБ.';
+                } else {
+                    $uploadError = 'Файл не загружен — проверьте формат (' . implode(', ', $allowed) . ') и размер файла.';
+                }
             }
         }
     } elseif ($action === 'update_title') {
@@ -80,11 +104,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrfCheck()) {
         redirect('about.php#about-acc-widgets');
     } elseif ($action === 'delete') {
         $id = (int)($_POST['id'] ?? 0);
-        $itemStmt = $pdo->prepare('SELECT file_path FROM widget_items WHERE id = ? AND category_id = ?');
+        $itemStmt = $pdo->prepare('SELECT file_path, cloud_public_id FROM widget_items WHERE id = ? AND category_id = ?');
         $itemStmt->execute([$id, $categoryId]);
         $item = $itemStmt->fetch();
         if ($item) {
-            deleteUploadedFile($item['file_path']);
+            deleteWidgetItemFile($item);
             $pdo->prepare('DELETE FROM widget_items WHERE id = ?')->execute([$id]);
         }
         redirect('about.php#about-acc-widgets');
@@ -146,13 +170,17 @@ $typeAccept = [
       <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
       <input type="hidden" name="action" value="upload">
       <input type="hidden" name="category_id" value="<?= (int)$categoryId ?>">
+      <?php if ($category['type'] === 'video'): ?>
+      <input type="hidden" name="cloud_url" class="js-cloud-url" value="">
+      <input type="hidden" name="cloud_public_id" class="js-cloud-public-id" value="">
+      <?php endif; ?>
       <div class="form-field">
         <label>Подпись (необязательно)</label>
         <input type="text" name="title" maxlength="100">
       </div>
       <?php if ($category['type'] === 'video'): ?>
       <label class="switch-field switch-field--row">
-        <span class="switch-field-label" style="text-transform:none; font-weight:400;">Сжать видео перед загрузкой (рекомендуется — многие бесплатные хостинги режут большие файлы сильнее, чем указано в настройках)</span>
+        <span class="switch-field-label" style="text-transform:none; font-weight:400;">Сжать видео перед загрузкой (уменьшает размер и ускоряет загрузку на медленном интернете)</span>
         <span class="switch">
           <input type="checkbox" class="js-compress-toggle" checked>
           <span class="switch-slider"></span>
@@ -166,8 +194,15 @@ $typeAccept = [
           <span>Выбрать файл</span>
           <input type="file" name="file" class="js-widget-file-input" accept="<?= e($typeAccept[$category['type']] ?? '') ?>" required>
         </label>
+        <?php if ($category['type'] === 'video'): ?>
+        <p class="field-hint">
+          Видео загружается напрямую в облако (Cloudinary), минуя лимиты хостинга —
+          лимит теперь до 300 МБ. Если в браузере отключён JavaScript, сработает
+          старый способ загрузки через сам хостинг с его обычными ограничениями.
+        </p>
+        <?php else: ?>
         <?php
-          $__catMaxBytes = $category['type'] === 'video' ? 60 * 1024 * 1024 : 8 * 1024 * 1024;
+          $__catMaxBytes = 8 * 1024 * 1024;
           $__serverLimitBytes = currentServerUploadLimitBytes();
           $__effectiveBytes = $__serverLimitBytes > 0 ? min($__catMaxBytes, $__serverLimitBytes) : $__catMaxBytes;
         ?>
@@ -178,8 +213,9 @@ $typeAccept = [
           Если хостинг режет файл сильнее, чем нужно, — подождите пару минут после загрузки
           <code>.user.ini</code>/<code>.htaccess</code> на сервер (лимиты применяются не мгновенно)
           или обратитесь в поддержку хостинга с просьбой поднять <code>upload_max_filesize</code>
-          и <code>post_max_size</code>. Иначе — сожмите файл и попробуйте снова.
+          и <code>post_max_size</code>.
         </p>
+        <?php endif; ?>
       </div>
       <button type="submit" class="btn full js-widget-submit-btn">Загрузить</button>
     </form>
@@ -194,11 +230,11 @@ $typeAccept = [
     <?php foreach ($items as $i => $item): ?>
       <div class="admin-widget-item-card">
         <?php if ($category['type'] === 'photo'): ?>
-          <img src="../<?= e($item['file_path']) ?>" alt="">
+          <img src="<?= e(widgetAdminSrc($item['file_path'])) ?>" alt="">
         <?php elseif ($category['type'] === 'video'): ?>
-          <video src="../<?= e($item['file_path']) ?>" controls></video>
+          <video src="<?= e(widgetAdminSrc($item['file_path'])) ?>" controls></video>
         <?php else: ?>
-          <a href="../<?= e($item['file_path']) ?>" target="_blank" rel="noopener" style="display:block; padding:20px 0; font-size:30px;">📄</a>
+          <a href="<?= e(widgetAdminSrc($item['file_path'])) ?>" target="_blank" rel="noopener" style="display:block; padding:20px 0; font-size:30px;">📄</a>
         <?php endif; ?>
         <div style="font-size:12px; color:var(--ink-soft); margin-top:6px; word-break:break-word;"><?= e($item['title'] ?: '') ?></div>
         <form method="post" style="display:flex; gap:4px; justify-content:center; flex-wrap:wrap;">
