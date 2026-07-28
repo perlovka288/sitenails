@@ -1,4 +1,25 @@
 document.addEventListener('DOMContentLoaded', function () {
+  // ===== Мини-профиль клиента (шапка): открыть/закрыть карточку с данными =====
+  var profileToggleBtn = document.getElementById('profileToggleBtn');
+  var profileDropdown = document.getElementById('profileDropdown');
+
+  if (profileToggleBtn && profileDropdown) {
+    profileToggleBtn.addEventListener('click', function (ev) {
+      ev.stopPropagation();
+      var isOpen = profileDropdown.classList.toggle('open');
+      profileToggleBtn.classList.toggle('is-open', isOpen);
+      profileToggleBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    });
+
+    document.addEventListener('click', function (ev) {
+      if (!profileDropdown.contains(ev.target) && ev.target !== profileToggleBtn) {
+        profileDropdown.classList.remove('open');
+        profileToggleBtn.classList.remove('is-open');
+        profileToggleBtn.setAttribute('aria-expanded', 'false');
+      }
+    });
+  }
+
   // ===== Переключение вкладок Отзывы / Прайс / Запись со сдвигом =====
   var track = document.getElementById('panelsTrack');
   var tabButtons = document.querySelectorAll('.tab-btn');
@@ -549,27 +570,33 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     }
 
-    var bookingConfirmOverlay = document.getElementById('bookingConfirmOverlay');
-    var bookingConfirmYes = document.getElementById('bookingConfirmYes');
-    var bookingConfirmNo = document.getElementById('bookingConfirmNo');
+    // ===== Модалка "Анкета записи" (открывается вместо диалога подтверждения) =====
+    var bookingFormOverlay = document.getElementById('bookingFormOverlay');
+    var bookingForm = document.getElementById('bookingForm');
+    var bookingFormTime = document.getElementById('bookingFormTime');
+    var bookingFormSlotId = document.getElementById('bookingFormSlotId');
+    var bookingFormSubmit = document.getElementById('bookingFormSubmit');
+    var bookingFormError = document.getElementById('bookingFormError');
+    var bookingServiceError = document.getElementById('bookingServiceError');
+    var closeBookingFormBtn = document.getElementById('closeBookingFormBtn');
+    var bookingSuccessOverlay = document.getElementById('bookingSuccessOverlay');
+    var closeBookingSuccessBtn = document.getElementById('closeBookingSuccessBtn');
+    var bookingFormName = document.getElementById('bookingFormName');
 
-    function doBookSlot() {
-      var body = new URLSearchParams();
-      body.set('csrf_token', window.SITE_CSRF_TOKEN || '');
-      body.set('slot_id', selectedSlot.id);
-      body.set('visitor_name', localStorage.getItem('visitor_name') || '');
+    function openBookingForm() {
+      if (!bookingFormOverlay || !selectedSlot) return;
+      bookingFormSlotId.value = selectedSlot.id;
+      bookingFormTime.textContent = selectedSlot.dateLabel + ', ' + selectedSlot.time;
+      if (bookingFormName && !bookingFormName.value) {
+        bookingFormName.value = localStorage.getItem('visitor_name') || '';
+      }
+      bookingFormError.style.display = 'none';
+      bookingServiceError.style.display = 'none';
+      bookingFormOverlay.classList.add('open');
+    }
 
-      fetchJSON('select_slot.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: body.toString()
-      }).then(function (res) {
-        bookingContacts.style.display = 'block';
-        if (res && res.success) {
-          // Обновляем календарь, чтобы слот стал отмечен как занятый
-          loadWeek();
-        }
-      });
+    function closeBookingForm() {
+      if (bookingFormOverlay) bookingFormOverlay.classList.remove('open');
     }
 
     if (bookingCta) {
@@ -580,31 +607,79 @@ document.addEventListener('DOMContentLoaded', function () {
           bookingContacts.style.display = 'block';
           return;
         }
+        openBookingForm();
+      });
+    }
 
-        // Спрашиваем подтверждение перед отправкой — чтобы случайный
-        // повторный клик по кнопке не создавал заявку по ошибке.
-        if (bookingConfirmOverlay) {
-          bookingConfirmOverlay.classList.add('open');
-        } else {
-          doBookSlot();
+    if (closeBookingFormBtn) {
+      closeBookingFormBtn.addEventListener('click', closeBookingForm);
+    }
+    if (bookingFormOverlay) {
+      bookingFormOverlay.addEventListener('click', function (ev) {
+        if (ev.target === bookingFormOverlay) closeBookingForm();
+      });
+    }
+
+    if (bookingForm) {
+      bookingForm.addEventListener('submit', function (ev) {
+        ev.preventDefault();
+
+        var manicure = document.getElementById('bookingServiceManicure').value;
+        var pedicure = document.getElementById('bookingServicePedicure').value;
+        var extra = document.getElementById('bookingServiceExtra').value;
+
+        if (!manicure && !pedicure && !extra) {
+          bookingServiceError.style.display = 'block';
+          return;
         }
+        bookingServiceError.style.display = 'none';
+
+        var contactRadio = bookingForm.querySelector('input[name="contact_method"]:checked');
+
+        var body = new URLSearchParams();
+        body.set('csrf_token', window.SITE_CSRF_TOKEN || '');
+        body.set('slot_id', bookingFormSlotId.value);
+        body.set('client_name', bookingForm.client_name.value);
+        body.set('phone', bookingForm.phone.value);
+        body.set('service_manicure', manicure);
+        body.set('service_pedicure', pedicure);
+        body.set('service_extra', extra);
+        body.set('contact_method', contactRadio ? contactRadio.value : '');
+
+        bookingFormSubmit.disabled = true;
+        bookingFormError.style.display = 'none';
+
+        fetchJSON('select_slot.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: body.toString()
+        }).then(function (res) {
+          bookingFormSubmit.disabled = false;
+          if (res && res.success) {
+            localStorage.setItem('visitor_name', bookingForm.client_name.value);
+            closeBookingForm();
+            if (bookingSuccessOverlay) bookingSuccessOverlay.classList.add('open');
+            loadWeek();
+            selectedSlot = null;
+            selectedText.textContent = labels.none;
+          } else {
+            bookingFormError.textContent = window.SITE_BOOKING_FORM_ERROR || 'Не получилось отправить заявку, попробуйте ещё раз.';
+            bookingFormError.style.display = 'block';
+          }
+        }).catch(function () {
+          bookingFormSubmit.disabled = false;
+          bookingFormError.textContent = window.SITE_BOOKING_FORM_ERROR || 'Не получилось отправить заявку, попробуйте ещё раз.';
+          bookingFormError.style.display = 'block';
+        });
       });
     }
 
-    if (bookingConfirmYes) {
-      bookingConfirmYes.addEventListener('click', function () {
-        bookingConfirmOverlay.classList.remove('open');
-        if (selectedSlot) doBookSlot();
+    if (closeBookingSuccessBtn && bookingSuccessOverlay) {
+      closeBookingSuccessBtn.addEventListener('click', function () {
+        bookingSuccessOverlay.classList.remove('open');
       });
-    }
-    if (bookingConfirmNo) {
-      bookingConfirmNo.addEventListener('click', function () {
-        bookingConfirmOverlay.classList.remove('open');
-      });
-    }
-    if (bookingConfirmOverlay) {
-      bookingConfirmOverlay.addEventListener('click', function (ev) {
-        if (ev.target === bookingConfirmOverlay) bookingConfirmOverlay.classList.remove('open');
+      bookingSuccessOverlay.addEventListener('click', function (ev) {
+        if (ev.target === bookingSuccessOverlay) bookingSuccessOverlay.classList.remove('open');
       });
     }
 

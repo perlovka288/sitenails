@@ -64,6 +64,35 @@ foreach ($priceItems as $item) {
     $priceByCategory[$catKey]['items'][] = $item;
 }
 
+// ===== Услуги для анкеты записи: 3 выпадающих списка (Маникюр/Педикюр/
+// Дополнительно), подтягиваются динамически из текущего прайса. Категория
+// «Наращивание / Коррекция» относится к маникюру, поэтому попадает в тот
+// же список, что и «Маникюр» (в TЗ предусмотрено ровно 3 списка). =====
+$__bookingServiceCategoryGroups = [
+    'manicure' => ['Маникюр', 'Наращивание / Коррекция'],
+    'pedicure' => ['Педикюр'],
+    'extra'    => ['Дополнительно'],
+];
+$__bookingServiceOptions = ['manicure' => [], 'pedicure' => [], 'extra' => []];
+foreach ($priceItems as $item) {
+    foreach ($__bookingServiceCategoryGroups as $__groupKey => $__cats) {
+        if (!in_array($item['category'], $__cats, true)) {
+            continue;
+        }
+        $__title = ($lang === 'ua' && !empty($item['title_ua'])) ? $item['title_ua'] : $item['title'];
+        // Если группа объединяет несколько категорий прайса, добавляем
+        // название категории к пункту списка, чтобы не запутать клиента.
+        if (count($__cats) > 1 && $item['category'] !== $__cats[0]) {
+            $__catLabel = ($lang === 'ua' && !empty($item['category_ua'])) ? $item['category_ua'] : $item['category'];
+            $__title = $__catLabel . ' — ' . $__title;
+        }
+        $__bookingServiceOptions[$__groupKey][] = [
+            'id'    => (int)$item['id'],
+            'label' => $__title . ' — ' . $item['price'],
+        ];
+    }
+}
+
 // ===== Раздел «О мне» (самый первый блок на сайте) =====
 $about = $pdo->query('SELECT * FROM about_me WHERE id = 1')->fetch();
 $aboutStats = $pdo->query('SELECT * FROM about_stats ORDER BY sort_order, id')->fetchAll();
@@ -624,15 +653,86 @@ require __DIR__ . '/includes/header.php';
   </div>
   <?php endif; ?>
 
-  <!-- ===== Модалка подтверждения записи ===== -->
-  <div class="modal-overlay" id="bookingConfirmOverlay">
+  <!-- ===== Модалка "Анкета записи" — открывается после выбора времени
+       в календаре и нажатия кнопки "Записатися" ===== -->
+  <div class="modal-overlay" id="bookingFormOverlay">
+    <div class="modal-box">
+      <h3><?= e(t('booking_form_title')) ?></h3>
+      <p style="text-align:center; color:var(--ink-soft); margin-top:-8px;">
+        <?= e(t('booking_form_time_label')) ?> <strong id="bookingFormTime" style="color:var(--ink);"></strong>
+      </p>
+
+      <form id="bookingForm" autocomplete="off">
+        <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+        <input type="hidden" name="slot_id" id="bookingFormSlotId" value="">
+
+        <div class="form-field">
+          <label><?= e(t('booking_form_name')) ?></label>
+          <input type="text" name="client_name" id="bookingFormName" value="<?= e($__siteUser['full_name'] ?? '') ?>" maxlength="100" required>
+        </div>
+
+        <div class="form-field">
+          <label><?= e(t('booking_form_phone')) ?></label>
+          <input type="tel" name="phone" id="bookingFormPhone" value="<?= e($__siteUser['phone'] ?? '') ?>" placeholder="+380 __ ___ __ __" required>
+        </div>
+
+        <div class="form-field">
+          <label><?= e(t('booking_form_services')) ?></label>
+          <div class="booking-service-selects">
+            <select name="service_manicure" id="bookingServiceManicure">
+              <option value=""><?= e(t('booking_form_manicure')) ?>: <?= e(t('booking_form_service_none')) ?></option>
+              <?php foreach ($__bookingServiceOptions['manicure'] as $__opt): ?>
+                <option value="<?= (int)$__opt['id'] ?>"><?= e($__opt['label']) ?></option>
+              <?php endforeach; ?>
+            </select>
+            <select name="service_pedicure" id="bookingServicePedicure">
+              <option value=""><?= e(t('booking_form_pedicure')) ?>: <?= e(t('booking_form_service_none')) ?></option>
+              <?php foreach ($__bookingServiceOptions['pedicure'] as $__opt): ?>
+                <option value="<?= (int)$__opt['id'] ?>"><?= e($__opt['label']) ?></option>
+              <?php endforeach; ?>
+            </select>
+            <select name="service_extra" id="bookingServiceExtra">
+              <option value=""><?= e(t('booking_form_extra')) ?>: <?= e(t('booking_form_service_none')) ?></option>
+              <?php foreach ($__bookingServiceOptions['extra'] as $__opt): ?>
+                <option value="<?= (int)$__opt['id'] ?>"><?= e($__opt['label']) ?></option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+          <p class="field-hint booking-service-error" id="bookingServiceError" style="display:none; color:#e4a3a3;"><?= e(t('booking_form_service_error')) ?></p>
+        </div>
+
+        <div class="form-field">
+          <label><?= e(t('booking_form_contact_title')) ?></label>
+          <div class="contact-method-chips">
+            <label class="contact-method-chip">
+              <input type="radio" name="contact_method" value="instagram">
+              <img src="assets/img/social/inst.png" alt="" class="social-icon-img"><?= e(t('booking_instagram')) ?>
+            </label>
+            <label class="contact-method-chip">
+              <input type="radio" name="contact_method" value="viber">
+              <img src="assets/img/social/viber.png" alt="" class="social-icon-img"><?= e(t('booking_viber')) ?>
+            </label>
+            <label class="contact-method-chip">
+              <input type="radio" name="contact_method" value="phone" checked>
+              <span class="contact-method-chip-icon">📞</span><?= e(t('booking_form_contact_call')) ?>
+            </label>
+          </div>
+        </div>
+
+        <p class="alert error" id="bookingFormError" style="display:none;"></p>
+
+        <button type="submit" class="btn full" id="bookingFormSubmit"><?= e(t('booking_form_submit')) ?></button>
+      </form>
+      <button type="button" class="modal-close" id="closeBookingFormBtn"><?= e(t('cancel')) ?></button>
+    </div>
+  </div>
+
+  <!-- ===== Модалка успешной записи ===== -->
+  <div class="modal-overlay" id="bookingSuccessOverlay">
     <div class="modal-box" style="text-align:center;">
-      <h3><?= e(t('booking_confirm_title')) ?></h3>
-      <p style="color:var(--ink-soft);" id="bookingConfirmText"><?= e(t('booking_confirm_question')) ?></p>
-      <div style="display:flex; gap:10px; margin-top:14px;">
-        <button type="button" class="btn full" id="bookingConfirmYes"><?= e(t('yes')) ?></button>
-        <button type="button" class="btn ghost full" id="bookingConfirmNo"><?= e(t('no')) ?></button>
-      </div>
+      <h3><?= e(t('booking_success_title')) ?></h3>
+      <p style="color:var(--ink-soft);"><?= e(t('booking_success_text')) ?></p>
+      <button type="button" class="btn full" id="closeBookingSuccessBtn"><?= e(t('close')) ?></button>
     </div>
   </div>
 

@@ -100,7 +100,7 @@ a { color: inherit; }
   border-radius: 999px;
   padding: 4px;
   border: 1px solid var(--line);
-  justify-self: end;
+  justify-self: start;
 }
 
 .lang-switch a {
@@ -144,6 +144,135 @@ a { color: inherit; }
 .user-bar a:hover {
   text-decoration: underline;
 }
+
+/* ===== Мини-профиль клиента (шапка, правый верхний угол) ===== */
+.profile-widget {
+  position: relative;
+  justify-self: end;
+}
+
+.profile-avatar-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  padding: 0;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  cursor: pointer;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.profile-avatar-btn:hover,
+.profile-avatar-btn.is-open {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-soft);
+}
+
+.profile-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.profile-avatar-img--lg { width: 52px; height: 52px; }
+
+.profile-avatar-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--primary);
+  background: var(--surface-2);
+}
+.profile-avatar-fallback--lg { width: 52px; height: 52px; border-radius: 50%; font-size: 19px; flex-shrink: 0; }
+
+.profile-dropdown {
+  position: absolute;
+  top: calc(100% + 12px);
+  right: 0;
+  width: 240px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 16px;
+  display: none;
+  z-index: 90;
+}
+.profile-dropdown.open { display: block; }
+
+.profile-dropdown #profileAvatarForm {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.profile-avatar-edit {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+.profile-avatar-edit-label {
+  font-size: 11.5px;
+  color: var(--ink-soft);
+  text-decoration: underline;
+  transition: color .15s ease;
+}
+.profile-avatar-edit:hover .profile-avatar-edit-label { color: var(--primary); }
+
+.profile-dropdown-body { margin-bottom: 12px; }
+.profile-name {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 700;
+  font-size: 16px;
+  margin-bottom: 3px;
+}
+.profile-meta {
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  line-height: 1.5;
+}
+
+.profile-status {
+  padding: 10px 0;
+  border-top: 1px dashed var(--line);
+  margin-bottom: 8px;
+}
+.profile-status-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--ink-soft);
+  margin-bottom: 6px;
+}
+.profile-status-empty {
+  font-size: 12.5px;
+  color: var(--ink-faint);
+}
+
+.profile-logout {
+  display: block;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  text-decoration: none;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+.profile-logout:hover { color: var(--primary); }
+
+.badge.confirmed { background: rgba(255, 201, 77, .16); color: var(--star-gold); }
 
 .tab-btn {
   flex: 1;
@@ -796,6 +925,56 @@ footer .admin-dot {
 .contact-tile:hover { background: var(--primary-soft); border-color: var(--primary); }
 .contact-tile:active { transform: scale(.97); }
 .contact-icon { font-size: 18px; }
+
+/* ===== Анкета записи: список услуг + способ связи ===== */
+.booking-service-selects {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.booking-service-selects select {
+  width: 100%;
+  padding: 13px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--bg-soft);
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--ink);
+}
+.booking-service-selects select:focus { outline: none; border-color: var(--primary); }
+
+.contact-method-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.contact-method-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--bg-soft);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background .15s ease, border-color .15s ease, box-shadow .15s ease;
+}
+.contact-method-chip input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.contact-method-chip:has(input:checked) {
+  background: var(--primary-soft);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary-soft);
+}
+.contact-method-chip:hover { border-color: var(--primary); }
+.contact-method-chip-icon { font-size: 15px; }
 
 /* ===== Модалка "как к вам обращаться" ===== */
 .greet-overlay {

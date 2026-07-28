@@ -121,6 +121,31 @@ $GLOBALS['TRANSLATIONS'] = [
         'experience_title'   => 'Опыт работы',
         'widgets_title_default' => 'Галерея',
         'social_title'       => 'Соцсети',
+
+        // ===== Анкета записи (модальное окно) =====
+        'booking_form_title'         => 'Анкета записи',
+        'booking_form_time_label'    => 'Выбранное время:',
+        'booking_form_name'          => 'Имя',
+        'booking_form_phone'         => 'Номер телефона',
+        'booking_form_services'      => 'Выберите услуги',
+        'booking_form_manicure'      => 'Маникюр',
+        'booking_form_pedicure'      => 'Педикюр',
+        'booking_form_extra'         => 'Дополнительно',
+        'booking_form_service_none'  => '— не нужно —',
+        'booking_form_contact_title' => 'Как с вами удобнее связаться?',
+        'booking_form_contact_call'  => 'Звонок',
+        'booking_form_submit'        => 'Подтвердить запись',
+        'booking_form_service_error' => 'Выберите хотя бы одну услугу.',
+        'booking_success_title'      => 'Запись успешно создана!',
+        'booking_success_text'       => 'Мастер свяжется с вами в ближайшее время.',
+        'booking_form_error_generic' => 'Не получилось отправить заявку, попробуйте ещё раз.',
+
+        // ===== Мини-профиль клиента (шапка сайта) =====
+        'profile_login_label'   => 'Логин:',
+        'profile_status_title'  => 'Текущая запись',
+        'profile_status_empty'  => 'Активных записей пока нет',
+        'profile_change_photo'  => 'Изменить фото',
+        'profile_logout'        => 'Выйти',
     ],
     'ua' => [
         'nav_about'        => 'Про мене',
@@ -229,6 +254,31 @@ $GLOBALS['TRANSLATIONS'] = [
         'experience_title'   => 'Досвід роботи',
         'widgets_title_default' => 'Галерея',
         'social_title'       => 'Соцмережі',
+
+        // ===== Анкета запису (модальне вікно) =====
+        'booking_form_title'         => 'Анкета запису',
+        'booking_form_time_label'    => 'Обраний час:',
+        'booking_form_name'          => "Ім'я",
+        'booking_form_phone'         => 'Номер телефону',
+        'booking_form_services'      => 'Оберіть послуги',
+        'booking_form_manicure'      => 'Манікюр',
+        'booking_form_pedicure'      => 'Педикюр',
+        'booking_form_extra'         => 'Додатково',
+        'booking_form_service_none'  => '— не потрібно —',
+        'booking_form_contact_title' => 'Як з вами зручніше зв\'язатися?',
+        'booking_form_contact_call'  => 'Дзвінок',
+        'booking_form_submit'        => 'Підтвердити запис',
+        'booking_form_service_error' => 'Оберіть хоча б одну послугу.',
+        'booking_success_title'      => 'Запис успішно створено!',
+        'booking_success_text'       => "Майстер зв'яжеться з вами найближчим часом.",
+        'booking_form_error_generic' => 'Не вдалося надіслати заявку, спробуйте ще раз.',
+
+        // ===== Міні-профіль клієнта (шапка сайту) =====
+        'profile_login_label'   => 'Логін:',
+        'profile_status_title'  => 'Поточний запис',
+        'profile_status_empty'  => 'Активних записів поки немає',
+        'profile_change_photo'  => 'Змінити фото',
+        'profile_logout'        => 'Вийти',
     ],
 ];
 

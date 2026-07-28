@@ -299,12 +299,23 @@ function migrateSchema(PDO $pdo): void
         VALUES (?, ?, ?, ?, ?, 1)
     ')->execute(['Любовь', 'lybovk', 'lybovk', normalizePhone('+380 96 055 44 85'), password_hash('606667543', PASSWORD_DEFAULT)]);
 
-    // user_id в bookings — на будущее, чтобы связать заявку на запись
-    // с зарегистрированным аккаунтом клиента (пока ничем не заполняется,
-    // сама форма записи это ещё не использует).
+    // user_id в bookings — связывает заявку на запись с зарегистрированным
+    // аккаунтом клиента (используется формой записи и мини-профилем в шапке).
     $bookingsCols = array_column($pdo->query('PRAGMA table_info(bookings)')->fetchAll(PDO::FETCH_ASSOC), 'name');
     if (!in_array('user_id', $bookingsCols, true)) {
         $pdo->exec('ALTER TABLE bookings ADD COLUMN user_id INTEGER');
+    }
+    // contact_method — как клиенту удобнее связаться (instagram/viber/phone),
+    // выбирается в анкете записи (см. select_slot.php и модалку в index.php).
+    if (!in_array('contact_method', $bookingsCols, true)) {
+        $pdo->exec("ALTER TABLE bookings ADD COLUMN contact_method TEXT NOT NULL DEFAULT ''");
+    }
+
+    // avatar_path в site_users — фото для мини-профиля клиента в шапке сайта.
+    // NULL/пусто — показываем аватар-заглушку с первой буквой имени.
+    $siteUserCols = array_column($pdo->query('PRAGMA table_info(site_users)')->fetchAll(PDO::FETCH_ASSOC), 'name');
+    if ($siteUserCols && !in_array('avatar_path', $siteUserCols, true)) {
+        $pdo->exec('ALTER TABLE site_users ADD COLUMN avatar_path TEXT');
     }
 
     // ==== Кнопки блока «О мне»: тип поведения + вкл/выкл (тумблер) ====

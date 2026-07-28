@@ -172,7 +172,7 @@ const SITE_REMEMBER_LIFETIME    = 60 * 60 * 24 * 90; // 90 дней
 // PHP-сессия слетела (частая история на бесплатных хостингах).
 function currentSiteUser(): ?array
 {
-    static $cached = false;
+    static $cached = null;
     static $checked = false;
     if ($checked) {
         return $cached;
@@ -450,6 +450,38 @@ function deleteWidgetItemFile(array $item): void
         return;
     }
     deleteUploadedFile($path);
+}
+
+// ==== МИНИ-ПРОФИЛЬ КЛИЕНТА (шапка сайта) ====
+
+// Человекочитаемый статус записи для мини-профиля/анкеты, на текущем языке.
+function bookingStatusLabel(string $status, string $lang): string
+{
+    $labels = [
+        'ru' => ['new' => 'В обработке', 'confirmed' => 'Подтверждено', 'done' => 'Выполнено'],
+        'ua' => ['new' => 'В обробці',    'confirmed' => 'Підтверджено', 'done' => 'Виконано'],
+    ];
+    $set = $labels[$lang] ?? $labels['ru'];
+    return $set[$status] ?? $set['new'];
+}
+
+// Последняя запись зарегистрированного клиента (для блока "Статус записи"
+// в мини-профиле) — или null, если заявок ещё не было.
+function latestBookingForUser(int $userId): ?array
+{
+    $pdo = getDB();
+    $stmt = $pdo->prepare('SELECT * FROM bookings WHERE user_id = ? ORDER BY created_at DESC LIMIT 1');
+    $stmt->execute([$userId]);
+    $row = $stmt->fetch();
+    return $row ?: null;
+}
+
+// Ссылка на аватар клиента или null, если фото не загружено (тогда в шапке
+// показывается заглушка с первой буквой имени — см. .profile-avatar-fallback).
+function siteUserAvatarPath(array $siteUser): ?string
+{
+    $path = $siteUser['avatar_path'] ?? null;
+    return ($path && $path !== '') ? $path : null;
 }
 
 // ==== Кнопки блока «О мне»: превращает выбранный в панели управления

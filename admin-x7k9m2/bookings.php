@@ -9,7 +9,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrfCheck()) {
     $id = (int)($_POST['id'] ?? 0);
     $action = $_POST['action'] ?? '';
 
-    if ($action === 'done') {
+    if ($action === 'confirm') {
+        $pdo->prepare("UPDATE bookings SET status = 'confirmed' WHERE id = ?")->execute([$id]);
+    } elseif ($action === 'done') {
         $pdo->prepare("UPDATE bookings SET status = 'done' WHERE id = ?")->execute([$id]);
     } elseif ($action === 'delete') {
         $pdo->prepare('DELETE FROM bookings WHERE id = ?')->execute([$id]);
@@ -49,7 +51,7 @@ $bookings = $pdo->query('
     <tbody>
       <?php foreach ($bookings as $b): ?>
         <tr>
-          <td><span class="badge <?= $b['status'] === 'done' ? 'done' : 'new' ?>"><?= $b['status'] === 'done' ? 'Выполнено' : 'Новая' ?></span></td>
+          <td><span class="badge <?= e($b['status']) ?>"><?= e(bookingStatusLabel($b['status'], 'ru')) ?></span></td>
           <td><?= e($b['client_name']) ?></td>
           <td><?= e($b['phone'] ?: '—') ?></td>
           <td><?= e($b['service'] ?: '—') ?></td>
@@ -72,6 +74,13 @@ $bookings = $pdo->query('
               <button name="action" value="toggle_slot" class="btn ghost" style="padding:6px 12px;font-size:12px;">
                 <?= $b['slot_is_booked'] ? 'Освободить время' : 'Отметить занятым' ?>
               </button>
+            </form>
+            <?php endif; ?>
+            <?php if ($b['status'] === 'new'): ?>
+            <form method="post" style="display:inline;">
+              <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+              <input type="hidden" name="id" value="<?= (int)$b['id'] ?>">
+              <button name="action" value="confirm" class="btn ghost" style="padding:6px 12px;font-size:12px;">Подтвердить</button>
             </form>
             <?php endif; ?>
             <?php if ($b['status'] !== 'done'): ?>

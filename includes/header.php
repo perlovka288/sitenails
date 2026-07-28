@@ -3,6 +3,15 @@ $__lang = currentLang();
 $__tabParam = isset($_GET['tab']) ? '&tab=' . urlencode($_GET['tab']) : '';
 $__siteName = getSetting('site_name', '');
 $__siteTitle = $__siteName !== '' ? $__siteName : 'Мастер маникюра';
+
+// ==== Мини-профиль клиента (правый верхний угол шапки) ====
+$__profileAvatarPath = null;
+$__profileLatestBooking = null;
+$__profileBackTab = isset($activeTab) && in_array($activeTab, ['about', 'reviews', 'price', 'booking'], true) ? $activeTab : 'about';
+if (!empty($__siteUser)) {
+    $__profileAvatarPath = siteUserAvatarPath($__siteUser);
+    $__profileLatestBooking = latestBookingForUser((int)$__siteUser['id']);
+}
 ?>
 <!DOCTYPE html>
 <html lang="<?= $__lang === 'ua' ? 'uk' : 'ru' ?>">
@@ -20,18 +29,58 @@ $__siteTitle = $__siteName !== '' ? $__siteName : 'Мастер маникюра
 
 <header class="topbar">
   <div class="container topbar-row">
-    <?php if ($__siteName !== ''): ?>
-    <div class="brand"><?= e($__siteName) ?></div>
-    <?php else: ?>
-    <div class="brand">&nbsp;</div>
-    <?php endif; ?>
-    <a href="index.php" class="site-logo" aria-hidden="true" tabindex="-1">
-      <img src="assets/img/social/nails.png" alt="<?= e($__siteTitle) ?>">
-    </a>
     <div class="lang-switch">
       <a href="?lang=ru<?= $__tabParam ?>" class="<?= $__lang === 'ru' ? 'active' : '' ?>">РУС</a>
       <a href="?lang=ua<?= $__tabParam ?>" class="<?= $__lang === 'ua' ? 'active' : '' ?>">УКР</a>
     </div>
+    <a href="index.php" class="site-logo" aria-hidden="true" tabindex="-1">
+      <img src="assets/img/social/nails.png" alt="<?= e($__siteTitle) ?>">
+    </a>
+
+    <?php if (!empty($__siteUser)): ?>
+    <div class="profile-widget">
+      <button type="button" class="profile-avatar-btn" id="profileToggleBtn" aria-haspopup="true" aria-expanded="false" aria-label="<?= e($__siteUser['full_name']) ?>">
+        <?php if ($__profileAvatarPath): ?>
+          <img src="<?= e($__profileAvatarPath) ?>" alt="" class="profile-avatar-img">
+        <?php else: ?>
+          <span class="profile-avatar-fallback"><?= e(mb_strtoupper(mb_substr($__siteUser['full_name'], 0, 1))) ?></span>
+        <?php endif; ?>
+      </button>
+
+      <div class="profile-dropdown" id="profileDropdown">
+        <form action="update_avatar.php" method="post" enctype="multipart/form-data" id="profileAvatarForm">
+          <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+          <input type="hidden" name="back_tab" value="<?= e($__profileBackTab) ?>">
+          <label class="profile-avatar-edit" for="profileAvatarInput">
+            <?php if ($__profileAvatarPath): ?>
+              <img src="<?= e($__profileAvatarPath) ?>" alt="" class="profile-avatar-img profile-avatar-img--lg">
+            <?php else: ?>
+              <span class="profile-avatar-fallback profile-avatar-fallback--lg"><?= e(mb_strtoupper(mb_substr($__siteUser['full_name'], 0, 1))) ?></span>
+            <?php endif; ?>
+            <span class="profile-avatar-edit-label"><?= e(t('profile_change_photo')) ?></span>
+          </label>
+          <input type="file" id="profileAvatarInput" name="avatar" accept="image/png,image/jpeg,image/webp,image/gif" style="display:none;" onchange="this.form.submit()">
+        </form>
+
+        <div class="profile-dropdown-body">
+          <div class="profile-name"><?= e($__siteUser['full_name']) ?></div>
+          <div class="profile-meta"><?= e(t('profile_login_label')) ?> <?= e($__siteUser['login']) ?></div>
+          <div class="profile-meta"><?= e($__siteUser['phone']) ?></div>
+        </div>
+
+        <div class="profile-status">
+          <div class="profile-status-title"><?= e(t('profile_status_title')) ?></div>
+          <?php if ($__profileLatestBooking): ?>
+            <span class="badge <?= e($__profileLatestBooking['status']) ?>"><?= e(bookingStatusLabel($__profileLatestBooking['status'], $__lang)) ?></span>
+          <?php else: ?>
+            <span class="profile-status-empty"><?= e(t('profile_status_empty')) ?></span>
+          <?php endif; ?>
+        </div>
+
+        <a href="logout.php" class="profile-logout"><?= e(t('profile_logout')) ?></a>
+      </div>
+    </div>
+    <?php endif; ?>
   </div>
   <div class="container nav-tabs">
     <button type="button" class="tab-btn" data-tab="about"><?= e(t('nav_about')) ?></button>
@@ -39,12 +88,6 @@ $__siteTitle = $__siteName !== '' ? $__siteName : 'Мастер маникюра
     <button type="button" class="tab-btn" data-tab="price"><?= e(t('nav_price')) ?></button>
     <button type="button" class="tab-btn" data-tab="booking"><?= e(t('nav_booking')) ?></button>
   </div>
-  <?php if (!empty($__siteUser)): ?>
-  <div class="container user-bar">
-    <span>👋 <?= e($__siteUser['full_name']) ?></span>
-    <a href="logout.php">Выйти</a>
-  </div>
-  <?php endif; ?>
 </header>
 
 <!-- Модальное окно выбора языка (показывается первым, до имени) -->
@@ -83,4 +126,5 @@ $__siteTitle = $__siteName !== '' ? $__siteName : 'Мастер маникюра
     booked: <?= json_encode(t('booking_slot_booked')) ?>,
     noSlots: <?= json_encode(t('booking_no_slots')) ?>
   };
+  window.SITE_BOOKING_FORM_ERROR = <?= json_encode(t('booking_form_error_generic')) ?>;
 </script>
