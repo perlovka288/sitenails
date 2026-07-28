@@ -263,6 +263,44 @@ function migrateSchema(PDO $pdo): void
         $pdo->exec('ALTER TABLE widget_items ADD COLUMN cloud_public_id TEXT');
     }
 
+    // ==== Аккаунты обычных посетителей сайта (регистрация перед входом) ====
+    // Раньше сайт был открыт всем без входа. Теперь посетитель должен
+    // зарегистрироваться (имя, логин, телефон, пароль) или войти под уже
+    // созданным аккаунтом — как в Инстаграме. Эти данные в будущем
+    // пригодятся для системы записи (не вводить контакты каждый раз).
+    // ВАЖНО: это ОТДЕЛЬНАЯ таблица от admin_users (панель управления) —
+    // $_SESSION['site_user_id'], не путать с $_SESSION['admin_id'].
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS site_users (
+            id               INTEGER PRIMARY KEY AUTOINCREMENT,
+            full_name        TEXT NOT NULL,
+            login            TEXT NOT NULL,
+            login_lower      TEXT NOT NULL UNIQUE,
+            phone            TEXT NOT NULL,
+            password_hash    TEXT NOT NULL,
+            is_admin         INTEGER NOT NULL DEFAULT 0,
+            remember_token   TEXT,
+            remember_expires TEXT,
+            created_at       TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+    ");
+    // Мамин аккаунт создаётся сразу, с готовым логином/паролем — регистрацию
+    // проходить ей не нужно. is_admin здесь — просто отметка "это владелец"
+    // (к самой панели управления admin-x7k9m2 это не относится, для неё
+    // свой отдельный вход, см. admin-x7k9m2/login.php).
+    $pdo->prepare('
+        INSERT OR IGNORE INTO site_users (full_name, login, login_lower, phone, password_hash, is_admin)
+        VALUES (?, ?, ?, ?, ?, 1)
+    ')->execute(['Любовь', 'lybovk', 'lybovk', normalizePhone('+380 96 055 44 85'), password_hash('606667543', PASSWORD_DEFAULT)]);
+
+    // user_id в bookings — на будущее, чтобы связать заявку на запись
+    // с зарегистрированным аккаунтом клиента (пока ничем не заполняется,
+    // сама форма записи это ещё не использует).
+    $bookingsCols = array_column($pdo->query('PRAGMA table_info(bookings)')->fetchAll(PDO::FETCH_ASSOC), 'name');
+    if (!in_array('user_id', $bookingsCols, true)) {
+        $pdo->exec('ALTER TABLE bookings ADD COLUMN user_id INTEGER');
+    }
+
     // ==== Кнопки блока «О мне»: тип поведения + вкл/выкл (тумблер) ====
     // btn{N}_type: 'custom' (своя ссылка, как раньше), 'instagram'
     // (ведёт на Instagram из настроек), 'reviews' (открывает вкладку

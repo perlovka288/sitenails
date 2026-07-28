@@ -126,6 +126,25 @@ a { color: inherit; }
   overflow: visible;
 }
 
+.user-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 4px 2px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.user-bar a {
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.user-bar a:hover {
+  text-decoration: underline;
+}
+
 .tab-btn {
   flex: 1;
   text-align: center;

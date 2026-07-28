@@ -39,6 +39,12 @@ $__siteTitle = $__siteName !== '' ? $__siteName : 'Мастер маникюра
     <button type="button" class="tab-btn" data-tab="price"><?= e(t('nav_price')) ?></button>
     <button type="button" class="tab-btn" data-tab="booking"><?= e(t('nav_booking')) ?></button>
   </div>
+  <?php if (!empty($__siteUser)): ?>
+  <div class="container user-bar">
+    <span>👋 <?= e($__siteUser['full_name']) ?></span>
+    <a href="logout.php">Выйти</a>
+  </div>
+  <?php endif; ?>
 </header>
 
 <!-- Модальное окно выбора языка (показывается первым, до имени) -->

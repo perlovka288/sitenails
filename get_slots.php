@@ -24,6 +24,12 @@ try {
 
     $pdo = getDB();
 
+    if (!isAdmin() && !isSiteUser()) {
+        http_response_code(403);
+        echo json_encode(['error' => 'auth_required']);
+        exit;
+    }
+
     // Окно навигации: сегодняшняя неделя (offset 0) + ещё немного вперёд,
     // всего покрывая ближайшие ~30 дней.
     $maxOffset = (int)floor(30 / 7); // 4 — то есть недели 0..4 (5 штук)

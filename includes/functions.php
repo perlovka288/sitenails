@@ -158,7 +158,141 @@ function csrfCheck(): bool
         && hash_equals($_SESSION['csrf_token'], $_POST['csrf_token']);
 }
 
-// ==== Загрузка файла общего назначения (аватар, иконки, файлы виджетов) ====
+// ==== РЕГИСТРАЦИЯ И ВХОД ОБЫЧНЫХ ПОСЕТИТЕЛЕЙ САЙТА ====
+// Это ОТДЕЛЬНАЯ система от isAdmin() (панель управления) — обычный
+// посетитель регистрируется через register.php (имя, логин, телефон,
+// пароль) или входит через login.php, и должен это сделать, прежде чем
+// увидеть сам сайт (см. гейт в начале index.php). Данные сохраняются в
+// таблице site_users и в будущем будут использоваться для записи.
+const SITE_REMEMBER_COOKIE_NAME = 'nails_client_remember';
+const SITE_REMEMBER_LIFETIME    = 60 * 60 * 24 * 90; // 90 дней
+
+// Данные вошедшего посетителя (строка из site_users) или null.
+// Как и isAdmin() — подстраховывается "запоминающей" кукой, если
+// PHP-сессия слетела (частая история на бесплатных хостингах).
+function currentSiteUser(): ?array
+{
+    static $cached = false;
+    static $checked = false;
+    if ($checked) {
+        return $cached;
+    }
+    $checked = true;
+
+    $pdo = getDB();
+
+    if (!empty($_SESSION['site_user_id'])) {
+        $stmt = $pdo->prepare('SELECT * FROM site_users WHERE id = ?');
+        $stmt->execute([$_SESSION['site_user_id']]);
+        $user = $stmt->fetch();
+        if ($user) {
+            $cached = $user;
+            return $cached;
+        }
+        unset($_SESSION['site_user_id']);
+    }
+
+    if (!empty($_COOKIE[SITE_REMEMBER_COOKIE_NAME])) {
+        $raw = (string)$_COOKIE[SITE_REMEMBER_COOKIE_NAME];
+        [$userId, $token] = array_pad(explode(':', $raw, 2), 2, '');
+        $userId = (int)$userId;
+
+        if ($userId > 0 && $token !== '') {
+            $stmt = $pdo->prepare('SELECT * FROM site_users WHERE id = ?');
+            $stmt->execute([$userId]);
+            $user = $stmt->fetch();
+
+            if ($user
+                && !empty($user['remember_token'])
+                && !empty($user['remember_expires'])
+                && strtotime($user['remember_expires']) > time()
+                && hash_equals($user['remember_token'], hash('sha256', $token))
+            ) {
+                $_SESSION['site_user_id'] = $user['id'];
+                issueSiteRememberCookie((int)$user['id']);
+                $cached = $user;
+                return $cached;
+            }
+
+            clearSiteRememberCookie();
+        }
+    }
+
+    return null;
+}
+
+function isSiteUser(): bool
+{
+    return currentSiteUser() !== null;
+}
+
+// Выдать (или продлить) "запоминающую" куку клиенту после входа/регистрации.
+function issueSiteRememberCookie(int $userId): void
+{
+    $token = bin2hex(random_bytes(32));
+    $expires = date('Y-m-d H:i:s', time() + SITE_REMEMBER_LIFETIME);
+
+    $pdo = getDB();
+    $pdo->prepare('UPDATE site_users SET remember_token = ?, remember_expires = ? WHERE id = ?')
+        ->execute([hash('sha256', $token), $expires, $userId]);
+
+    setcookie(SITE_REMEMBER_COOKIE_NAME, $userId . ':' . $token, [
+        'expires'  => time() + SITE_REMEMBER_LIFETIME,
+        'path'     => '/',
+        'secure'   => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
+}
+
+function clearSiteRememberCookie(): void
+{
+    if (!empty($_SESSION['site_user_id'])) {
+        $pdo = getDB();
+        $pdo->prepare('UPDATE site_users SET remember_token = NULL, remember_expires = NULL WHERE id = ?')
+            ->execute([$_SESSION['site_user_id']]);
+    }
+    setcookie(SITE_REMEMBER_COOKIE_NAME, '', [
+        'expires'  => time() - 3600,
+        'path'     => '/',
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
+}
+
+// Логин — как в Инстаграме: только латиница/цифры/точка/подчёркивание,
+// от 3 до 20 символов, без пробелов. Храним/сравниваем в нижнем регистре
+// (login_lower), но показываем как человек его ввёл (login).
+function isValidLogin(string $login): bool
+{
+    return (bool)preg_match('/^[a-zA-Z0-9_.]{3,20}$/', $login);
+}
+
+// Оставляет от номера телефона только "+" в начале и цифры, чтобы один
+// и тот же номер, введённый по-разному ("+380 96 055 44 85" / "0960554485"),
+// не создавал путаницы при будущем поиске клиента.
+function normalizePhone(string $phone): string
+{
+    $trimmed = trim($phone);
+    $hasPlus = str_starts_with($trimmed, '+');
+    $digits = preg_replace('/\D/', '', $trimmed);
+    return ($hasPlus ? '+' : '') . $digits;
+}
+
+// Принудительно требовать вход посетителя (используется в index.php).
+// Мама, вошедшая в панель управления (isAdmin()), проходит сквозь гейт
+// без отдельной клиентской регистрации.
+function requireSiteAccess(string $loginUrl): void
+{
+    if (!isAdmin() && !isSiteUser()) {
+        $next = $_SERVER['REQUEST_URI'] ?? '';
+        $suffix = $next !== '' && $next !== '/' ? ('?next=' . urlencode($next)) : '';
+        header('Location: ' . $loginUrl . $suffix);
+        exit;
+    }
+}
+
+
 // $allowedMime — карта "mime-тип => расширение", $destDir — относительный
 // путь от корня сайта (например "assets/uploads/widgets/3").
 // Возвращает относительный путь к сохранённому файлу или null, если файла

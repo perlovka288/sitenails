@@ -22,6 +22,12 @@ try {
         exit;
     }
 
+    if (!isAdmin() && !isSiteUser()) {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'error' => 'auth_required']);
+        exit;
+    }
+
     $slotId = (int)($_POST['slot_id'] ?? 0);
     if ($slotId <= 0) {
         echo json_encode(['success' => false, 'error' => 'no_slot']);

@@ -7,6 +7,15 @@ $pdo = getDB();
 $lang = currentLang();
 $__isAdmin = isAdmin();
 
+// ==== Гейт: обычный посетитель обязан зарегистрироваться/войти, прежде
+// чем увидеть сам сайт (см. register.php / login.php). Мама, вошедшая
+// в панель управления, проходит сквозь гейт без отдельного клиентского
+// аккаунта. ====
+$__siteUser = currentSiteUser();
+if (!$__isAdmin && !$__siteUser) {
+    requireSiteAccess('login.php');
+}
+
 // Сортировка отзывов: по дате (новые/старые сначала) или по оценке.
 $validReviewSorts = ['new', 'old', 'rating_high', 'rating_low'];
 $reviewSort = $_GET['review_sort'] ?? 'new';

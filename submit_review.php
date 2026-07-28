@@ -6,6 +6,10 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !csrfCheck()) {
     redirect('index.php');
 }
 
+if (!isAdmin() && !isSiteUser()) {
+    redirect('login.php');
+}
+
 $name    = trim($_POST['author_name'] ?? '');
 $rating  = max(1, min(5, (int)($_POST['rating'] ?? 5)));
 $message = trim($_POST['message'] ?? '');
