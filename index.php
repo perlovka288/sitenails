@@ -10,10 +10,20 @@ $__isAdmin = isAdmin();
 // ==== Гейт: обычный посетитель обязан зарегистрироваться/войти, прежде
 // чем увидеть сам сайт (см. register.php / login.php). Мама, вошедшая
 // в панель управления, проходит сквозь гейт без отдельного клиентского
-// аккаунта. ====
-$__siteUser = currentSiteUser();
-if (!$__isAdmin && !$__siteUser) {
-    requireSiteAccess('login.php');
+// аккаунта. Оборачиваем в try/catch: если тут вдруг что-то пойдёт не
+// так (например, временная проблема с базой на хостинге), посетителя
+// просто отправляем на страницу входа, а не роняем весь сайт с 500.
+try {
+    $__siteUser = currentSiteUser();
+    if (!$__isAdmin && !$__siteUser) {
+        requireSiteAccess('login.php');
+    }
+} catch (\Throwable $e) {
+    error_log('access gate: ' . $e->getMessage());
+    if (!$__isAdmin) {
+        redirect('login.php');
+    }
+    $__siteUser = null;
 }
 
 // Сортировка отзывов: по дате (новые/старые сначала) или по оценке.
