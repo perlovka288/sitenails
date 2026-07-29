@@ -148,7 +148,11 @@ $GLOBALS['TRANSLATIONS'] = [
         'profile_status_empty'  => 'Активных записей пока нет',
         'profile_change_photo'  => 'Изменить фото',
         'profile_logout'        => 'Выйти',
-        'notify_permission_title' => 'Включить уведомления о записи',
+        'profile_logout_confirm'  => 'Вы уверены, что хотите выйти из аккаунта?',
+        'notify_permission_title'  => 'Включить уведомления о записи',
+        'notify_permission_granted_title' => 'Уведомления включены',
+        'notify_permission_denied_title'  => 'Уведомления заблокированы браузером',
+        'notify_permission_denied_hint'   => 'Уведомления заблокированы в настройках браузера. Чтобы включить их, разрешите уведомления для этого сайта в настройках браузера (иконка замка рядом с адресом сайта).',
 
         // ===== Отдельная страница профиля (profile.php) =====
         'profile_page_title'      => 'Мой профиль',
@@ -296,7 +300,11 @@ $GLOBALS['TRANSLATIONS'] = [
         'profile_status_empty'  => 'Активних записів поки немає',
         'profile_change_photo'  => 'Змінити фото',
         'profile_logout'        => 'Вийти',
-        'notify_permission_title' => 'Увімкнути сповіщення про запис',
+        'profile_logout_confirm'  => 'Ви впевнені, що хочете вийти з облікового запису?',
+        'notify_permission_title'  => 'Увімкнути сповіщення про запис',
+        'notify_permission_granted_title' => 'Сповіщення увімкнено',
+        'notify_permission_denied_title'  => 'Сповіщення заблоковано браузером',
+        'notify_permission_denied_hint'   => 'Сповіщення заблоковано в налаштуваннях браузера. Щоб увімкнути їх, дозвольте сповіщення для цього сайту в налаштуваннях браузера (іконка замка біля адреси сайту).',
 
         // ===== Окрема сторінка профілю (profile.php) =====
         'profile_page_title'      => 'Мій профіль',

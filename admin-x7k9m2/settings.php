@@ -1,6 +1,7 @@
 <?php
 require __DIR__ . '/../config.php';
 require __DIR__ . '/../includes/functions.php';
+require __DIR__ . '/../includes/onesignal.php';
 require __DIR__ . '/includes/auth_check.php';
 
 $pdo = getDB();
@@ -8,6 +9,7 @@ $message = '';
 $error = '';
 $siteMessage = '';
 $usersWipedMessage = '';
+$testPushMessage = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrfCheck()) {
     $form = $_POST['form'] ?? '';
@@ -24,6 +26,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrfCheck()) {
         setSetting('onesignal_app_id', trim((string)($_POST['onesignal_app_id'] ?? '')));
         setSetting('onesignal_api_key', trim((string)($_POST['onesignal_api_key'] ?? '')));
         $siteMessage = 'Настройки уведомлений сохранены.';
+    } elseif ($form === 'test_push') {
+        $__targetId = (int)($_POST['test_push_user_id'] ?? 0);
+        if ($__targetId <= 0) {
+            $testPushMessage = 'error:Укажите ID клиента (число из колонки ID ниже).';
+        } else {
+            $__ok = sendOneSignalPush($__targetId, 'Тестове сповіщення 🔔', 'Якщо ви це бачите — push працює!');
+            $testPushMessage = $__ok
+                ? 'success:Запрос на отправку принят OneSignal. Если уведомление не пришло в течение минуты — смотрите причину внизу в логе (это не всегда значит ошибку: возможно, у этого клиента ещё нет активной подписки на этом устройстве).'
+                : 'error:Отправка не удалась. Причина записана в лог ниже.';
+        }
     } elseif ($form === 'wipe_test_users') {
         // Удаляем всех зарегистрированных клиентов КРОМЕ владелицы сайта
         // (её строка отмечена is_admin = 1 — см. config.php). Записи и
@@ -72,6 +84,19 @@ $onesignalAppId  = getSetting('onesignal_app_id', '');
 $onesignalApiKey = getSetting('onesignal_api_key', '');
 $vapidPublicKey  = getSetting('vapid_public_key', '');
 $testUsersCount  = (int)$pdo->query('SELECT COUNT(*) c FROM site_users WHERE is_admin = 0')->fetch()['c'];
+
+// Последние зарегистрированные клиенты — чтобы было откуда взять ID для
+// тестовой отправки push, не копаясь в базе руками.
+$recentUsers = $pdo->query('SELECT id, full_name FROM site_users WHERE is_admin = 0 ORDER BY id DESC LIMIT 10')->fetchAll();
+
+// Хвост push_log.txt — последние отправки/ошибки, чтобы сразу видеть,
+// что происходит с уведомлениями, без доступа к серверным логам хостинга.
+$pushLogTail = '';
+$__logFile = __DIR__ . '/../data/push_log.txt';
+if (is_file($__logFile)) {
+    $__logLines = @file($__logFile) ?: [];
+    $pushLogTail = implode('', array_slice($__logLines, -15));
+}
 ?>
 <!DOCTYPE html>
 <html lang="ru">
@@ -162,6 +187,42 @@ $testUsersCount  = (int)$pdo->query('SELECT COUNT(*) c FROM site_users WHERE is_
       </div>
       <button type="submit" class="btn full">Сохранить настройки уведомлений</button>
     </form>
+  </div>
+
+  <div class="card" style="max-width:520px;">
+    <h3>🧪 Тестовый push</h3>
+    <p style="color:var(--ink-soft); font-size:13px; margin-top:0;">
+      Проверить всю цепочку (сервер → OneSignal → устройство клиента) без
+      необходимости оформлять и подтверждать настоящую запись. Клиент
+      должен был хотя бы раз нажать на 🔔 в шапке сайта и разрешить
+      уведомления — иначе слать некуда.
+    </p>
+    <?php if ($testPushMessage): [$__kind, $__text] = explode(':', $testPushMessage, 2); ?>
+      <div class="alert <?= $__kind === 'success' ? 'success' : 'error' ?>"><?= e($__text) ?></div>
+    <?php endif; ?>
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+      <input type="hidden" name="form" value="test_push">
+      <div class="form-field">
+        <label>ID клиента</label>
+        <input type="number" name="test_push_user_id" placeholder="Например: 3" required>
+      </div>
+      <button type="submit" class="btn full">Отправить тестовый push</button>
+    </form>
+    <?php if ($recentUsers): ?>
+      <p style="color:var(--ink-faint); font-size:12px; margin-top:10px;">Последние клиенты (ID — имя):</p>
+      <p style="color:var(--ink-soft); font-size:12px; line-height:1.7;">
+        <?php foreach ($recentUsers as $__u): ?>
+          <?= (int)$__u['id'] ?> — <?= e($__u['full_name']) ?><br>
+        <?php endforeach; ?>
+      </p>
+    <?php endif; ?>
+    <?php if ($pushLogTail !== ''): ?>
+      <p style="color:var(--ink-faint); font-size:12px; margin-top:10px;">Последние записи лога (data/push_log.txt):</p>
+      <pre style="background:rgba(0,0,0,.25); padding:10px; border-radius:8px; font-size:11px; white-space:pre-wrap; word-break:break-word; color:var(--ink-soft); max-height:220px; overflow:auto;"><?= e($pushLogTail) ?></pre>
+    <?php else: ?>
+      <p style="color:var(--ink-faint); font-size:12px; margin-top:10px;">Лог пока пуст — записи появятся после первой попытки отправки.</p>
+    <?php endif; ?>
   </div>
 
   <div class="card" style="max-width:520px; border-color: rgba(200,100,100,.35);">

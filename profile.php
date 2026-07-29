@@ -51,30 +51,27 @@ $masterAddress = getSetting('site_address', '');
 <main class="container" style="max-width:640px; padding-top:24px; padding-bottom:60px;">
   <div class="card">
     <div class="profile-page-head">
-      <div class="profile-page-avatar-wrap">
-        <?php if ($avatarPath): ?>
-          <img src="<?= e($avatarPath) ?>" alt="" class="profile-page-avatar-img">
-        <?php else: ?>
-          <span class="profile-page-avatar-fallback"><?= e(mb_strtoupper(mb_substr($__siteUser['full_name'], 0, 1))) ?></span>
-        <?php endif; ?>
-      </div>
+      <form action="update_avatar.php" method="post" enctype="multipart/form-data" id="profileAvatarForm">
+        <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+        <input type="hidden" name="back_tab" value="profile">
+        <label class="profile-page-avatar-wrap" for="profileAvatarInput" title="<?= e(t('profile_change_photo')) ?>">
+          <?php if ($avatarPath): ?>
+            <img src="<?= e($avatarPath) ?>" alt="" class="profile-page-avatar-img">
+          <?php else: ?>
+            <span class="profile-page-avatar-fallback"><?= e(mb_strtoupper(mb_substr($__siteUser['full_name'], 0, 1))) ?></span>
+          <?php endif; ?>
+          <span class="profile-page-avatar-badge" aria-hidden="true">✎</span>
+        </label>
+        <input type="file" id="profileAvatarInput" name="avatar" accept="image/png,image/jpeg,image/webp,image/gif" style="display:none;" onchange="this.form.submit()">
+      </form>
       <div>
         <div class="profile-page-name"><?= e($__siteUser['full_name']) ?></div>
         <div class="profile-page-meta">
-          <?= e(t('profile_login_label')) ?> <?= e($__siteUser['login']) ?><br>
+          @<?= e($__siteUser['login']) ?><br>
           <?= e($__siteUser['phone']) ?>
         </div>
       </div>
     </div>
-
-    <form action="update_avatar.php" method="post" enctype="multipart/form-data" id="profileAvatarForm">
-      <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
-      <input type="hidden" name="back_tab" value="profile">
-      <label class="profile-page-avatar-edit" for="profileAvatarInput"><?= e(t('profile_change_photo')) ?></label>
-      <input type="file" id="profileAvatarInput" name="avatar" accept="image/png,image/jpeg,image/webp,image/gif" style="display:none;" onchange="this.form.submit()">
-    </form>
-
-    <a href="logout.php" class="profile-page-logout"><?= e(t('profile_logout')) ?></a>
   </div>
 
   <div class="card">
@@ -104,6 +101,10 @@ $masterAddress = getSetting('site_address', '');
         </div>
       <?php endforeach; ?>
     <?php endif; ?>
+  </div>
+
+  <div class="profile-page-footer">
+    <a href="logout.php" class="profile-page-logout" onclick="return confirm(<?= e(json_encode(t('profile_logout_confirm'), JSON_UNESCAPED_UNICODE)) ?>);"><?= e(t('profile_logout')) ?></a>
   </div>
 </main>
 </body>

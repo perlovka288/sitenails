@@ -15,18 +15,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $username = trim($_POST['username'] ?? '');
         $password = $_POST['password'] ?? '';
 
-        $pdo = getDB();
-        $stmt = $pdo->prepare('SELECT * FROM admin_users WHERE username = ?');
-        $stmt->execute([$username]);
-        $user = $stmt->fetch();
-
-        if ($user && password_verify($password, $user['password_hash'])) {
-            session_regenerate_id(true);
-            $_SESSION['admin_id'] = $user['id'];
-            issueRememberCookie($user['id']);
-            redirect('dashboard.php');
-        } else {
+        // Жёсткая привязка: в панель управления может войти только один
+        // конкретный аккаунт (lybovk). Любой другой логин отклоняется
+        // ещё до обращения к базе — независимо от того, что там хранится.
+        if (strtolower($username) !== 'lybovk') {
             $error = 'Неверный логин или пароль.';
+        } else {
+            $pdo = getDB();
+            $stmt = $pdo->prepare('SELECT * FROM admin_users WHERE username = ?');
+            $stmt->execute(['lybovk']);
+            $user = $stmt->fetch();
+
+            if ($user && password_verify($password, $user['password_hash'])) {
+                session_regenerate_id(true);
+                $_SESSION['admin_id'] = $user['id'];
+                issueRememberCookie($user['id']);
+                redirect('dashboard.php');
+            } else {
+                $error = 'Неверный логин или пароль.';
+            }
         }
     }
 }

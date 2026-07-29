@@ -19,7 +19,11 @@ require __DIR__ . '/../config.php';
 require __DIR__ . '/../includes/functions.php';
 
 $pdo = getDB();
-$alreadyRegistered = getSetting('owner_registered', '0') === '1';
+// Вход теперь жёстко привязан к одному аккаунту (lybovk) — см.
+// migrateSchema() в config.php и проверку в login.php. Эта страница
+// больше не должна создавать/переименовывать аккаунты, поэтому всегда
+// ведёт себя как "регистрация уже была использована".
+$alreadyRegistered = true;
 $code = $_GET['code'] ?? $_POST['code'] ?? '';
 $codeOk = hash_equals(ADMIN_REGISTER_CODE, (string)$code);
 

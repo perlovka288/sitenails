@@ -23,10 +23,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrfCheck()) {
         if ($__booking && !empty($__booking['user_id'])) {
             $__phone = getSetting('site_phone', '');
             $__address = getSetting('site_address', '');
-            $__msg = 'Время: ' . $__booking['wanted_date'];
-            if ($__phone !== '') $__msg .= ' · Тел. мастера: ' . $__phone;
-            if ($__address !== '') $__msg .= ' · Адрес: ' . $__address;
-            sendOneSignalPush((int)$__booking['user_id'], 'Ваша запись подтверждена! 💅', $__msg);
+            // Дата/время берутся из wanted_date — это именно то, что клиент
+            // выбрал на сайте (см. select_slot.php), поэтому текст всегда
+            // актуален и меняется автоматически для каждой записи.
+            $__msg = 'Чекаємо на вас ' . $__booking['wanted_date'] . '! 💅';
+            if ($__phone !== '') $__msg .= ' Майстер: ' . $__phone . '.';
+            if ($__address !== '') $__msg .= ' Адреса: ' . $__address;
+            sendOneSignalPush((int)$__booking['user_id'], 'Ваш запис підтверджено ✨', $__msg);
         }
     } elseif ($action === 'done') {
         $pdo->prepare("UPDATE bookings SET status = 'done' WHERE id = ?")->execute([$id]);

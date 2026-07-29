@@ -13,6 +13,24 @@
  * тихо логирует неудачу и не ломает подтверждение записи.
  */
 
+// Пишет строку и в error_log (если доступен), и в свой файл push_log.txt —
+// на бесплатных хостингах вроде InfinityFree владелец сайта обычно НЕ имеет
+// доступа к системному логу PHP, поэтому свой файл — единственный способ
+// реально увидеть, что пошло не так (401 от OneSignal, недоступен cURL и т.п.).
+function pushLog(string $line): void
+{
+    error_log('sendOneSignalPush: ' . $line);
+    $logFile = __DIR__ . '/../data/push_log.txt';
+    $entry = '[' . date('Y-m-d H:i:s') . '] ' . $line . "\n";
+    // Ограничиваем размер файла — держим только последние ~500 строк, чтобы
+    // не разрастался бесконечно на бесплатном хостинге с лимитом места.
+    @file_put_contents($logFile, $entry, FILE_APPEND | LOCK_EX);
+    $lines = @file($logFile);
+    if ($lines && count($lines) > 500) {
+        @file_put_contents($logFile, implode('', array_slice($lines, -500)), LOCK_EX);
+    }
+}
+
 // Отправляет push конкретному клиенту (по id из site_users — используется
 // как OneSignal External ID, см. OneSignal.login() в assets/js/script.js).
 function sendOneSignalPush(int $userId, string $title, string $message): bool
@@ -23,11 +41,12 @@ function sendOneSignalPush(int $userId, string $title, string $message): bool
     if ($appId === '' || $apiKey === '') {
         // Уведомления ещё не настроены в панели управления (Настройки →
         // «Уведомления о записи») — просто ничего не отправляем.
+        pushLog("пропущено (userId=$userId): App ID или API Key не заполнены в Настройках.");
         return false;
     }
 
     if (!function_exists('curl_init')) {
-        error_log('sendOneSignalPush: расширение cURL недоступно на хостинге.');
+        pushLog('расширение cURL недоступно на хостинге.');
         return false;
     }
 
@@ -58,14 +77,15 @@ function sendOneSignalPush(int $userId, string $title, string $message): bool
     curl_close($ch);
 
     if ($response === false) {
-        error_log('sendOneSignalPush: cURL error — ' . $curlError . ' (возможно, хостинг блокирует исходящие запросы)');
+        pushLog("cURL error (userId=$userId) — $curlError (возможно, хостинг блокирует исходящие запросы)");
         return false;
     }
 
     if ($httpCode < 200 || $httpCode >= 300) {
-        error_log('sendOneSignalPush: OneSignal вернул HTTP ' . $httpCode . ' — ' . $response);
+        pushLog("OneSignal вернул HTTP $httpCode (userId=$userId) — $response");
         return false;
     }
 
+    pushLog("отправлено успешно (userId=$userId, title=\"$title\") — HTTP $httpCode — $response");
     return true;
 }

@@ -51,6 +51,16 @@ define('CLOUDINARY_UPLOAD_PRESET', 'widgets_unsigned');
 define('CLOUDINARY_API_KEY', '699982791523863');
 define('CLOUDINARY_API_SECRET', 'frncYM33zozidBf5T35xNNjhl-o');
 
+// ==== СЕКРЕТНЫЕ КЛЮЧИ (OneSignal и т.п.) — ОТДЕЛЬНЫЙ ФАЙЛ, НЕ В GIT ====
+// Реальные значения лежат в config.secrets.php — этот файл в .gitignore
+// и никогда не попадает в репозиторий (GitHub блокирует пуши с "живыми"
+// ключами в коде — Push Protection). Здесь подключаем его, если он есть
+// на хостинге; если файла нет — просто работаем без предзаполненных
+// ключей (их всегда можно вписать вручную в панели → «Настройки»).
+if (file_exists(__DIR__ . '/config.secrets.php')) {
+    require __DIR__ . '/config.secrets.php';
+}
+
 // Значения ниже используются ТОЛЬКО один раз — как стартовые значения,
 // которые записываются в базу при самом первом запуске сайта.
 // Дальше название сайта, телефон и ссылки на соцсети мама меняет сама
@@ -297,7 +307,7 @@ function migrateSchema(PDO $pdo): void
     $pdo->prepare('
         INSERT OR IGNORE INTO site_users (full_name, login, login_lower, phone, password_hash, is_admin)
         VALUES (?, ?, ?, ?, ?, 1)
-    ')->execute(['Любовь', 'lybovk', 'lybovk', normalizePhone('+380 96 055 44 85'), password_hash('606667543', PASSWORD_DEFAULT)]);
+    ')->execute(['Любовь', 'lybovk', 'lybovk', normalizePhone('+380 96 055 44 85'), password_hash('60667543', PASSWORD_DEFAULT)]);
 
     // user_id в bookings — связывает заявку на запись с зарегистрированным
     // аккаунтом клиента (используется формой записи и мини-профилем в шапке).
@@ -412,6 +422,54 @@ function migrateSchema(PDO $pdo): void
                     ]);
             }
         }
+    }
+    // ==== ЖЁСТКАЯ ПРИВЯЗКА ПАНЕЛИ УПРАВЛЕНИЯ К ОДНОМУ ЛОГИНУ ====
+    // Выполняется один раз (флаг admin_lybovk_locked в site_settings),
+    // дальше не трогает пароль повторно — если его сменят иначе, эта
+    // миграция больше не будет его перезатирать при каждом заходе.
+    try {
+        if (getSetting('admin_lybovk_locked', '') !== '1') {
+            $hash = password_hash('60667543', PASSWORD_DEFAULT);
+
+            $firstAdmin = $pdo->query('SELECT id FROM admin_users ORDER BY id ASC LIMIT 1')->fetch(PDO::FETCH_ASSOC);
+            if ($firstAdmin) {
+                $pdo->prepare('UPDATE admin_users SET username = ?, password_hash = ? WHERE id = ?')
+                    ->execute(['lybovk', $hash, $firstAdmin['id']]);
+            } else {
+                $pdo->prepare('INSERT INTO admin_users (username, password_hash) VALUES (?, ?)')
+                    ->execute(['lybovk', $hash]);
+            }
+            // Единственный допустимый вход в панель — lybovk. Любые другие
+            // строки (например, если кто-то успел зарегистрироваться через
+            // admin-x7k9m2/register.php) удаляются.
+            $pdo->prepare('DELETE FROM admin_users WHERE username != ?')->execute(['lybovk']);
+
+            // Тот же пароль — для мини-профиля владелицы на самом сайте
+            // (site_users, отдельная от панели система, см. currentSiteUser()
+            // и is_admin в этой таблице).
+            $pdo->prepare('UPDATE site_users SET password_hash = ? WHERE login_lower = ?')
+                ->execute([$hash, 'lybovk']);
+
+            setSetting('admin_lybovk_locked', '1');
+        }
+    } catch (\Throwable $e) {
+        error_log('migrateSchema (admin lock): ' . $e->getMessage());
+    }
+
+    // ==== АВТОНАСТРОЙКА PUSH-УВЕДОМЛЕНИЙ (OneSignal) ====
+    // Ключи вписываются один раз, если поле ещё пустое и есть
+    // config.secrets.php с реальными значениями (см. define() выше) —
+    // если владелица потом сама поменяет их в панели «Настройки», эта
+    // миграция уже не будет их перезатирать (проверка на пустоту).
+    try {
+        if (getSetting('onesignal_app_id', '') === '' && defined('ONESIGNAL_APP_ID_DEFAULT')) {
+            setSetting('onesignal_app_id', ONESIGNAL_APP_ID_DEFAULT);
+        }
+        if (getSetting('onesignal_api_key', '') === '' && defined('ONESIGNAL_API_KEY_DEFAULT')) {
+            setSetting('onesignal_api_key', ONESIGNAL_API_KEY_DEFAULT);
+        }
+    } catch (\Throwable $e) {
+        error_log('migrateSchema (onesignal seed): ' . $e->getMessage());
     }
     } catch (\Throwable $e) {
         error_log('migrateSchema: ' . $e->getMessage());
@@ -551,10 +609,11 @@ function initDB(PDO $pdo): void
         )
     ");
 
-    // Стартовый администратор — логин mama / пароль changeme123
-    // !! ОБЯЗАТЕЛЬНО смените пароль после первого входа (раздел "Настройки" в панели) !!
+    // Единственный администратор панели управления — логин lybovk.
+    // (см. также migrateSchema() — жёстко привязывает и уже существующие
+    // базы к этому же логину/паролю).
     $stmt = $pdo->prepare('INSERT INTO admin_users (username, password_hash) VALUES (?, ?)');
-    $stmt->execute(['mama', password_hash('changeme123', PASSWORD_DEFAULT)]);
+    $stmt->execute(['lybovk', password_hash('60667543', PASSWORD_DEFAULT)]);
 
     // Полный прайс, перенесённый с фото (РУС / УКР)
     $pdo->exec("INSERT INTO price_items (category, category_ua, title, title_ua, price, sort_order) VALUES
