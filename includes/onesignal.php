@@ -50,13 +50,27 @@ function sendOneSignalPush(int $userId, string $title, string $message): bool
         return false;
     }
 
+    // Абсолютная ссылка на логотип сайта — нужна OneSignal, чтобы показывать
+    // иконку в уведомлении на Android (без неё браузер сам подставляет
+    // generic-кружок с буквой вместо иконки сайта). Строим от текущего
+    // домена, чтобы работало и на InfinityFree-поддомене, и на своём домене.
+    $__scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $__host = $_SERVER['HTTP_HOST'] ?? '';
+    $__iconUrl = $__host !== '' ? $__scheme . '://' . $__host . '/assets/img/social/nails.png' : '';
+
     $payload = [
         'app_id'          => $appId,
-        'headings'        => ['ru' => $title, 'en' => $title],
-        'contents'        => ['ru' => $message, 'en' => $message],
+        'headings'        => ['ru' => $title, 'uk' => $title, 'en' => $title],
+        'contents'        => ['ru' => $message, 'uk' => $message, 'en' => $message],
         'include_aliases' => ['external_id' => [(string)$userId]],
         'target_channel'  => 'push',
     ];
+    if ($__iconUrl !== '') {
+        // chrome_web_icon — большая иконка в самом уведомлении (десктоп/Android).
+        // chrome_web_badge — маленький значок в шторке уведомлений Android.
+        $payload['chrome_web_icon'] = $__iconUrl;
+        $payload['chrome_web_badge'] = $__iconUrl;
+    }
 
     $ch = curl_init('https://api.onesignal.com/notifications');
     curl_setopt_array($ch, [

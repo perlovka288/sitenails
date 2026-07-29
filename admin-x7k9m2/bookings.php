@@ -66,11 +66,12 @@ $bookings = $pdo->query('
 
   <table class="admin-table">
     <thead>
-      <tr><th>Статус</th><th>Клиент</th><th>Телефон</th><th>Услуга</th><th>Дата</th><th>Время в календаре</th><th>Комментарий</th><th>Действия</th></tr>
+      <tr><th>ID</th><th>Статус</th><th>Клиент</th><th>Телефон</th><th>Услуга</th><th>Дата</th><th>Время в календаре</th><th>Комментарий</th><th>Действия</th></tr>
     </thead>
     <tbody>
       <?php foreach ($bookings as $b): ?>
         <tr>
+          <td style="color:var(--ink-faint); font-size:12px;">#<?= (int)$b['id'] ?></td>
           <td><span class="badge <?= e($b['status']) ?>"><?= e(bookingStatusLabel($b['status'], 'ru')) ?></span></td>
           <td><?= e($b['client_name']) ?></td>
           <td><?= e($b['phone'] ?: '—') ?></td>
@@ -119,7 +120,7 @@ $bookings = $pdo->query('
         </tr>
       <?php endforeach; ?>
       <?php if (!$bookings): ?>
-        <tr><td colspan="8">Записей пока нет.</td></tr>
+        <tr><td colspan="9">Записей пока нет.</td></tr>
       <?php endif; ?>
     </tbody>
   </table>
