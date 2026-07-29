@@ -145,28 +145,22 @@ a { color: inherit; }
   text-decoration: underline;
 }
 
-/* ===== Мини-профиль клиента (шапка, правый верхний угол) ===== */
+/* ===== Мини-профиль клиента (шапка, правый верхний угол) — просто
+   круглый аватар-ссылка на отдельную страницу profile.php ===== */
 .profile-widget {
-  position: relative;
   justify-self: end;
-}
-
-.profile-avatar-btn {
   width: 38px;
   height: 38px;
   border-radius: 50%;
-  padding: 0;
   border: 1px solid var(--line);
   background: var(--surface);
-  cursor: pointer;
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: border-color .15s ease, box-shadow .15s ease;
 }
-.profile-avatar-btn:hover,
-.profile-avatar-btn.is-open {
+.profile-widget:hover {
   border-color: var(--primary);
   box-shadow: 0 0 0 3px var(--primary-soft);
 }
@@ -177,7 +171,6 @@ a { color: inherit; }
   object-fit: cover;
   display: block;
 }
-.profile-avatar-img--lg { width: 52px; height: 52px; }
 
 .profile-avatar-fallback {
   width: 100%;
@@ -191,88 +184,101 @@ a { color: inherit; }
   color: var(--primary);
   background: var(--surface-2);
 }
-.profile-avatar-fallback--lg { width: 52px; height: 52px; border-radius: 50%; font-size: 19px; flex-shrink: 0; }
 
-.profile-dropdown {
-  position: absolute;
-  top: calc(100% + 12px);
-  right: 0;
-  width: 240px;
+/* ===== Страница профиля (profile.php) ===== */
+.profile-page-head {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 8px;
+}
+.profile-page-avatar-wrap { position: relative; flex-shrink: 0; }
+.profile-page-avatar-img,
+.profile-page-avatar-fallback {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 700;
+  font-size: 30px;
+  color: var(--primary);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+}
+.profile-page-avatar-edit {
+  display: block;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--ink-soft);
+  text-decoration: underline;
+  cursor: pointer;
+  text-align: center;
+}
+.profile-page-avatar-edit:hover { color: var(--primary); }
+.profile-page-name {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 700;
+  font-size: 22px;
+  margin-bottom: 4px;
+}
+.profile-page-meta {
+  font-size: 13.5px;
+  color: var(--ink-soft);
+  line-height: 1.6;
+}
+.profile-page-logout {
+  display: inline-block;
+  margin-top: 14px;
+  font-size: 13px;
+  color: var(--ink-soft);
+  text-decoration: none;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 8px 18px;
+}
+.profile-page-logout:hover { color: var(--primary); border-color: var(--primary); }
+
+.booking-history-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 18px;
+  font-weight: 700;
+  margin: 26px 0 12px;
+}
+.booking-card {
   background: var(--surface-2);
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 16px;
-  display: none;
-  z-index: 90;
-}
-.profile-dropdown.open { display: block; }
-
-.profile-dropdown #profileAvatarForm {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding-bottom: 12px;
+  padding: 16px 18px;
   margin-bottom: 12px;
-  border-bottom: 1px solid var(--line);
 }
-
-.profile-avatar-edit {
+.booking-card-top {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 10px;
-  cursor: pointer;
+  margin-bottom: 10px;
 }
-.profile-avatar-edit-label {
-  font-size: 11.5px;
-  color: var(--ink-soft);
-  text-decoration: underline;
-  transition: color .15s ease;
-}
-.profile-avatar-edit:hover .profile-avatar-edit-label { color: var(--primary); }
-
-.profile-dropdown-body { margin-bottom: 12px; }
-.profile-name {
-  font-family: 'Playfair Display', Georgia, serif;
-  font-weight: 700;
-  font-size: 16px;
-  margin-bottom: 3px;
-}
-.profile-meta {
-  font-size: 12.5px;
-  color: var(--ink-soft);
-  line-height: 1.5;
-}
-
-.profile-status {
-  padding: 10px 0;
-  border-top: 1px dashed var(--line);
-  margin-bottom: 8px;
-}
-.profile-status-title {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: .04em;
-  color: var(--ink-soft);
-  margin-bottom: 6px;
-}
-.profile-status-empty {
+.booking-card-number {
   font-size: 12.5px;
   color: var(--ink-faint);
+  font-weight: 600;
 }
-
-.profile-logout {
-  display: block;
-  text-align: center;
-  font-size: 12.5px;
+.booking-card-row {
+  font-size: 13.5px;
   color: var(--ink-soft);
-  text-decoration: none;
-  padding-top: 8px;
-  border-top: 1px solid var(--line);
+  line-height: 1.7;
 }
-.profile-logout:hover { color: var(--primary); }
-
-.badge.confirmed { background: rgba(255, 201, 77, .16); color: var(--star-gold); }
+.booking-card-row strong { color: var(--ink); font-weight: 600; }
+.booking-card-services { margin-top: 8px; font-size: 13px; color: var(--ink-soft); }
+.profile-empty-state {
+  color: var(--ink-faint);
+  font-size: 13.5px;
+  padding: 10px 0;
+}
 
 .tab-btn {
   flex: 1;
@@ -496,6 +502,14 @@ section.block { padding: 28px 0; }
   align-items: center;
   justify-content: center;
   color: var(--ink-faint);
+  overflow: hidden;
+}
+.review-avatar-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.review-avatar-fallback {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--primary);
 }
 .review-head-info { display: flex; flex-direction: column; gap: 3px; }
 .review-name { font-weight: 600; color: var(--ink); font-size: 15px; }
@@ -1017,8 +1031,9 @@ table.admin-table { width: 100%; border-collapse: collapse; background: var(--su
 table.admin-table th, table.admin-table td { padding: 12px 14px; border-bottom: 1px solid var(--line); text-align:left; font-size:14px; vertical-align: top;}
 table.admin-table th { background: var(--surface-2); font-size: 11px; text-transform:uppercase; letter-spacing:.05em; color: var(--ink-soft);}
 .badge { display:inline-block; padding:3px 10px; border-radius:999px; font-size:11px; font-weight:700;}
-.badge.new { background: rgba(255,255,255,.16); color: var(--primary);}
-.badge.done { background: rgba(120,180,130,.18); color: #9fd6a8;}
+.badge.new { background: rgba(255, 201, 77, .16); color: #e8b74e;}
+.badge.confirmed { background: rgba(120,180,130,.18); color: #9fd6a8; }
+.badge.done { background: rgba(150,170,210,.18); color: #a9bde0;}
 .login-box { max-width: 380px; margin: 90px auto; }
 
 /* ===== Выбор рейтинга звёздами — жёлтые, "выбранные" ===== */

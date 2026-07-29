@@ -19,7 +19,7 @@ if (!$__siteUser) {
 }
 
 $backTab = $_POST['back_tab'] ?? '';
-$backTab = in_array($backTab, ['about', 'reviews', 'price', 'booking'], true) ? $backTab : 'about';
+$backTab = in_array($backTab, ['about', 'reviews', 'price', 'booking', 'profile'], true) ? $backTab : 'about';
 
 $newPath = saveUploadedFile(
     'avatar',
@@ -43,4 +43,4 @@ if ($newPath !== null) {
         ->execute([$newPath, $__siteUser['id']]);
 }
 
-redirect('index.php?tab=' . $backTab);
+redirect($backTab === 'profile' ? 'profile.php' : 'index.php?tab=' . $backTab);

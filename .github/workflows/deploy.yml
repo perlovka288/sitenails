@@ -20,5 +20,16 @@ jobs:
         username: ${{ secrets.FTP_USERNAME }}
         password: ${{ secrets.FTP_PASSWORD }}
         server-dir: /nails.likesyou.org/htdocs/
-
-        
+        # ВАЖНО: эти пути НИКОГДА не перезаписываются деплоем. Если их не
+        # исключить, каждый git push будет затирать на сервере живую базу
+        # (текст "О мне", отзывы, записи, зарегистрированных клиентов) и
+        # загруженные фото версией из репозитория — именно так пропадала
+        # вся информация после пуша.
+        exclude: |
+          **/.git*
+          **/.git*/**
+          data/database.sqlite
+          data/.htaccess
+          assets/img/avatars/**
+          assets/img/reviews/**
+          assets/uploads/**

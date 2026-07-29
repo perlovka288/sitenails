@@ -65,11 +65,49 @@ if (!empty($_FILES['photos']) && is_array($_FILES['photos']['name'] ?? null)) {
 }
 $photoPath = $photoPaths ? json_encode($photoPaths) : null;
 
-// Отзыв публикуется на сайте сразу же — мама, если что, всегда может
-// скрыть его или удалить в панели управления (раздел «Отзывы») или
-// прямо на сайте, если она вошла в браузере как администратор.
 $pdo = getDB();
-$stmt = $pdo->prepare("INSERT INTO reviews (author_name, rating, message, photo_path, is_approved) VALUES (?, ?, ?, ?, 1)");
-$stmt->execute([$name, $rating, $message, $photoPath]);
+$__reviewAuthor = currentSiteUser();
+$__reviewUserId = $__reviewAuthor ? (int)$__reviewAuthor['id'] : null;
+
+$editId = (int)($_POST['review_id'] ?? 0);
+
+if ($editId > 0) {
+    // ==== Редактирование своего отзыва ====
+    // Никогда не доверяем проверке на клиенте — заново проверяем и
+    // владельца, и окно в 1-2 часа на сервере (см. reviewOwnedByCurrentUser).
+    $stmt = $pdo->prepare('SELECT * FROM reviews WHERE id = ?');
+    $stmt->execute([$editId]);
+    $existing = $stmt->fetch();
+
+    if (!$existing || !reviewOwnedByCurrentUser($existing, $__reviewAuthor)) {
+        redirect('index.php?tab=reviews');
+    }
+
+    // Новые фото заменяют старые, только если клиент что-то реально
+    // прикрепил в этот раз — иначе оставляем прежние фотографии как есть.
+    if ($photoPaths) {
+        foreach (reviewPhotoPaths($existing['photo_path']) as $__oldPhoto) {
+            $__oldFile = __DIR__ . '/' . $__oldPhoto;
+            if (is_file($__oldFile)) {
+                @unlink($__oldFile);
+            }
+        }
+        $finalPhotoPath = $photoPath;
+    } else {
+        $finalPhotoPath = $existing['photo_path'];
+    }
+
+    $pdo->prepare('UPDATE reviews SET author_name = ?, rating = ?, message = ?, photo_path = ? WHERE id = ?')
+        ->execute([$name, $rating, $message, $finalPhotoPath, $editId]);
+
+    redirect('index.php?tab=reviews&review_sent=1');
+}
+
+// ==== Новый отзыв ====
+// Публикуется на сайте сразу же — мама, если что, всегда может скрыть
+// его или удалить в панели управления (раздел «Отзывы») или прямо на
+// сайте, если она вошла в браузере как администратор.
+$stmt = $pdo->prepare("INSERT INTO reviews (author_name, rating, message, photo_path, is_approved, user_id) VALUES (?, ?, ?, ?, 1, ?)");
+$stmt->execute([$name, $rating, $message, $photoPath, $__reviewUserId]);
 
 redirect('index.php?tab=reviews&review_sent=1');

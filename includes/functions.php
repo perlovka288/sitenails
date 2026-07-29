@@ -458,15 +458,46 @@ function deleteWidgetItemFile(array $item): void
 function bookingStatusLabel(string $status, string $lang): string
 {
     $labels = [
-        'ru' => ['new' => 'В обработке', 'confirmed' => 'Подтверждено', 'done' => 'Выполнено'],
-        'ua' => ['new' => 'В обробці',    'confirmed' => 'Підтверджено', 'done' => 'Виконано'],
+        'ru' => ['new' => 'На рассмотрении', 'confirmed' => 'Вы записаны', 'done' => 'Выполнено'],
+        'ua' => ['new' => 'На розгляді',      'confirmed' => 'Вас записано', 'done' => 'Виконано'],
     ];
     $set = $labels[$lang] ?? $labels['ru'];
     return $set[$status] ?? $set['new'];
 }
 
-// Последняя запись зарегистрированного клиента (для блока "Статус записи"
-// в мини-профиле) — или null, если заявок ещё не было.
+// Может ли автор отзыва (залогиненный клиент) ещё редактировать/удалить
+// его сам — в течение ограниченного времени после публикации, чтобы
+// нельзя было незаметно подчистить старый честный отзыв задним числом.
+const REVIEW_OWNER_EDIT_WINDOW_HOURS = 2;
+
+function reviewOwnedByCurrentUser(array $review, ?array $siteUser): bool
+{
+    if (!$siteUser || empty($review['user_id'])) {
+        return false;
+    }
+    if ((int)$review['user_id'] !== (int)$siteUser['id']) {
+        return false;
+    }
+    $createdAt = strtotime($review['created_at'] . ' UTC') ?: strtotime($review['created_at']);
+    if (!$createdAt) {
+        return false;
+    }
+    $hoursPassed = (time() - $createdAt) / 3600;
+    return $hoursPassed <= REVIEW_OWNER_EDIT_WINDOW_HOURS;
+}
+
+// Все записи зарегистрированного клиента (для отдельной страницы профиля
+// profile.php) — каждая в своём блоке, самые новые сверху.
+function bookingsForUser(int $userId): array
+{
+    $pdo = getDB();
+    $stmt = $pdo->prepare('SELECT * FROM bookings WHERE user_id = ? ORDER BY created_at DESC');
+    $stmt->execute([$userId]);
+    return $stmt->fetchAll();
+}
+
+// Последняя запись — используется там, где нужен только беглый статус
+// (например, если понадобится где-то компактно показать одну запись).
 function latestBookingForUser(int $userId): ?array
 {
     $pdo = getDB();

@@ -43,8 +43,8 @@ $reviewOrderSql = match ($reviewSort) {
 // отзывы тоже — чтобы могла управлять ими прямо на сайте, не заходя
 // в отдельную панель. Обычные посетители видят только опубликованные.
 $reviews = $__isAdmin
-    ? $pdo->query("SELECT * FROM reviews ORDER BY {$reviewOrderSql}")->fetchAll()
-    : $pdo->query("SELECT * FROM reviews WHERE is_approved = 1 ORDER BY {$reviewOrderSql}")->fetchAll();
+    ? $pdo->query("SELECT r.*, u.avatar_path AS author_avatar_path FROM reviews r LEFT JOIN site_users u ON u.id = r.user_id ORDER BY r.{$reviewOrderSql}")->fetchAll()
+    : $pdo->query("SELECT r.*, u.avatar_path AS author_avatar_path FROM reviews r LEFT JOIN site_users u ON u.id = r.user_id WHERE r.is_approved = 1 ORDER BY r.{$reviewOrderSql}")->fetchAll();
 
 // Среднестатистическая оценка считается только по опубликованным отзывам
 // (даже если мама смотрит страницу и видит скрытые тоже).
@@ -139,7 +139,11 @@ require __DIR__ . '/includes/header.php';
        переключении вкладок (см. setActiveTab в script.js). ===== -->
   <section class="hero" id="pageHero" <?= $activeTab === 'about' ? 'style="display:none;"' : '' ?>>
     <span class="eyebrow"><?= e(t('hero_eyebrow')) ?></span>
-    <h1 data-greet><?= e(getSetting('site_name', '')) ?: '&nbsp;' ?></h1>
+    <?php if (!empty($__siteUser)): ?>
+      <h1><?= e(sprintf(t('greet_hello'), $__siteUser['full_name'])) ?></h1>
+    <?php else: ?>
+      <h1><?= e(getSetting('site_name', '')) ?: '&nbsp;' ?></h1>
+    <?php endif; ?>
     <p><?= e(t('hero_text')) ?></p>
   </section>
 
@@ -362,7 +366,11 @@ require __DIR__ . '/includes/header.php';
 
         <div class="review-head">
           <span class="review-avatar" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>
+            <?php if (!empty($r['author_avatar_path'])): ?>
+              <img src="<?= e($r['author_avatar_path']) ?>" alt="" class="review-avatar-img">
+            <?php else: ?>
+              <span class="review-avatar-fallback"><?= e(mb_strtoupper(mb_substr($r['author_name'], 0, 1))) ?></span>
+            <?php endif; ?>
           </span>
           <div class="review-head-info">
             <div class="review-name"><?= e($r['author_name']) ?></div>
@@ -391,14 +399,29 @@ require __DIR__ . '/includes/header.php';
             <input type="hidden" name="action" value="review_toggle">
             <input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
             <input type="hidden" name="back_tab" value="reviews">
-            <button type="submit" class="icon-btn"><?= $r['is_approved'] ? e(t('reviews_hide')) : e(t('reviews_show')) ?></button>
+            <button type="submit" class="icon-btn" title="<?= $r['is_approved'] ? ($lang === 'ua' ? 'Приховати' : 'Скрыть') : ($lang === 'ua' ? 'Опублікувати' : 'Опубликовать') ?>"><?= $r['is_approved'] ? e(t('reviews_hide')) : e(t('reviews_show')) ?></button>
           </form>
           <form method="post" action="admin_quick_action.php" onsubmit="return confirm(<?= json_encode(t('reviews_confirm_delete')) ?>);">
             <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
             <input type="hidden" name="action" value="review_delete">
             <input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
             <input type="hidden" name="back_tab" value="reviews">
-            <button type="submit" class="icon-btn icon-btn--danger"><?= e(t('reviews_delete')) ?></button>
+            <button type="submit" class="icon-btn icon-btn--danger" title="<?= $lang === 'ua' ? 'Видалити' : 'Удалить' ?>"><?= e(t('reviews_delete')) ?></button>
+          </form>
+        </div>
+        <?php elseif (reviewOwnedByCurrentUser($r, $__siteUser)): ?>
+        <div class="admin-inline-actions">
+          <button type="button" class="icon-btn review-edit-btn"
+            title="<?= $lang === 'ua' ? 'Редагувати' : 'Редактировать' ?>"
+            data-id="<?= (int)$r['id'] ?>"
+            data-name="<?= e($r['author_name']) ?>"
+            data-rating="<?= (int)$r['rating'] ?>"
+            data-message="<?= e($r['message']) ?>"
+          >✏️</button>
+          <form method="post" action="delete_own_review.php" onsubmit="return confirm(<?= json_encode(t('reviews_confirm_delete')) ?>);">
+            <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+            <input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
+            <button type="submit" class="icon-btn icon-btn--danger" title="<?= $lang === 'ua' ? 'Видалити' : 'Удалить' ?>">🗑️</button>
           </form>
         </div>
         <?php endif; ?>
@@ -430,6 +453,7 @@ require __DIR__ . '/includes/header.php';
             <?php if ($__isAdmin): ?>
             <span class="admin-inline-actions admin-inline-actions--row">
               <button type="button" class="icon-btn price-edit-btn"
+                title="<?= $lang === 'ua' ? 'Змінити' : 'Изменить' ?>"
                 data-id="<?= (int)$item['id'] ?>"
                 data-category="<?= e($item['category']) ?>"
                 data-category-ua="<?= e($item['category_ua'] ?? '') ?>"
@@ -442,7 +466,7 @@ require __DIR__ . '/includes/header.php';
                 <input type="hidden" name="action" value="price_delete">
                 <input type="hidden" name="id" value="<?= (int)$item['id'] ?>">
                 <input type="hidden" name="back_tab" value="price">
-                <button type="submit" class="icon-btn icon-btn--danger"><?= e(t('price_delete')) ?></button>
+                <button type="submit" class="icon-btn icon-btn--danger" title="<?= $lang === 'ua' ? 'Видалити' : 'Удалить' ?>"><?= e(t('price_delete')) ?></button>
               </form>
             </span>
             <?php endif; ?>
@@ -531,12 +555,13 @@ require __DIR__ . '/includes/header.php';
        "уезжал" вместе со сдвигом вкладок Отзывы/Прайс/Запись. -->
   <div class="modal-overlay" id="reviewModalOverlay">
     <div class="modal-box">
-      <h3><?= e(t('reviews_leave')) ?></h3>
-      <form action="submit_review.php" method="post" enctype="multipart/form-data">
+      <h3 id="reviewModalTitle"><?= e(t('reviews_leave')) ?></h3>
+      <form action="submit_review.php" method="post" enctype="multipart/form-data" id="reviewForm">
         <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+        <input type="hidden" name="review_id" id="reviewIdInput" value="">
         <div class="form-field">
           <label><?= e(t('reviews_name')) ?></label>
-          <input type="text" name="author_name" required maxlength="60">
+          <input type="text" name="author_name" id="reviewAuthorInput" required maxlength="60">
         </div>
         <div class="form-field">
           <label><?= e(t('reviews_rating')) ?></label>
@@ -547,7 +572,7 @@ require __DIR__ . '/includes/header.php';
         </div>
         <div class="form-field">
           <label><?= e(t('reviews_text')) ?></label>
-          <textarea name="message" required maxlength="600"></textarea>
+          <textarea name="message" id="reviewMessageInput" required maxlength="600"></textarea>
         </div>
         <div class="form-field">
           <label><?= e(t('reviews_photo')) ?></label>
@@ -566,7 +591,7 @@ require __DIR__ . '/includes/header.php';
           </div>
           <p class="field-hint"><?= e(t('reviews_photo_hint')) ?></p>
         </div>
-        <button type="submit" class="btn full"><?= e(t('reviews_send')) ?></button>
+        <button type="submit" class="btn full" id="reviewSubmitBtn"><?= e(t('reviews_send')) ?></button>
       </form>
       <button type="button" class="modal-close" id="closeReviewModalBtn"><?= e(t('close')) ?></button>
     </div>

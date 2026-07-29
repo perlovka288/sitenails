@@ -1,6 +1,7 @@
 <?php
 require __DIR__ . '/../config.php';
 require __DIR__ . '/../includes/functions.php';
+require __DIR__ . '/../includes/onesignal.php';
 require __DIR__ . '/includes/auth_check.php';
 
 $pdo = getDB();
@@ -11,6 +12,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrfCheck()) {
 
     if ($action === 'confirm') {
         $pdo->prepare("UPDATE bookings SET status = 'confirmed' WHERE id = ?")->execute([$id]);
+
+        // Пуш клиенту "Ваша запись принята" — без бота, обычное системное
+        // уведомление (см. includes/onesignal.php). Если у заявки нет
+        // привязанного аккаунта (user_id) или push не настроен — просто
+        // ничего не отправляется, подтверждение статуса всё равно сохранится.
+        $__b = $pdo->prepare('SELECT * FROM bookings WHERE id = ?');
+        $__b->execute([$id]);
+        $__booking = $__b->fetch();
+        if ($__booking && !empty($__booking['user_id'])) {
+            $__phone = getSetting('site_phone', '');
+            $__address = getSetting('site_address', '');
+            $__msg = 'Время: ' . $__booking['wanted_date'];
+            if ($__phone !== '') $__msg .= ' · Тел. мастера: ' . $__phone;
+            if ($__address !== '') $__msg .= ' · Адрес: ' . $__address;
+            sendOneSignalPush((int)$__booking['user_id'], 'Ваша запись подтверждена! 💅', $__msg);
+        }
     } elseif ($action === 'done') {
         $pdo->prepare("UPDATE bookings SET status = 'done' WHERE id = ?")->execute([$id]);
     } elseif ($action === 'delete') {

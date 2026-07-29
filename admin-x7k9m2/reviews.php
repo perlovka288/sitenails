@@ -66,14 +66,14 @@ $reviews = $pdo->query('SELECT * FROM reviews ORDER BY is_approved ASC, created_
             <form method="post" style="display:inline;">
               <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
               <input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
-              <button name="action" value="toggle" class="btn" style="padding:6px 12px;font-size:12px;">
-                <?= $r['is_approved'] ? 'Скрыть' : 'Опубликовать' ?>
+              <button name="action" value="toggle" class="btn ghost" style="padding:6px 10px;font-size:14px;" title="<?= $r['is_approved'] ? 'Скрыть' : 'Опубликовать' ?>">
+                <?= $r['is_approved'] ? '🙈' : '👁️' ?>
               </button>
             </form>
             <form method="post" style="display:inline;" onsubmit="return confirm('Удалить отзыв?');">
               <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
               <input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
-              <button name="action" value="delete" class="btn ghost" style="padding:6px 12px;font-size:12px;">Удалить</button>
+              <button name="action" value="delete" class="btn ghost" style="padding:6px 10px;font-size:14px;" title="Удалить">🗑️</button>
             </form>
           </td>
         </tr>

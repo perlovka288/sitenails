@@ -318,6 +318,40 @@ function migrateSchema(PDO $pdo): void
         $pdo->exec('ALTER TABLE site_users ADD COLUMN avatar_path TEXT');
     }
 
+    // user_id в reviews — связывает отзыв с автором, если он оставлен
+    // залогиненным клиентом. Нужно для аватарки автора отзыва и для
+    // возможности владельца отредактировать/удалить свой отзыв в течение
+    // ограниченного времени после публикации (см. functions.php).
+    $reviewCols = array_column($pdo->query('PRAGMA table_info(reviews)')->fetchAll(PDO::FETCH_ASSOC), 'name');
+    if (!in_array('user_id', $reviewCols, true)) {
+        $pdo->exec('ALTER TABLE reviews ADD COLUMN user_id INTEGER');
+    }
+
+    // ==== Web Push подписки (уведомления в браузере/на телефоне без бота) ====
+    // Каждая запись — это один браузер/устройство, подписавшееся на пуши.
+    // У одного клиента может быть несколько подписок (например, телефон и
+    // компьютер), поэтому это отдельная таблица, а не колонка в site_users.
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS push_subscriptions (
+            id         INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id    INTEGER NOT NULL,
+            endpoint   TEXT NOT NULL UNIQUE,
+            p256dh     TEXT NOT NULL,
+            auth       TEXT NOT NULL,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+    ");
+
+    // VAPID-ключи для Web Push генерируются один раз автоматически и
+    // хранятся в settings — без них браузер не примет подписку на пуши.
+    if (getSetting('vapid_public_key', '') === '') {
+        $__vapidKeys = generateVapidKeyPair();
+        if ($__vapidKeys) {
+            setSetting('vapid_public_key', $__vapidKeys['public']);
+            setSetting('vapid_private_key', $__vapidKeys['private']);
+        }
+    }
+
     // ==== Кнопки блока «О мне»: тип поведения + вкл/выкл (тумблер) ====
     // btn{N}_type: 'custom' (своя ссылка, как раньше), 'instagram'
     // (ведёт на Instagram из настроек), 'reviews' (открывает вкладку
@@ -402,6 +436,43 @@ function setSetting(string $key, string $value): void
         ON CONFLICT(key) DO UPDATE SET value = excluded.value
     ');
     $stmt->execute([$key, $value]);
+}
+
+// ==== Генерация ключей VAPID для Web Push (уведомления в браузере) ====
+// Возвращает ['public' => base64url uncompressed EC point, 'private' => base64url raw d].
+// Возвращает null, если на хостинге недоступно расширение OpenSSL с поддержкой
+// кривой prime256v1 — тогда push-уведомления просто не подключатся, без
+// поломки остального сайта (см. sendWebPush() в includes/webpush.php).
+function generateVapidKeyPair(): ?array
+{
+    if (!function_exists('openssl_pkey_new')) {
+        return null;
+    }
+    $res = @openssl_pkey_new([
+        'private_key_type' => OPENSSL_KEYTYPE_EC,
+        'curve_name'       => 'prime256v1',
+    ]);
+    if (!$res) {
+        return null;
+    }
+    $details = openssl_pkey_get_details($res);
+    if (!$details || empty($details['ec'])) {
+        return null;
+    }
+    $x = $details['ec']['x'];
+    $y = $details['ec']['y'];
+    $d = $details['ec']['d'];
+    // Несжатая публичная точка EC: 0x04 || X || Y (65 байт)
+    $publicRaw = "\x04" . $x . $y;
+
+    $b64url = function (string $bin): string {
+        return rtrim(strtr(base64_encode($bin), '+/', '-_'), '=');
+    };
+
+    return [
+        'public'  => $b64url($publicRaw),
+        'private' => $b64url($d),
+    ];
 }
 
 // ==== СОЗДАНИЕ ТАБЛИЦ ПРИ ПЕРВОМ ЗАПУСКЕ ====

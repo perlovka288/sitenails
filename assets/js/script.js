@@ -1,25 +1,4 @@
 document.addEventListener('DOMContentLoaded', function () {
-  // ===== Мини-профиль клиента (шапка): открыть/закрыть карточку с данными =====
-  var profileToggleBtn = document.getElementById('profileToggleBtn');
-  var profileDropdown = document.getElementById('profileDropdown');
-
-  if (profileToggleBtn && profileDropdown) {
-    profileToggleBtn.addEventListener('click', function (ev) {
-      ev.stopPropagation();
-      var isOpen = profileDropdown.classList.toggle('open');
-      profileToggleBtn.classList.toggle('is-open', isOpen);
-      profileToggleBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-    });
-
-    document.addEventListener('click', function (ev) {
-      if (!profileDropdown.contains(ev.target) && ev.target !== profileToggleBtn) {
-        profileDropdown.classList.remove('open');
-        profileToggleBtn.classList.remove('is-open');
-        profileToggleBtn.setAttribute('aria-expanded', 'false');
-      }
-    });
-  }
-
   // ===== Переключение вкладок Отзывы / Прайс / Запись со сдвигом =====
   var track = document.getElementById('panelsTrack');
   var tabButtons = document.querySelectorAll('.tab-btn');
@@ -134,27 +113,6 @@ document.addEventListener('DOMContentLoaded', function () {
     setActiveTab(track.dataset.active || 'reviews', false);
   }
 
-  // ===== Модалка "Как к вам обращаться?" =====
-  var overlay = document.getElementById('greetOverlay');
-  var form = document.getElementById('greetForm');
-  var input = document.getElementById('greetInput');
-  var greetName = localStorage.getItem('visitor_name');
-  var greetTemplate = window.SITE_GREET_TEMPLATE || 'Здравствуйте, %s!';
-
-  function applyGreeting(name) {
-    document.querySelectorAll('[data-greet]').forEach(function (el) {
-      el.textContent = greetTemplate.replace('%s', name);
-    });
-  }
-
-  function showGreetIfNeeded() {
-    if (greetName) {
-      applyGreeting(greetName);
-    } else if (overlay) {
-      overlay.style.display = 'flex';
-    }
-  }
-
   // Ручное переключение языка (кнопки РУС/УКР в шапке) тоже запоминаем,
   // чтобы модалка выбора языка больше не всплывала при следующих визитах.
   document.querySelectorAll('.lang-switch a[href]').forEach(function (a) {
@@ -183,8 +141,6 @@ document.addEventListener('DOMContentLoaded', function () {
       // Язык выбран раньше, но текущая страница отрисована на другом
       // языке (например, зашли по ссылке без ?lang=) — доводим до нужного.
       goToLang(savedLang);
-    } else {
-      showGreetIfNeeded();
     }
 
     langOverlay.querySelectorAll('[data-lang]').forEach(function (btn) {
@@ -194,40 +150,44 @@ document.addEventListener('DOMContentLoaded', function () {
         langOverlay.style.display = 'none';
         if (chosen !== serverLang) {
           goToLang(chosen);
-        } else {
-          showGreetIfNeeded();
         }
       });
     });
-  } else {
-    showGreetIfNeeded();
   }
 
-  if (form) {
-    form.addEventListener('submit', function (ev) {
-      ev.preventDefault();
-      var value = input.value.trim();
-      if (!value) return;
-      localStorage.setItem('visitor_name', value);
-      applyGreeting(value);
-      overlay.style.display = 'none';
-    });
-  }
-
-  var skipBtn = document.getElementById('greetSkip');
-  if (skipBtn) {
-    skipBtn.addEventListener('click', function () {
-      overlay.style.display = 'none';
-    });
-  }
-
-  // ===== Модалка "Оставить отзыв" =====
+  // ===== Модалка "Оставить отзыв" (тот же модал используется для
+  // редактирования своего отзыва — см. .review-edit-btn ниже) =====
   var reviewOverlay = document.getElementById('reviewModalOverlay');
   var openReviewBtn = document.getElementById('openReviewModalBtn');
   var closeReviewBtn = document.getElementById('closeReviewModalBtn');
+  var reviewForm = document.getElementById('reviewForm');
+  var reviewModalTitle = document.getElementById('reviewModalTitle');
+  var reviewSubmitBtn = document.getElementById('reviewSubmitBtn');
+  var reviewIdInput = document.getElementById('reviewIdInput');
+  var reviewAuthorInput = document.getElementById('reviewAuthorInput');
+  var reviewMessageInput = document.getElementById('reviewMessageInput');
+  var reviewNewTitle = reviewModalTitle ? reviewModalTitle.textContent : '';
+  var reviewNewBtnText = reviewSubmitBtn ? reviewSubmitBtn.textContent : '';
+
+  function setRatingStars(n) {
+    var ratingInput = document.getElementById('ratingInput');
+    var stars = document.querySelectorAll('#starPicker .star');
+    if (ratingInput) ratingInput.value = n;
+    stars.forEach(function (s, i) { s.classList.toggle('selected', i <= n - 1); });
+  }
+
+  function resetReviewFormToNew() {
+    if (!reviewForm) return;
+    reviewForm.reset();
+    if (reviewIdInput) reviewIdInput.value = '';
+    setRatingStars(5);
+    if (reviewModalTitle) reviewModalTitle.textContent = reviewNewTitle;
+    if (reviewSubmitBtn) reviewSubmitBtn.textContent = reviewNewBtnText;
+  }
 
   if (reviewOverlay && openReviewBtn) {
     openReviewBtn.addEventListener('click', function () {
+      resetReviewFormToNew();
       reviewOverlay.classList.add('open');
     });
     if (closeReviewBtn) {
@@ -240,17 +200,28 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  // Кнопки ✏️ у своего отзыва (доступны только автору, в течение 1-2
+  // часов после публикации — см. reviewOwnedByCurrentUser() в PHP).
+  document.querySelectorAll('.review-edit-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      if (!reviewOverlay) return;
+      if (reviewIdInput) reviewIdInput.value = btn.dataset.id || '';
+      if (reviewAuthorInput) reviewAuthorInput.value = btn.dataset.name || '';
+      if (reviewMessageInput) reviewMessageInput.value = btn.dataset.message || '';
+      setRatingStars(parseInt(btn.dataset.rating, 10) || 5);
+      if (reviewModalTitle) reviewModalTitle.textContent = window.SITE_REVIEW_EDIT_TITLE || 'Редактировать отзыв';
+      if (reviewSubmitBtn) reviewSubmitBtn.textContent = window.SITE_REVIEW_EDIT_SUBMIT || 'Сохранить изменения';
+      reviewOverlay.classList.add('open');
+    });
+  });
+
   // ===== Выбор рейтинга звёздами в форме отзыва (жёлтые, "выбранные") =====
   var starWrap = document.getElementById('starPicker');
   if (starWrap) {
-    var ratingInput = document.getElementById('ratingInput');
     var stars = starWrap.querySelectorAll('.star');
     stars.forEach(function (star, idx) {
       star.addEventListener('click', function () {
-        ratingInput.value = idx + 1;
-        stars.forEach(function (s, i) {
-          s.classList.toggle('selected', i <= idx);
-        });
+        setRatingStars(idx + 1);
       });
     });
   }
