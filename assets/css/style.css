@@ -145,10 +145,41 @@ a { color: inherit; }
   text-decoration: underline;
 }
 
+/* ===== Обёртка для правой части шапки: колокольчик уведомлений + аватар ===== */
+.topbar-actions {
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.notify-permission-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 16px;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+  animation: notify-pulse 2.4s ease-in-out infinite;
+}
+.notify-permission-btn:hover {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-soft);
+  animation: none;
+}
+@keyframes notify-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 var(--primary-soft); }
+  50% { box-shadow: 0 0 0 5px var(--primary-soft); }
+}
+
 /* ===== Мини-профиль клиента (шапка, правый верхний угол) — просто
    круглый аватар-ссылка на отдельную страницу profile.php ===== */
 .profile-widget {
-  justify-self: end;
   width: 38px;
   height: 38px;
   border-radius: 50%;

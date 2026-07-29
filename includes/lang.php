@@ -148,6 +148,7 @@ $GLOBALS['TRANSLATIONS'] = [
         'profile_status_empty'  => 'Активных записей пока нет',
         'profile_change_photo'  => 'Изменить фото',
         'profile_logout'        => 'Выйти',
+        'notify_permission_title' => 'Включить уведомления о записи',
 
         // ===== Отдельная страница профиля (profile.php) =====
         'profile_page_title'      => 'Мой профиль',
@@ -295,6 +296,7 @@ $GLOBALS['TRANSLATIONS'] = [
         'profile_status_empty'  => 'Активних записів поки немає',
         'profile_change_photo'  => 'Змінити фото',
         'profile_logout'        => 'Вийти',
+        'notify_permission_title' => 'Увімкнути сповіщення про запис',
 
         // ===== Окрема сторінка профілю (profile.php) =====
         'profile_page_title'      => 'Мій профіль',

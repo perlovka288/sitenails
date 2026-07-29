@@ -7,6 +7,7 @@ $__siteTitle = $__siteName !== '' ? $__siteName : 'Мастер маникюра
 // ==== Мини-профиль клиента (правый верхний угол шапки) — просто ссылка
 // на страницу profile.php, вся информация теперь там. ====
 $__profileAvatarPath = !empty($__siteUser) ? siteUserAvatarPath($__siteUser) : null;
+$__onesignalAppId = getSetting('onesignal_app_id', '');
 ?>
 <!DOCTYPE html>
 <html lang="<?= $__lang === 'ua' ? 'uk' : 'ru' ?>">
@@ -32,15 +33,20 @@ $__profileAvatarPath = !empty($__siteUser) ? siteUserAvatarPath($__siteUser) : n
       <img src="assets/img/social/nails.png" alt="<?= e($__siteTitle) ?>">
     </a>
 
-    <?php if (!empty($__siteUser)): ?>
-    <a href="profile.php" class="profile-widget" aria-label="<?= e($__siteUser['full_name']) ?>">
-      <?php if ($__profileAvatarPath): ?>
-        <img src="<?= e($__profileAvatarPath) ?>" alt="" class="profile-avatar-img">
-      <?php else: ?>
-        <span class="profile-avatar-fallback"><?= e(mb_strtoupper(mb_substr($__siteUser['full_name'], 0, 1))) ?></span>
+    <div class="topbar-actions">
+      <?php if ($__onesignalAppId !== '' && !empty($__siteUser)): ?>
+      <button type="button" class="notify-permission-btn" id="notifyPermBtn" title="<?= e(t('notify_permission_title')) ?>" style="display:none;">🔔</button>
       <?php endif; ?>
-    </a>
-    <?php endif; ?>
+      <?php if (!empty($__siteUser)): ?>
+      <a href="profile.php" class="profile-widget" aria-label="<?= e($__siteUser['full_name']) ?>">
+        <?php if ($__profileAvatarPath): ?>
+          <img src="<?= e($__profileAvatarPath) ?>" alt="" class="profile-avatar-img">
+        <?php else: ?>
+          <span class="profile-avatar-fallback"><?= e(mb_strtoupper(mb_substr($__siteUser['full_name'], 0, 1))) ?></span>
+        <?php endif; ?>
+      </a>
+      <?php endif; ?>
+    </div>
   </div>
   <div class="container nav-tabs">
     <button type="button" class="tab-btn" data-tab="about"><?= e(t('nav_about')) ?></button>
@@ -75,7 +81,6 @@ $__profileAvatarPath = !empty($__siteUser) ? siteUserAvatarPath($__siteUser) : n
   window.SITE_REVIEW_EDIT_TITLE = <?= json_encode(t('reviews_edit_title')) ?>;
   window.SITE_REVIEW_EDIT_SUBMIT = <?= json_encode(t('reviews_edit_submit')) ?>;
 </script>
-<?php $__onesignalAppId = getSetting('onesignal_app_id', ''); ?>
 <?php if ($__onesignalAppId !== ''): ?>
 <!-- Push-уведомления (OneSignal) — приходят как обычное системное
      уведомление на телефон/в браузер, без бота (см. includes/onesignal.php,
@@ -89,6 +94,30 @@ $__profileAvatarPath = !empty($__siteUser) ? siteUserAvatarPath($__siteUser) : n
       // Привязываем подписку на пуши к id клиента в site_users — этот же
       // id сервер использует как external_id при отправке уведомления.
       OneSignal.login(String(window.SITE_USER_ID));
+    }
+
+    // ===== Кнопка 🔔 в шапке — явный запрос разрешения на уведомления =====
+    // Автоматический браузерный prompt не всегда показывается сам (у
+    // некоторых браузеров он требует явного клика пользователя, плюс на
+    // iOS/десктопных Safari он вообще не всплывает без такого клика).
+    // Поэтому вместо того чтобы полагаться на автопоказ, встраиваем кнопку
+    // прямо в интерфейс — клиент сам нажимает и разрешает.
+    var notifyBtn = document.getElementById('notifyPermBtn');
+    if (notifyBtn && window.Notification) {
+      function updateNotifyBtnVisibility() {
+        // Показываем кнопку только пока разрешение ещё не решено
+        // (не 'granted' и не 'denied') — иначе незачем её показывать.
+        notifyBtn.style.display = (Notification.permission === 'default') ? 'flex' : 'none';
+      }
+      updateNotifyBtnVisibility();
+
+      notifyBtn.addEventListener('click', function () {
+        OneSignal.Notifications.requestPermission().then(function () {
+          updateNotifyBtnVisibility();
+        });
+      });
+
+      OneSignal.Notifications.addEventListener('permissionChange', updateNotifyBtnVisibility);
     }
   });
 </script>
