@@ -188,8 +188,6 @@ $categoryIcons = ['Маникюр' => '💅', 'Педикюр' => '🦶', 'До�
        выпадающем списке или введена вручную. -->
   <input type="hidden" id="priceItemCategoryText">
 </div>
-<script>window.ADMIN_CSRF_TOKEN = <?= json_encode(csrfToken()) ?>;</script>
-<script src="assets/admin.js?v=<?= filemtime(__DIR__ . '/assets/admin.js') ?>" defer></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   var catSelect = document.getElementById('priceItemCategorySelect');
