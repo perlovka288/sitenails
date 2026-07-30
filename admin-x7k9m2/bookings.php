@@ -13,13 +13,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrfCheck()) {
     if ($action === 'confirm') {
         $pdo->prepare("UPDATE bookings SET status = 'confirmed', updated_at = CURRENT_TIMESTAMP WHERE id = ?")->execute([$id]);
 
+        $__b = $pdo->prepare('SELECT * FROM bookings WHERE id = ?');
+        $__b->execute([$id]);
+        $__booking = $__b->fetch();
+
+        // Раньше слот нужно было отдельно отмечать занятым кнопкой
+        // "Отметить занятым" — если забыть это сделать, время оставалось
+        // видно свободным в календаре на сайте, и кто-то другой мог
+        // записаться на то же время. Теперь при подтверждении заявки слот
+        // (если он привязан, т.е. запись пришла через календарь) занимается
+        // автоматически — вручную дополнительно жать ничего не нужно.
+        if ($__booking && !empty($__booking['slot_id'])) {
+            $pdo->prepare('UPDATE available_slots SET is_booked = 1 WHERE id = ?')->execute([(int)$__booking['slot_id']]);
+        }
+
         // Пуш клиенту "Ваша запись принята" — без бота, обычное системное
         // уведомление (см. includes/onesignal.php). Если у заявки нет
         // привязанного аккаунта (user_id) или push не настроен — просто
         // ничего не отправляется, подтверждение статуса всё равно сохранится.
-        $__b = $pdo->prepare('SELECT * FROM bookings WHERE id = ?');
-        $__b->execute([$id]);
-        $__booking = $__b->fetch();
         if ($__booking && !empty($__booking['user_id'])) {
             $__phone = getSetting('site_phone', '');
             $__address = getSetting('site_address', '');
@@ -34,7 +45,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrfCheck()) {
     } elseif ($action === 'done') {
         $pdo->prepare("UPDATE bookings SET status = 'done', updated_at = CURRENT_TIMESTAMP WHERE id = ?")->execute([$id]);
     } elseif ($action === 'delete') {
+        // Если запись была отменена/удалена, а слот успел стать "занятым"
+        // (см. авто-занятие выше при подтверждении) — освобождаем его же,
+        // иначе время осталось бы навсегда заблокированным без брони,
+        // видной в этом списке (кнопка "Освободить время" пропала бы вместе
+        // с самой карточкой).
+        $__delStmt = $pdo->prepare('SELECT slot_id FROM bookings WHERE id = ?');
+        $__delStmt->execute([$id]);
+        $__delSlotId = $__delStmt->fetchColumn();
+
         $pdo->prepare('DELETE FROM bookings WHERE id = ?')->execute([$id]);
+
+        if ($__delSlotId) {
+            $pdo->prepare('UPDATE available_slots SET is_booked = 0 WHERE id = ?')->execute([(int)$__delSlotId]);
+        }
     } elseif ($action === 'toggle_slot') {
         $slotId = (int)($_POST['slot_id'] ?? 0);
         if ($slotId > 0) {
@@ -93,7 +117,7 @@ $bookings = $pdo->query('
         </div>
         <div class="rec-card-actions">
           <?php if ($b['slot_id']): ?>
-          <form method="post" title="Мама сама решает, занято это время или нет">
+          <form method="post" title="Занимается автоматически при подтверждении записи — эта кнопка для ручной правки, если нужно">
             <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
             <input type="hidden" name="slot_id" value="<?= (int)$b['slot_id'] ?>">
             <button name="action" value="toggle_slot" class="btn ghost rec-card-btn">

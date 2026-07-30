@@ -104,6 +104,7 @@ $__onesignalAppId = getSetting('onesignal_app_id', '');
     noSlots: <?= json_encode(t('booking_no_slots')) ?>
   };
   window.SITE_BOOKING_FORM_ERROR = <?= json_encode(t('booking_form_error_generic')) ?>;
+  window.SITE_BOOKING_SLOT_TAKEN_ERROR = <?= json_encode(t('booking_form_error_slot_taken')) ?>;
   window.SITE_REVIEW_EDIT_TITLE = <?= json_encode(t('reviews_edit_title')) ?>;
   window.SITE_REVIEW_EDIT_SUBMIT = <?= json_encode(t('reviews_edit_submit')) ?>;
 </script>

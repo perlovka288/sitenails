@@ -281,7 +281,14 @@ function currentSiteUser(): ?array
     // человеком: ищем site_users с тем же логином, что и в admin_users
     // (заводится одновременно при установке — см. config.php), и один раз
     // "подписываем" сессию — дальше всё работает как при обычном входе.
-    if (isAdmin() && !empty($_SESSION['admin_id'])) {
+    //
+    // ВАЖНО: если человек только что явно нажал "Выйти" из аккаунта клиента
+    // (см. logout.php, ставит site_logged_out = true), этот авто-вход
+    // пропускаем — иначе на ПК, где почти всегда открыта ещё и панель
+    // управления, выход из клиентского аккаунта тут же "отменялся бы" этим
+    // же куском кода на следующей странице (именно поэтому разлогин не
+    // работал на ПК, но работал на телефоне, где панель обычно не открыта).
+    if (empty($_SESSION['site_logged_out']) && isAdmin() && !empty($_SESSION['admin_id'])) {
         $adminStmt = $pdo->prepare('SELECT username FROM admin_users WHERE id = ?');
         $adminStmt->execute([$_SESSION['admin_id']]);
         $adminUsername = $adminStmt->fetchColumn();

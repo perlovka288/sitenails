@@ -12,7 +12,13 @@ require __DIR__ . '/includes/functions.php';
 $next = $_GET['next'] ?? $_POST['next'] ?? '';
 $next = (is_string($next) && str_starts_with($next, '/')) ? $next : 'index.php';
 
-if (isAdmin() || isSiteUser()) {
+// Раньше проверялось "isAdmin() || isSiteUser()" — из-за этого, если в этом
+// же браузере где-то ещё жила сессия панели управления (admin_id), клиента
+// сразу перекидывало отсюда дальше, и он физически не мог открыть форму
+// входа, чтобы залогиниться заново после выхода из своего клиентского
+// аккаунта. Условие "уже вошёл" здесь должно значить именно "уже вошёл как
+// клиент", а не "у него где-то есть доступ в админку".
+if (isSiteUser()) {
     redirect($next);
 }
 
@@ -35,6 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($user && password_verify($password, $user['password_hash'])) {
             session_regenerate_id(true);
             $_SESSION['site_user_id'] = $user['id'];
+            unset($_SESSION['site_logged_out']);
             issueSiteRememberCookie((int)$user['id']);
             redirect($next);
         } else {

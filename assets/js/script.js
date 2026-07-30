@@ -523,7 +523,28 @@ document.addEventListener('DOMContentLoaded', function () {
     var weekOffset = 0;
 
     function loadWeek() {
-      fetchJSON('get_slots.php?offset=' + weekOffset).then(renderWeek);
+      fetchJSON('get_slots.php?offset=' + weekOffset).then(function (data) {
+        // Если во время выбора времени (пока открыт сайт) кто-то другой
+        // успел занять именно этот слот — не даём тихо остаться с уже
+        // недействительным выбором: снимаем его и явно предупреждаем.
+        if (selectedSlot && data && data.days) {
+          var stillFree = data.days.some(function (day) {
+            return day.slots.some(function (s) { return s.id === selectedSlot.id && !s.booked; });
+          });
+          if (!stillFree) {
+            selectedSlot = null;
+            if (selectedText) selectedText.textContent = labels.none;
+            if (bookingFormOverlay && bookingFormOverlay.classList.contains('open')) {
+              closeBookingForm();
+            }
+            if (bookingFormError) {
+              bookingFormError.textContent = window.SITE_BOOKING_SLOT_TAKEN_ERROR || 'Это время только что заняли. Выберите, пожалуйста, другое.';
+              bookingFormError.style.display = 'block';
+            }
+          }
+        }
+        renderWeek(data);
+      });
     }
 
     if (calPrevBtn) {
@@ -655,6 +676,14 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     loadWeek();
+    // Обновляем календарь сам по себе, пока клиент выбирает время — без
+    // этого свободное время могло "зависнуть" в открытой вкладке даже
+    // после того, как кто-то другой на него записался, а мама подтвердила
+    // заявку (слот занимается автоматически при подтверждении, см.
+    // admin-x7k9m2/bookings.php). Финальная защита всё равно на сервере
+    // (select_slot.php перепроверяет слот при самой отправке), это просто
+    // чтобы клиент не выбирал уже занятое время, глядя на устаревший экран.
+    setInterval(loadWeek, 20000);
   }
 
   // ===== Плавающая кнопка связи =====

@@ -141,6 +141,7 @@ $GLOBALS['TRANSLATIONS'] = [
         'booking_success_title'      => 'Запись успешно создана!',
         'booking_success_text'       => 'Мастер свяжется с вами в ближайшее время.',
         'booking_form_error_generic' => 'Не получилось отправить заявку, попробуйте ещё раз.',
+        'booking_form_error_slot_taken' => 'Это время только что заняли. Выберите, пожалуйста, другое.',
 
         // ===== Мини-профиль клиента (шапка сайта) =====
         'profile_login_label'   => 'Логин:',
@@ -293,6 +294,7 @@ $GLOBALS['TRANSLATIONS'] = [
         'booking_success_title'      => 'Запис успішно створено!',
         'booking_success_text'       => "Майстер зв'яжеться з вами найближчим часом.",
         'booking_form_error_generic' => 'Не вдалося надіслати заявку, спробуйте ще раз.',
+        'booking_form_error_slot_taken' => 'Цей час щойно зайняли. Оберіть, будь ласка, інший.',
 
         // ===== Міні-профіль клієнта (шапка сайту) =====
         'profile_login_label'   => 'Логін:',

@@ -13,7 +13,9 @@ require __DIR__ . '/includes/functions.php';
 $next = $_GET['next'] ?? $_POST['next'] ?? '';
 $next = (is_string($next) && str_starts_with($next, '/')) ? $next : 'index.php';
 
-if (isAdmin() || isSiteUser()) {
+// См. подробное объяснение в login.php — проверяем именно "уже клиент",
+// а не "есть где-то доступ в админку".
+if (isSiteUser()) {
     redirect($next);
 }
 
@@ -64,6 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $userId = (int)$pdo->lastInsertId();
                 session_regenerate_id(true);
                 $_SESSION['site_user_id'] = $userId;
+                unset($_SESSION['site_logged_out']);
                 issueSiteRememberCookie($userId);
 
                 redirect($next);
