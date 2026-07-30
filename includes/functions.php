@@ -218,6 +218,38 @@ function currentSiteUser(): ?array
         }
     }
 
+    // Человек уже вошёл в панель управления (admin-x7k9m2), но ни разу не
+    // логинился на самом сайте как клиент — раньше это означало, что на
+    // сайте пропадали профиль, колокольчик уведомлений и кнопки
+    // "Изменить"/"Удалить" прямо в прайсе/отзывах (они завязаны именно на
+    // site_user, не на admin_user). Автоматически считаем его тем же
+    // человеком: ищем site_users с тем же логином, что и в admin_users
+    // (заводится одновременно при установке — см. config.php), и один раз
+    // "подписываем" сессию — дальше всё работает как при обычном входе.
+    if (isAdmin() && !empty($_SESSION['admin_id'])) {
+        $adminStmt = $pdo->prepare('SELECT username FROM admin_users WHERE id = ?');
+        $adminStmt->execute([$_SESSION['admin_id']]);
+        $adminUsername = $adminStmt->fetchColumn();
+
+        if ($adminUsername !== false) {
+            $linkStmt = $pdo->prepare('SELECT * FROM site_users WHERE login_lower = ?');
+            $linkStmt->execute([mb_strtolower((string)$adminUsername)]);
+            $linkedUser = $linkStmt->fetch();
+
+            if (!$linkedUser) {
+                // Резервный вариант — если логины почему-то не совпадают,
+                // берём любой аккаунт-владельца (is_admin = 1).
+                $linkedUser = $pdo->query('SELECT * FROM site_users WHERE is_admin = 1 ORDER BY id LIMIT 1')->fetch();
+            }
+
+            if ($linkedUser) {
+                $_SESSION['site_user_id'] = $linkedUser['id'];
+                $cached = $linkedUser;
+                return $cached;
+            }
+        }
+    }
+
     return null;
 }
 

@@ -517,6 +517,7 @@ section.block { padding: 28px 0; }
 
 /* ===== Прайс ===== */
 .price-block { margin-bottom: 8px; }
+.price-add-open-btn { margin: 4px 0 22px; }
 
 .price-category {
   font-family: 'Tangerine', cursive;
@@ -532,16 +533,21 @@ section.block { padding: 28px 0; }
 
 .price-row {
   display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 0;
+}
+
+.price-row-main {
+  display: flex;
   align-items: baseline;
   gap: 8px;
-  padding: 10px 0;
 }
 
 .price-row .name {
   font-weight: 400;
   font-size: 14.5px;
   color: var(--ink);
-  white-space: nowrap;
 }
 
 .price-row .leader {
@@ -556,6 +562,13 @@ section.block { padding: 28px 0; }
   font-weight: 600;
   font-size: 14.5px;
   white-space: nowrap;
+}
+
+.price-row-admin-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
 }
 
 .price-block--framed {
@@ -1260,12 +1273,6 @@ table.admin-table th { background: var(--surface-2); font-size: 11px; text-trans
   margin-top: 12px;
   flex-wrap: wrap;
 }
-.admin-inline-actions--row {
-  margin-top: 0;
-  margin-left: 10px;
-  flex-shrink: 0;
-}
-.price-row { flex-wrap: wrap; }
 .icon-btn {
   border: 1px solid var(--line-strong);
   background: transparent;

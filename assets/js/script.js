@@ -306,7 +306,7 @@ document.addEventListener('DOMContentLoaded', function () {
   var priceModalTitleField = document.getElementById('priceModalTitleField');
   var priceModalTitleUa = document.getElementById('priceModalTitleUa');
   var priceModalPrice = document.getElementById('priceModalPrice');
-  var openPriceAddBtn = document.getElementById('openPriceAddBtn');
+  var openPriceAddBtns = document.querySelectorAll('[data-price-add-open]');
   var closePriceModalBtn = document.getElementById('closePriceModalBtn');
   var priceEditButtons = document.querySelectorAll('.price-edit-btn');
 
@@ -322,11 +322,11 @@ document.addEventListener('DOMContentLoaded', function () {
     priceModalOverlay.classList.add('open');
   }
 
-  if (openPriceAddBtn) {
-    openPriceAddBtn.addEventListener('click', function () {
+  openPriceAddBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () {
       openPriceModal('add', null);
     });
-  }
+  });
 
   priceEditButtons.forEach(function (btn) {
     btn.addEventListener('click', function () {

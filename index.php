@@ -436,6 +436,10 @@ require __DIR__ . '/includes/header.php';
     <h2 class="section-title"><?= e(t('price_title')) ?></h2>
     <div class="section-sub"><?= e(t('price_subtitle')) ?></div>
 
+    <?php if ($__isAdmin): ?>
+      <button type="button" class="btn full open-modal-btn price-add-open-btn" data-price-add-open>+ <?= e(t('price_add_btn')) ?></button>
+    <?php endif; ?>
+
     <?php if (!$priceByCategory): ?>
       <p><?= e(t('price_empty')) ?></p>
     <?php endif; ?>
@@ -447,12 +451,14 @@ require __DIR__ . '/includes/header.php';
         <?php foreach ($cat['items'] as $item): ?>
           <?php $title = ($lang === 'ua' && !empty($item['title_ua'])) ? $item['title_ua'] : $item['title']; ?>
           <div class="price-row">
-            <span class="name"><?= e($title) ?></span>
-            <span class="leader"></span>
-            <span class="amount"><?= e($item['price']) ?></span>
+            <div class="price-row-main">
+              <span class="name"><?= e($title) ?></span>
+              <span class="leader"></span>
+              <span class="amount"><?= e($item['price']) ?></span>
+            </div>
             <?php if ($__isAdmin): ?>
-            <span class="admin-inline-actions admin-inline-actions--row">
-              <button type="button" class="icon-btn price-edit-btn"
+            <div class="price-row-admin-actions">
+              <button type="button" class="icon-btn icon-btn--sm price-edit-btn"
                 title="<?= $lang === 'ua' ? 'Змінити' : 'Изменить' ?>"
                 data-id="<?= (int)$item['id'] ?>"
                 data-category="<?= e($item['category']) ?>"
@@ -461,14 +467,14 @@ require __DIR__ . '/includes/header.php';
                 data-title-ua="<?= e($item['title_ua'] ?? '') ?>"
                 data-price="<?= e($item['price']) ?>"
               ><?= e(t('price_edit')) ?></button>
-              <form method="post" action="admin_quick_action.php" style="display:inline;" onsubmit="return confirm(<?= json_encode(t('price_confirm_delete')) ?>);">
+              <form method="post" action="admin_quick_action.php" onsubmit="return confirm(<?= json_encode(t('price_confirm_delete')) ?>);">
                 <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
                 <input type="hidden" name="action" value="price_delete">
                 <input type="hidden" name="id" value="<?= (int)$item['id'] ?>">
                 <input type="hidden" name="back_tab" value="price">
-                <button type="submit" class="icon-btn icon-btn--danger" title="<?= $lang === 'ua' ? 'Видалити' : 'Удалить' ?>"><?= e(t('price_delete')) ?></button>
+                <button type="submit" class="icon-btn icon-btn--sm icon-btn--danger" title="<?= $lang === 'ua' ? 'Видалити' : 'Удалить' ?>"><?= e(t('price_delete')) ?></button>
               </form>
-            </span>
+            </div>
             <?php endif; ?>
           </div>
         <?php endforeach; ?>
@@ -481,7 +487,7 @@ require __DIR__ . '/includes/header.php';
     </div>
 
     <?php if ($__isAdmin): ?>
-      <button type="button" class="btn full open-modal-btn" id="openPriceAddBtn"><?= e(t('price_add_btn')) ?></button>
+      <button type="button" class="btn full open-modal-btn" data-price-add-open><?= e(t('price_add_btn')) ?></button>
     <?php endif; ?>
   </section>
 
