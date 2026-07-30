@@ -1,6 +1,7 @@
 <?php
 require __DIR__ . '/config.php';
 require __DIR__ . '/includes/functions.php';
+require __DIR__ . '/includes/onesignal.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !csrfCheck()) {
     redirect('index.php');
@@ -30,5 +31,10 @@ $stmt = $pdo->prepare(
     "INSERT INTO bookings (client_name, phone, service, wanted_date, comment, user_id) VALUES (?, ?, ?, ?, ?, ?)"
 );
 $stmt->execute([$name, $phone, $service, $date, $comment, $userId]);
+
+// Пуш всем администраторам сайта — см. includes/onesignal.php. Тихо ничего
+// не делает, если push ещё не настроен в Настройках или пока нет ни одного
+// назначенного администратора.
+notifyAdminsNewBooking($pdo, $name, $date, $service);
 
 redirect('index.php?tab=booking&booking_sent=1');

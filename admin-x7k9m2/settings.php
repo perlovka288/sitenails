@@ -10,6 +10,7 @@ $error = '';
 $siteMessage = '';
 $usersWipedMessage = '';
 $testPushMessage = '';
+$adminMessage = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrfCheck()) {
     $form = $_POST['form'] ?? '';
@@ -35,6 +36,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrfCheck()) {
             $testPushMessage = $__ok
                 ? 'success:Запрос на отправку принят OneSignal. Если уведомление не пришло в течение минуты — смотрите причину внизу в логе (это не всегда значит ошибку: возможно, у этого клиента ещё нет активной подписки на этом устройстве).'
                 : 'error:Отправка не удалась. Причина записана в лог ниже.';
+        }
+    } elseif ($form === 'make_admin') {
+        $__targetId = (int)($_POST['admin_user_id'] ?? 0);
+        if ($__targetId <= 0) {
+            $adminMessage = 'error:Укажите ID пользователя (число из списка ниже).';
+        } else {
+            $__exists = $pdo->prepare('SELECT id, full_name FROM site_users WHERE id = ?');
+            $__exists->execute([$__targetId]);
+            $__foundUser = $__exists->fetch();
+            if (!$__foundUser) {
+                $adminMessage = 'error:Пользователь с ID ' . $__targetId . ' не найден.';
+            } else {
+                $pdo->prepare('UPDATE site_users SET is_admin = 1 WHERE id = ?')->execute([$__targetId]);
+                $adminMessage = 'success:' . $__foundUser['full_name'] . ' (ID ' . $__targetId . ') теперь администратор — будет получать push о новых записях.';
+            }
+        }
+    } elseif ($form === 'remove_admin') {
+        $__targetId = (int)($_POST['admin_user_id'] ?? 0);
+        if ($__targetId > 0) {
+            $pdo->prepare('UPDATE site_users SET is_admin = 0 WHERE id = ?')->execute([$__targetId]);
+            $adminMessage = 'success:Права администратора сняты (ID ' . $__targetId . ').';
         }
     } elseif ($form === 'wipe_test_users') {
         // Удаляем всех зарегистрированных клиентов КРОМЕ владелицы сайта
@@ -85,6 +107,11 @@ $onesignalApiKey = getSetting('onesignal_api_key', '');
 $vapidPublicKey  = getSetting('vapid_public_key', '');
 $testUsersCount  = (int)$pdo->query('SELECT COUNT(*) c FROM site_users WHERE is_admin = 0')->fetch()['c'];
 
+// Список текущих администраторов (получают push о новых записях) и
+// последних НЕ-админских аккаунтов — чтобы было откуда взять ID, не
+// копаясь в базе руками.
+$currentAdmins = $pdo->query("SELECT id, full_name, login, phone FROM site_users WHERE is_admin = 1 ORDER BY id")->fetchAll();
+
 // Последние зарегистрированные клиенты — чтобы было откуда взять ID для
 // тестовой отправки push, не копаясь в базе руками.
 $recentUsers = $pdo->query('SELECT id, full_name FROM site_users WHERE is_admin = 0 ORDER BY id DESC LIMIT 10')->fetchAll();
@@ -111,158 +138,294 @@ if (is_file($__logFile)) {
 <div class="admin-shell">
   <?php require __DIR__ . '/includes/nav.php'; ?>
 
-  <div class="card" style="max-width:520px;">
-    <h3>Настройки сайта</h3>
-    <p style="color:var(--ink-soft); font-size:13px; margin-top:0;">
-      Здесь можно менять название сайта, телефон и ссылки на соцсети —
-      это сразу видно только вам в этой панели, изменения применяются
-      на сайте сразу после сохранения.
-    </p>
-    <?php if ($siteMessage): ?><div class="alert success"><?= e($siteMessage) ?></div><?php endif; ?>
-    <form method="post">
-      <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
-      <input type="hidden" name="form" value="site_settings">
-      <div class="form-field">
-        <label>Название сайта (шапка и подвал)</label>
-        <input type="text" name="site_name" value="<?= e($siteName) ?>" placeholder="Например: Маникюр от Марии" maxlength="80">
-      </div>
-      <div class="form-field">
-        <label>Телефон для подвала сайта</label>
-        <input type="text" name="site_phone" value="<?= e($sitePhone) ?>" placeholder="+380 XX XXX XX XX">
-      </div>
-      <div class="form-field">
-        <label>Адрес (куда приходить на запись — виден клиенту в его профиле)</label>
-        <input type="text" name="site_address" value="<?= e($siteAddress) ?>" placeholder="Например: г. Киев, ул. Примерная, 10, кв. 5">
-      </div>
-      <div class="form-field">
-        <label>Ссылка на Instagram</label>
-        <input type="text" name="social_instagram_url" value="<?= e($igUrl) ?>" placeholder="https://www.instagram.com/...">
-      </div>
-      <div class="form-field">
-        <label>Номер для Viber</label>
-        <input type="text" name="social_viber_phone" value="<?= e($viberPhone) ?>" placeholder="+380XXXXXXXXX">
-      </div>
-      <div class="form-field">
-        <label>Номер для звонка (кнопка "Позвонить")</label>
-        <input type="text" name="social_phone" value="<?= e($callPhone) ?>" placeholder="+380XXXXXXXXX">
-      </div>
-      <button type="submit" class="btn full">Сохранить настройки сайта</button>
-    </form>
-  </div>
+  <div class="about-accordion">
 
-  <div class="card" style="max-width:520px;">
-    <h3>🔔 Уведомления о записи (push, без бота)</h3>
-    <p style="color:var(--ink-soft); font-size:13px; margin-top:0;">
-      Когда вы подтверждаете запись в разделе «Записи», клиенту приходит
-      push-уведомление в браузере/на телефон — как системное уведомление,
-      без сторонних мессенджеров. Работает через бесплатный сервис
-      <strong>OneSignal</strong> (до 10 000 подписчиков бесплатно):
-    </p>
-    <ol style="color:var(--ink-soft); font-size:13px; padding-left:18px; margin-top:0;">
-      <li>Зарегистрируйтесь на <strong>onesignal.com</strong>, создайте приложение с типом Web Push и укажите адрес вашего сайта.</li>
-      <li>Скопируйте <strong>App ID</strong> и <strong>REST API Key</strong> (Settings → Keys &amp; IDs) и вставьте их сюда.</li>
-      <li>Файл <code>OneSignalSDKWorker.js</code> уже лежит в корне сайта — ничего докачивать не нужно.</li>
-    </ol>
-    <?php if ($onesignalAppId === ''): ?>
-      <div class="alert" style="background:rgba(255,201,77,.12); color:#e8b74e; border:1px solid rgba(255,201,77,.3);">
-        Пока не настроено — клиенты не будут получать push-уведомления о подтверждении записи.
+    <div class="about-accordion-item open" id="settings-acc-site">
+      <div class="about-accordion-header" tabindex="0" role="button">
+        <div class="about-accordion-header-text">
+          <h3>🏠 Настройки сайта</h3>
+          <p>Название, телефон, адрес, соцсети</p>
+        </div>
+        <div class="about-accordion-header-right"><span class="about-accordion-chevron">›</span></div>
       </div>
-    <?php endif; ?>
-    <p style="color:var(--ink-faint); font-size:12px;">
-      ⚠️ На некоторых бесплатных хостингах (например InfinityFree) исходящие
-      запросы к внешним сервисам иногда ограничены. Если после настройки
-      уведомления всё же не приходят — это единственная вероятная причина,
-      напишите нам, посмотрим логи.
-    </p>
-    <form method="post">
-      <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
-      <input type="hidden" name="form" value="push_settings">
-      <div class="form-field">
-        <label>OneSignal App ID</label>
-        <input type="text" name="onesignal_app_id" value="<?= e($onesignalAppId) ?>" placeholder="8250eaf6-1a58-489e-b136-...">
+      <div class="about-accordion-body">
+        <div class="about-accordion-body-inner">
+          <div class="about-accordion-content">
+            <?php if ($siteMessage): ?><div class="alert success"><?= e($siteMessage) ?></div><?php endif; ?>
+            <form method="post">
+              <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+              <input type="hidden" name="form" value="site_settings">
+              <div class="form-field">
+                <label>Название сайта (шапка и подвал)</label>
+                <input type="text" name="site_name" value="<?= e($siteName) ?>" placeholder="Например: Маникюр от Марии" maxlength="80">
+              </div>
+              <div class="form-field">
+                <label>Телефон для подвала сайта</label>
+                <input type="text" name="site_phone" value="<?= e($sitePhone) ?>" placeholder="+380 XX XXX XX XX">
+              </div>
+              <div class="form-field">
+                <label>Адрес (куда приходить на запись — виден клиенту в его профиле)</label>
+                <input type="text" name="site_address" value="<?= e($siteAddress) ?>" placeholder="Например: г. Киев, ул. Примерная, 10, кв. 5">
+              </div>
+              <div class="form-field">
+                <label>Ссылка на Instagram</label>
+                <input type="text" name="social_instagram_url" value="<?= e($igUrl) ?>" placeholder="https://www.instagram.com/...">
+              </div>
+              <div class="form-field">
+                <label>Номер для Viber</label>
+                <input type="text" name="social_viber_phone" value="<?= e($viberPhone) ?>" placeholder="+380XXXXXXXXX">
+              </div>
+              <div class="form-field">
+                <label>Номер для звонка (кнопка "Позвонить")</label>
+                <input type="text" name="social_phone" value="<?= e($callPhone) ?>" placeholder="+380XXXXXXXXX">
+              </div>
+              <button type="submit" class="btn full">Сохранить настройки сайта</button>
+            </form>
+          </div>
+        </div>
       </div>
-      <div class="form-field">
-        <label>OneSignal REST API Key</label>
-        <input type="text" name="onesignal_api_key" value="<?= e($onesignalApiKey) ?>" placeholder="os_v2_app_...">
-      </div>
-      <button type="submit" class="btn full">Сохранить настройки уведомлений</button>
-    </form>
-  </div>
+    </div>
 
-  <div class="card" style="max-width:520px;">
-    <h3>🧪 Тестовый push</h3>
-    <p style="color:var(--ink-soft); font-size:13px; margin-top:0;">
-      Проверить всю цепочку (сервер → OneSignal → устройство клиента) без
-      необходимости оформлять и подтверждать настоящую запись. Клиент
-      должен был хотя бы раз нажать на 🔔 в шапке сайта и разрешить
-      уведомления — иначе слать некуда.
-    </p>
-    <?php if ($testPushMessage): [$__kind, $__text] = explode(':', $testPushMessage, 2); ?>
-      <div class="alert <?= $__kind === 'success' ? 'success' : 'error' ?>"><?= e($__text) ?></div>
-    <?php endif; ?>
-    <form method="post">
-      <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
-      <input type="hidden" name="form" value="test_push">
-      <div class="form-field">
-        <label>ID клиента</label>
-        <input type="number" name="test_push_user_id" placeholder="Например: 3" required>
+    <div class="about-accordion-item" id="settings-acc-push">
+      <div class="about-accordion-header" tabindex="0" role="button">
+        <div class="about-accordion-header-text">
+          <h3>🔔 Уведомления о записи</h3>
+          <p>Push через OneSignal, без бота</p>
+        </div>
+        <div class="about-accordion-header-right"><span class="about-accordion-chevron">›</span></div>
       </div>
-      <button type="submit" class="btn full">Отправить тестовый push</button>
-    </form>
-    <?php if ($recentUsers): ?>
-      <p style="color:var(--ink-faint); font-size:12px; margin-top:10px;">Последние клиенты (ID — имя):</p>
-      <p style="color:var(--ink-soft); font-size:12px; line-height:1.7;">
-        <?php foreach ($recentUsers as $__u): ?>
-          <?= (int)$__u['id'] ?> — <?= e($__u['full_name']) ?><br>
-        <?php endforeach; ?>
-      </p>
-    <?php endif; ?>
-    <?php if ($pushLogTail !== ''): ?>
-      <p style="color:var(--ink-faint); font-size:12px; margin-top:10px;">Последние записи лога (data/push_log.txt):</p>
-      <pre style="background:rgba(0,0,0,.25); padding:10px; border-radius:8px; font-size:11px; white-space:pre-wrap; word-break:break-word; color:var(--ink-soft); max-height:220px; overflow:auto;"><?= e($pushLogTail) ?></pre>
-    <?php else: ?>
-      <p style="color:var(--ink-faint); font-size:12px; margin-top:10px;">Лог пока пуст — записи появятся после первой попытки отправки.</p>
-    <?php endif; ?>
-  </div>
+      <div class="about-accordion-body">
+        <div class="about-accordion-body-inner">
+          <div class="about-accordion-content">
+            <p style="color:var(--ink-soft); font-size:13px; margin-top:0;">
+              Когда вы подтверждаете запись в разделе «Записи», клиенту приходит
+              push-уведомление в браузере/на телефон — как системное уведомление,
+              без сторонних мессенджеров. А когда клиент сам оставляет новую
+              заявку — push сразу приходит вам (см. раздел «Администраторы» ниже).
+              Работает через бесплатный сервис <strong>OneSignal</strong>
+              (до 10 000 подписчиков бесплатно):
+            </p>
+            <ol style="color:var(--ink-soft); font-size:13px; padding-left:18px; margin-top:0;">
+              <li>Зарегистрируйтесь на <strong>onesignal.com</strong>, создайте приложение с типом Web Push и укажите адрес вашего сайта.</li>
+              <li>Скопируйте <strong>App ID</strong> и <strong>REST API Key</strong> (Settings → Keys &amp; IDs) и вставьте их сюда.</li>
+              <li>Файл <code>OneSignalSDKWorker.js</code> уже лежит в корне сайта — ничего докачивать не нужно.</li>
+            </ol>
+            <?php if ($onesignalAppId === ''): ?>
+              <div class="alert" style="background:rgba(255,201,77,.12); color:#e8b74e; border:1px solid rgba(255,201,77,.3);">
+                Пока не настроено — push-уведомления никому не приходят.
+              </div>
+            <?php endif; ?>
+            <p style="color:var(--ink-faint); font-size:12px;">
+              ⚠️ На некоторых бесплатных хостингах (например InfinityFree) исходящие
+              запросы к внешним сервисам иногда ограничены. Если после настройки
+              уведомления всё же не приходят — это единственная вероятная причина,
+              напишите нам, посмотрим логи.
+            </p>
+            <form method="post">
+              <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+              <input type="hidden" name="form" value="push_settings">
+              <div class="form-field">
+                <label>OneSignal App ID</label>
+                <input type="text" name="onesignal_app_id" value="<?= e($onesignalAppId) ?>" placeholder="8250eaf6-1a58-489e-b136-...">
+              </div>
+              <div class="form-field">
+                <label>OneSignal REST API Key</label>
+                <input type="text" name="onesignal_api_key" value="<?= e($onesignalApiKey) ?>" placeholder="os_v2_app_...">
+              </div>
+              <button type="submit" class="btn full">Сохранить настройки уведомлений</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
 
-  <div class="card" style="max-width:520px; border-color: rgba(200,100,100,.35);">
-    <h3 style="color:#e4a3a3;">⚠️ Опасная зона</h3>
-    <p style="color:var(--ink-soft); font-size:13px; margin-top:0;">
-      Удаляет всех зарегистрированных клиентов сайта (сейчас:
-      <strong><?= $testUsersCount ?></strong>), кроме вашего собственного
-      аккаунта. Все они смогут зарегистрироваться заново с чистого листа.
-      Их старые записи и отзывы не пропадут, просто перестанут быть
-      привязаны к удалённому аккаунту.
-    </p>
-    <?php if ($usersWipedMessage): ?><div class="alert success"><?= e($usersWipedMessage) ?></div><?php endif; ?>
-    <form method="post" onsubmit="return confirm('Удалить всех зарегистрированных клиентов (кроме вашего аккаунта)? Отменить это будет нельзя.');">
-      <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
-      <input type="hidden" name="form" value="wipe_test_users">
-      <button type="submit" class="btn ghost full" style="border-color:rgba(200,100,100,.5); color:#e4a3a3;">Удалить всех клиентов, кроме меня</button>
-    </form>
-  </div>
+    <div class="about-accordion-item" id="settings-acc-admins">
+      <div class="about-accordion-header" tabindex="0" role="button">
+        <div class="about-accordion-header-text">
+          <h3>👤 Администраторы</h3>
+          <p>Кто получает push о новых записях</p>
+        </div>
+        <div class="about-accordion-header-right">
+          <span class="about-accordion-count"><?= count($currentAdmins) ?></span>
+          <span class="about-accordion-chevron">›</span>
+        </div>
+      </div>
+      <div class="about-accordion-body">
+        <div class="about-accordion-body-inner">
+          <div class="about-accordion-content">
+            <p style="color:var(--ink-soft); font-size:13px; margin-top:0;">
+              Как только клиент оставляет новую заявку на сайте — всем аккаунтам
+              ниже сразу приходит push-уведомление (при условии, что этот аккаунт
+              хотя бы раз нажимал на 🔔 в шапке сайта и разрешил уведомления
+              на своём телефоне). Обычно это один аккаунт — ваш собственный,
+              который вы используете при заходе на сам сайт как клиент.
+            </p>
+            <?php if ($adminMessage): [$__aKind, $__aText] = explode(':', $adminMessage, 2); ?>
+              <div class="alert <?= $__aKind === 'success' ? 'success' : 'error' ?>"><?= e($__aText) ?></div>
+            <?php endif; ?>
 
-  <div class="card" style="max-width:420px;">
-    <h3>Смена пароля</h3>
-    <?php if ($message): ?><div class="alert success"><?= e($message) ?></div><?php endif; ?>
-    <?php if ($error): ?><div class="alert error"><?= e($error) ?></div><?php endif; ?>
-    <form method="post">
-      <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
-      <div class="form-field">
-        <label>Текущий пароль</label>
-        <input type="password" name="current_password" required>
+            <?php if ($currentAdmins): ?>
+              <div class="rec-list" style="margin-bottom:16px;">
+                <?php foreach ($currentAdmins as $__a): ?>
+                  <div class="rec-card">
+                    <div class="rec-card-head">
+                      <div class="rec-card-head-name">
+                        <span class="rec-card-id">ID <?= (int)$__a['id'] ?></span>
+                        <strong><?= e($__a['full_name']) ?></strong>
+                      </div>
+                      <span class="badge done">Администратор</span>
+                    </div>
+                    <div class="rec-card-body">
+                      <div class="rec-card-row"><span class="rec-card-icon">👤</span><span><?= e($__a['login']) ?></span></div>
+                      <?php if ($__a['phone']): ?>
+                      <div class="rec-card-row"><span class="rec-card-icon">📞</span><span><?= e($__a['phone']) ?></span></div>
+                      <?php endif; ?>
+                    </div>
+                    <div class="rec-card-actions">
+                      <form method="post" onsubmit="return confirm('Снять права администратора с этого аккаунта?');">
+                        <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+                        <input type="hidden" name="form" value="remove_admin">
+                        <input type="hidden" name="admin_user_id" value="<?= (int)$__a['id'] ?>">
+                        <button type="submit" class="btn ghost rec-card-btn">Снять права</button>
+                      </form>
+                    </div>
+                  </div>
+                <?php endforeach; ?>
+              </div>
+            <?php else: ?>
+              <p class="rec-empty" style="padding:16px 0;">Пока нет ни одного администратора — назначьте себя ниже по ID.</p>
+            <?php endif; ?>
+
+            <form method="post" style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
+              <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+              <input type="hidden" name="form" value="make_admin">
+              <div class="form-field" style="margin:0; flex:1 1 160px;">
+                <label>Сделать администратором по ID</label>
+                <input type="number" name="admin_user_id" placeholder="Например: 1" required>
+              </div>
+              <button type="submit" class="btn">Назначить</button>
+            </form>
+
+            <?php if ($recentUsers): ?>
+              <p style="color:var(--ink-faint); font-size:12px; margin-top:14px;">Последние аккаунты клиентов (ID — имя):</p>
+              <p style="color:var(--ink-soft); font-size:12px; line-height:1.7;">
+                <?php foreach ($recentUsers as $__u): ?>
+                  <?= (int)$__u['id'] ?> — <?= e($__u['full_name']) ?><br>
+                <?php endforeach; ?>
+              </p>
+            <?php endif; ?>
+          </div>
+        </div>
       </div>
-      <div class="form-field">
-        <label>Новый пароль</label>
-        <input type="password" name="new_password" required minlength="6">
+    </div>
+
+    <div class="about-accordion-item" id="settings-acc-testpush">
+      <div class="about-accordion-header" tabindex="0" role="button">
+        <div class="about-accordion-header-text">
+          <h3>🧪 Тестовый push</h3>
+          <p>Проверить всю цепочку без реальной записи</p>
+        </div>
+        <div class="about-accordion-header-right"><span class="about-accordion-chevron">›</span></div>
       </div>
-      <div class="form-field">
-        <label>Повторите новый пароль</label>
-        <input type="password" name="new_password_repeat" required minlength="6">
+      <div class="about-accordion-body">
+        <div class="about-accordion-body-inner">
+          <div class="about-accordion-content">
+            <p style="color:var(--ink-soft); font-size:13px; margin-top:0;">
+              Проверить всю цепочку (сервер → OneSignal → устройство клиента) без
+              необходимости оформлять и подтверждать настоящую запись. Аккаунт
+              должен был хотя бы раз нажать на 🔔 в шапке сайта и разрешить
+              уведомления — иначе слать некуда.
+            </p>
+            <?php if ($testPushMessage): [$__kind, $__text] = explode(':', $testPushMessage, 2); ?>
+              <div class="alert <?= $__kind === 'success' ? 'success' : 'error' ?>"><?= e($__text) ?></div>
+            <?php endif; ?>
+            <form method="post">
+              <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+              <input type="hidden" name="form" value="test_push">
+              <div class="form-field">
+                <label>ID клиента</label>
+                <input type="number" name="test_push_user_id" placeholder="Например: 3" required>
+              </div>
+              <button type="submit" class="btn full">Отправить тестовый push</button>
+            </form>
+            <?php if ($pushLogTail !== ''): ?>
+              <p style="color:var(--ink-faint); font-size:12px; margin-top:10px;">Последние записи лога (data/push_log.txt):</p>
+              <pre style="background:rgba(0,0,0,.25); padding:10px; border-radius:8px; font-size:11px; white-space:pre-wrap; word-break:break-word; color:var(--ink-soft); max-height:220px; overflow:auto;"><?= e($pushLogTail) ?></pre>
+            <?php else: ?>
+              <p style="color:var(--ink-faint); font-size:12px; margin-top:10px;">Лог пока пуст — записи появятся после первой попытки отправки.</p>
+            <?php endif; ?>
+          </div>
+        </div>
       </div>
-      <button type="submit" class="btn full">Сохранить</button>
-    </form>
+    </div>
+
+    <div class="about-accordion-item" id="settings-acc-password">
+      <div class="about-accordion-header" tabindex="0" role="button">
+        <div class="about-accordion-header-text">
+          <h3>🔑 Смена пароля</h3>
+          <p>Пароль входа в эту панель управления</p>
+        </div>
+        <div class="about-accordion-header-right"><span class="about-accordion-chevron">›</span></div>
+      </div>
+      <div class="about-accordion-body">
+        <div class="about-accordion-body-inner">
+          <div class="about-accordion-content">
+            <?php if ($message): ?><div class="alert success"><?= e($message) ?></div><?php endif; ?>
+            <?php if ($error): ?><div class="alert error"><?= e($error) ?></div><?php endif; ?>
+            <form method="post">
+              <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+              <div class="form-field">
+                <label>Текущий пароль</label>
+                <input type="password" name="current_password" required>
+              </div>
+              <div class="form-field">
+                <label>Новый пароль</label>
+                <input type="password" name="new_password" required minlength="6">
+              </div>
+              <div class="form-field">
+                <label>Повторите новый пароль</label>
+                <input type="password" name="new_password_repeat" required minlength="6">
+              </div>
+              <button type="submit" class="btn full">Сохранить</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="about-accordion-item" id="settings-acc-danger">
+      <div class="about-accordion-header" tabindex="0" role="button">
+        <div class="about-accordion-header-text">
+          <h3 style="color:#e4a3a3;">⚠️ Опасная зона</h3>
+          <p>Удаление тестовых аккаунтов клиентов</p>
+        </div>
+        <div class="about-accordion-header-right"><span class="about-accordion-chevron">›</span></div>
+      </div>
+      <div class="about-accordion-body">
+        <div class="about-accordion-body-inner">
+          <div class="about-accordion-content">
+            <p style="color:var(--ink-soft); font-size:13px; margin-top:0;">
+              Удаляет всех зарегистрированных клиентов сайта (сейчас:
+              <strong><?= $testUsersCount ?></strong>), кроме администраторов
+              (см. раздел «Администраторы» выше). Все они смогут
+              зарегистрироваться заново с чистого листа. Их старые записи и
+              отзывы не пропадут, просто перестанут быть привязаны к
+              удалённому аккаунту.
+            </p>
+            <?php if ($usersWipedMessage): ?><div class="alert success"><?= e($usersWipedMessage) ?></div><?php endif; ?>
+            <form method="post" onsubmit="return confirm('Удалить всех зарегистрированных клиентов (кроме администраторов)? Отменить это будет нельзя.');">
+              <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+              <input type="hidden" name="form" value="wipe_test_users">
+              <button type="submit" class="btn ghost full" style="border-color:rgba(200,100,100,.5); color:#e4a3a3;">Удалить всех клиентов, кроме админов</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>
+<script>window.ADMIN_CSRF_TOKEN = <?= json_encode(csrfToken()) ?>;</script>
+<script src="assets/admin.js?v=<?= filemtime(__DIR__ . '/assets/admin.js') ?>" defer></script>
 </body>
 </html>

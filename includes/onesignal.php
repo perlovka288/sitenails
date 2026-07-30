@@ -103,3 +103,28 @@ function sendOneSignalPush(int $userId, string $title, string $message): bool
     pushLog("отправлено успешно (userId=$userId, title=\"$title\") — HTTP $httpCode — $response");
     return true;
 }
+
+// Пуш всем администраторам (site_users.is_admin = 1, назначаются в Настройках
+// → «Администраторы») о новой заявке на запись — приходит на телефон сразу,
+// как только клиент отправил анкету, не дожидаясь, пока кто-то откроет
+// панель управления и увидит "Записей пока нет" в старом состоянии.
+function notifyAdminsNewBooking(PDO $pdo, string $clientName, string $wantedDate, string $service): void
+{
+    $admins = $pdo->query('SELECT id FROM site_users WHERE is_admin = 1')->fetchAll(PDO::FETCH_COLUMN);
+    if (!$admins) {
+        return;
+    }
+
+    $title = 'Новая запись 💅';
+    $message = $clientName;
+    if ($wantedDate !== '') {
+        $message .= ' — ' . $wantedDate;
+    }
+    if ($service !== '') {
+        $message .= ' (' . $service . ')';
+    }
+
+    foreach ($admins as $adminUserId) {
+        sendOneSignalPush((int)$adminUserId, $title, $message);
+    }
+}

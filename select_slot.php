@@ -16,6 +16,7 @@ try {
     require __DIR__ . '/config.php';
     require __DIR__ . '/includes/functions.php';
     require __DIR__ . '/includes/lang.php';
+    require __DIR__ . '/includes/onesignal.php';
 
     if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !csrfCheck()) {
         http_response_code(403);
@@ -110,6 +111,9 @@ try {
         $userId,
         $contactMethod,
     ]);
+
+    // Пуш всем администраторам сайта — см. includes/onesignal.php.
+    notifyAdminsNewBooking($pdo, $clientName, $slot['slot_date'] . ' ' . $slot['slot_time'], $serviceText);
 
     echo json_encode([
         'success' => true,
