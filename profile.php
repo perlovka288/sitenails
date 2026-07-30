@@ -139,7 +139,7 @@ $__mapsHref = $masterAddress !== '' ? 'https://www.google.com/maps/search/?api=1
       <p class="profile-empty-state"><?= e(t('profile_no_bookings')) ?></p>
     <?php else: ?>
       <?php foreach ($bookings as $__b): ?>
-        <div class="booking-card">
+        <div class="booking-card" id="booking-<?= (int)$__b['id'] ?>">
           <div class="booking-card-top">
             <span class="badge <?= e($__b['status']) ?>"><?= e(bookingStatusLabel($__b['status'], $lang)) ?></span>
           </div>
@@ -185,6 +185,25 @@ $__mapsHref = $masterAddress !== '' ? 'https://www.google.com/maps/search/?api=1
   </div>
 
 </main>
+<script>
+// Если пришли сюда из Центра уведомлений по стрелке "запись принята"
+// (ссылка вида profile.php#booking-123 — см. includes/push_bell_script.php),
+// прокручиваем к нужной карточке записи и на секунду подсвечиваем её.
+(function () {
+  var hash = window.location.hash || '';
+  var match = hash.match(/^#booking-(\d+)$/);
+  if (!match) return;
+  var target = document.getElementById('booking-' + match[1]);
+  if (!target) return;
+  setTimeout(function () {
+    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    target.classList.add('booking-card-highlight');
+    setTimeout(function () {
+      target.classList.remove('booking-card-highlight');
+    }, 2600);
+  }, 150);
+})();
+</script>
 <?php require __DIR__ . '/includes/push_bell_script.php'; ?>
 </body>
 </html>

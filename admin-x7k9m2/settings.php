@@ -254,11 +254,14 @@ if (is_file($__logFile)) {
         <div class="about-accordion-body-inner">
           <div class="about-accordion-content">
             <p style="color:var(--ink-soft); font-size:13px; margin-top:0;">
-              Как только клиент оставляет новую заявку на сайте — всем аккаунтам
-              ниже сразу приходит push-уведомление (при условии, что этот аккаунт
-              хотя бы раз нажимал на 🔔 в шапке сайта и разрешил уведомления
-              на своём телефоне). Обычно это один аккаунт — ваш собственный,
-              который вы используете при заходе на сам сайт как клиент.
+              Аккаунты ниже получают <strong>полный доступ к этой панели
+              управления</strong> (записи, отзывы, прайс, слоты и т.д.), а
+              также push-уведомление, как только клиент оставляет новую
+              заявку на сайте (при условии, что аккаунт хотя бы раз нажимал
+              на 🔔 в шапке сайта и разрешил уведомления на телефоне).
+              Достаточно, чтобы человек был залогинен на самом сайте (как
+              обычный клиент) — панель управления откроется ему по адресу
+              <code>/admin-x7k9m2/</code> без отдельного входа.
             </p>
             <?php if ($adminMessage): [$__aKind, $__aText] = explode(':', $adminMessage, 2); ?>
               <div class="alert <?= $__aKind === 'success' ? 'success' : 'error' ?>"><?= e($__aText) ?></div>
@@ -359,6 +362,7 @@ if (is_file($__logFile)) {
       </div>
     </div>
 
+    <?php if (!empty($_SESSION['admin_id'])): ?>
     <div class="about-accordion-item" id="settings-acc-password">
       <div class="about-accordion-header" tabindex="0" role="button">
         <div class="about-accordion-header-text">
@@ -392,6 +396,7 @@ if (is_file($__logFile)) {
         </div>
       </div>
     </div>
+    <?php endif; ?>
 
     <div class="about-accordion-item" id="settings-acc-danger">
       <div class="about-accordion-header" tabindex="0" role="button">

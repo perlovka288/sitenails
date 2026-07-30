@@ -36,14 +36,22 @@ if (!isset($__onesignalAppId)) {
       return;
     }
     items.forEach(function (n) {
-      var row = document.createElement('div');
+      // Клик по уведомлению о принятой/выполненной записи переносит на
+      // страницу профиля прямо к этой записи (дата, время, адрес, телефон
+      // мастера — см. #booking-N и подсветку в profile.php). Ссылка ведёт
+      // туда же и с других страниц сайта, не только с самого профиля.
+      var row = document.createElement(n.id ? 'a' : 'div');
       row.className = 'notif-item';
+      if (n.id) {
+        row.href = 'profile.php#booking-' + n.id;
+      }
 
       var dot = document.createElement('span');
       dot.className = 'notif-item-dot';
       dot.textContent = n.status === 'done' ? '✅' : '🟢';
 
       var textWrap = document.createElement('div');
+      textWrap.className = 'notif-item-textwrap';
       var text = document.createElement('p');
       text.className = 'notif-item-text';
       text.textContent = n.message;
@@ -55,6 +63,15 @@ if (!isset($__onesignalAppId)) {
 
       row.appendChild(dot);
       row.appendChild(textWrap);
+
+      if (n.id) {
+        var arrow = document.createElement('span');
+        arrow.className = 'notif-item-arrow';
+        arrow.setAttribute('aria-hidden', 'true');
+        arrow.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>';
+        row.appendChild(arrow);
+      }
+
       list.appendChild(row);
     });
   }

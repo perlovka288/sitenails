@@ -1,9 +1,14 @@
 <?php
-$__footSiteName  = getSetting('site_name', '');
-$__footSitePhone = getSetting('site_phone', '');
+$__footSiteName    = getSetting('site_name', '');
+$__footSitePhone   = getSetting('site_phone', '');
+$__footSiteAddress = getSetting('site_address', '');
 $__igUrl      = getSetting('social_instagram_url', '');
 $__viberPhone = getSetting('social_viber_phone', '');
 $__callPhone  = getSetting('social_phone', '');
+// Тот же адрес, что уже подтягивается в профиль клиента (профиль →
+// карточка записи) — теперь ещё и в подвале сайта, кликабельно, ведёт
+// сразу в Google Карты по этому адресу.
+$__footMapsHref = $__footSiteAddress !== '' ? 'https://www.google.com/maps/search/?api=1&query=' . urlencode($__footSiteAddress) : '';
 ?>
 <footer>
   <div class="container">
@@ -18,6 +23,15 @@ $__callPhone  = getSetting('social_phone', '');
     </div>
     <?php if ($__footSiteName !== '' || $__footSitePhone !== ''): ?>
     <p><?= e($__footSiteName) ?><?= ($__footSiteName !== '' && $__footSitePhone !== '') ? ' · ' : '' ?><?= e($__footSitePhone) ?></p>
+    <?php endif; ?>
+    <?php if ($__footSiteAddress !== ''): ?>
+    <p class="footer-address">
+      <?php if ($__footMapsHref !== ''): ?>
+        <a href="<?= e($__footMapsHref) ?>" target="_blank" rel="noopener">📍 <?= e($__footSiteAddress) ?></a>
+      <?php else: ?>
+        📍 <?= e($__footSiteAddress) ?>
+      <?php endif; ?>
+    </p>
     <?php endif; ?>
     <!--
       Скрытая ссылка в админ-панель.

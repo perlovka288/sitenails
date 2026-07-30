@@ -89,6 +89,60 @@ function isAdmin(): bool
         }
     }
 
+    // Клиенты сайта, которым выдали флаг "администратор" в Настройках →
+    // «Администраторы» (site_users.is_admin = 1), раньше получали только
+    // push-уведомления о новых записях, но не пускались в саму панель
+    // управления (admin-x7k9m2). Теперь этот флаг даёт полный доступ к
+    // панели наравне с основным аккаунтом — проверяем отдельным лёгким
+    // хелпером ниже (не через currentSiteUser(), чтобы не зациклиться:
+    // currentSiteUser() сама в одном из сценариев вызывает isAdmin()).
+    if (siteUserHasAdminFlag()) {
+        return true;
+    }
+
+    return false;
+}
+
+// Лёгкая проверка "залогинен ли на сайте клиент с флагом is_admin = 1",
+// без вызова currentSiteUser() (та в одном из своих сценариев сама вызывает
+// isAdmin() — взаимный вызов привёл бы к бесконечной рекурсии).
+function siteUserHasAdminFlag(): bool
+{
+    $pdo = getDB();
+
+    if (!empty($_SESSION['site_user_id'])) {
+        $stmt = $pdo->prepare('SELECT is_admin FROM site_users WHERE id = ?');
+        $stmt->execute([$_SESSION['site_user_id']]);
+        $flag = $stmt->fetchColumn();
+        return $flag !== false ? (bool)$flag : false;
+    }
+
+    if (!empty($_COOKIE[SITE_REMEMBER_COOKIE_NAME])) {
+        $raw = (string)$_COOKIE[SITE_REMEMBER_COOKIE_NAME];
+        [$userId, $token] = array_pad(explode(':', $raw, 2), 2, '');
+        $userId = (int)$userId;
+
+        if ($userId > 0 && $token !== '') {
+            $stmt = $pdo->prepare('SELECT * FROM site_users WHERE id = ?');
+            $stmt->execute([$userId]);
+            $user = $stmt->fetch();
+
+            if ($user
+                && !empty($user['remember_token'])
+                && !empty($user['remember_expires'])
+                && strtotime($user['remember_expires']) > time()
+                && hash_equals($user['remember_token'], hash('sha256', $token))
+            ) {
+                // Восстанавливаем сессию клиента, как это делает
+                // currentSiteUser(), чтобы дальше всё работало как при
+                // обычном входе (следующий вызов пойдёт быстрым путём выше).
+                $_SESSION['site_user_id'] = $user['id'];
+                issueSiteRememberCookie((int)$user['id']);
+                return (bool)$user['is_admin'];
+            }
+        }
+    }
+
     return false;
 }
 
@@ -122,6 +176,7 @@ function clearRememberCookie(): void
     setcookie(REMEMBER_COOKIE_NAME, '', [
         'expires'  => time() - 3600,
         'path'     => '/',
+        'secure'   => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
         'httponly' => true,
         'samesite' => 'Lax',
     ]);
@@ -287,6 +342,7 @@ function clearSiteRememberCookie(): void
     setcookie(SITE_REMEMBER_COOKIE_NAME, '', [
         'expires'  => time() - 3600,
         'path'     => '/',
+        'secure'   => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
         'httponly' => true,
         'samesite' => 'Lax',
     ]);
