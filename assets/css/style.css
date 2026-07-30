@@ -2095,3 +2095,236 @@ button.admin-widget-item-card:hover { transform: translateY(-2px); }
 .admin-square-add-tile { flex-direction: column; gap: 6px; font-size: 11px; }
 .admin-square-add-tile .admin-plus-icon { width: 38px; height: 38px; }
 .admin-square-add-tile .admin-plus-icon svg { width: 20px; height: 20px; }
+
+/* =========================================================
+   Mobile-first карточки для админ-панели: Записи / Отзывы —
+   полностью заменяют <table class="admin-table"> на квадратных/
+   прямоугольных карточках, чтобы не ломать вёрстку на смартфонах.
+   ========================================================= */
+.rec-list { display: flex; flex-direction: column; gap: 14px; }
+.rec-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px;
+  box-shadow: var(--shadow);
+}
+.rec-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+.rec-card-head-name { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.rec-card-head-name strong { font-size: 16px; color: var(--ink); word-break: break-word; }
+.rec-card-id { font-size: 11px; color: var(--ink-faint); }
+.rec-card-stars { color: var(--star-gold); letter-spacing: 2px; font-size: 13px; }
+.rec-card-body { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+.rec-card-row { display: flex; align-items: flex-start; gap: 8px; font-size: 14px; color: var(--ink-soft); }
+.rec-card-row-faint { color: var(--ink-faint); font-size: 12px; }
+.rec-card-icon { flex-shrink: 0; font-size: 14px; line-height: 1.5; }
+.rec-card-tel { color: var(--ink); text-decoration: underline; text-decoration-color: var(--line-strong); text-underline-offset: 3px; }
+.rec-card-tel:hover { color: var(--primary); }
+.rec-card-review-text { font-size: 14px; color: var(--ink-soft); white-space: pre-line; }
+.rec-card-photos { display: flex; gap: 8px; flex-wrap: wrap; }
+.rec-card-photos img { width: 56px; height: 56px; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); display: block; }
+.rec-card-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.rec-card-actions form { flex: 1 1 auto; min-width: 0; }
+.rec-card-btn { width: 100%; padding: 10px 14px; font-size: 13px; }
+.rec-card-btn-danger { color: #e4a3a3; border-color: rgba(200,100,100,.35); }
+.rec-card-btn-danger:hover { background: rgba(200,100,100,.12); color: #e4a3a3; border-color: rgba(200,100,100,.5); }
+.rec-empty { color: var(--ink-soft); text-align: center; padding: 30px 0; }
+
+@media (min-width: 640px) {
+  .rec-card-actions form { flex: 0 0 auto; }
+  .rec-card-btn { width: auto; }
+}
+
+/* =========================================================
+   Прайс — карточки услуг внутри аккордеона категорий
+   ========================================================= */
+.price-service-list { display: flex; flex-direction: column; gap: 10px; }
+.price-service-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+}
+.price-service-card-info { display: flex; flex-direction: column; gap: 3px; flex: 1 1 160px; min-width: 0; }
+.price-service-card-info strong { font-size: 14px; color: var(--ink); }
+.price-service-card-ua { font-size: 12px; color: var(--ink-faint); }
+.price-service-card-price { font-weight: 700; color: var(--primary); font-size: 14px; white-space: nowrap; }
+.price-service-card-actions { display: flex; gap: 6px; margin-left: auto; }
+
+/* =========================================================
+   Свободное время — компактная быстрая форма сверху и карточки дней
+   с инлайн-кнопкой "+" для добавления времени прямо в строке дня
+   ========================================================= */
+.slot-quick-add { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 6px; }
+.slot-quick-add input[type="date"],
+.slot-quick-add input[type="time"] {
+  flex: 1 1 130px;
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 14px;
+}
+.slot-quick-add-btn {
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 1px solid var(--primary);
+  background: var(--primary);
+  color: #1a1310;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform .15s ease;
+}
+.slot-quick-add-btn:hover { transform: scale(1.06); }
+.slot-quick-add-btn:active { transform: scale(.95); }
+
+.slot-week-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; gap: 10px; }
+.slot-week-nav strong { font-size: 14px; }
+
+.slot-day-list { display: flex; flex-direction: column; gap: 10px; }
+.slot-day-card {
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+}
+.slot-day-card.is-today { border-color: var(--line-strong); }
+.slot-day-card-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.slot-day-card-date {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+.slot-day-card.is-today .slot-day-card-date { border-color: var(--primary); }
+.slot-day-card-date .wd { font-size: 9px; letter-spacing: .05em; color: var(--ink-faint); }
+.slot-day-card-date .num { font-size: 15px; font-weight: 700; color: var(--ink); line-height: 1.1; }
+.slot-day-card-title { font-weight: 600; font-size: 14px; flex: 1 1 auto; min-width: 0; }
+.slot-day-add-btn { flex-shrink: 0; }
+.slot-day-card-body { display: flex; flex-direction: column; gap: 8px; }
+.slot-day-empty { font-size: 12.5px; color: var(--ink-faint); }
+.slot-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.slot-chip form { display: inline-flex; }
+.slot-inline-add { display: flex; align-items: center; gap: 8px; margin-top: 2px; }
+.slot-inline-add input[type="time"] {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 13px;
+}
+
+/* =========================================================
+   Центр уведомлений (колокольчик в шапке сайта)
+   ========================================================= */
+.notif-center { position: relative; }
+.notif-bell-btn {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color .15s ease, color .15s ease;
+}
+.notif-bell-btn:hover { border-color: var(--primary); color: var(--primary); }
+.notif-bell-btn svg { width: 18px; height: 18px; display: block; }
+.notif-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #e4514f;
+  border: 1.5px solid var(--bg);
+}
+.notif-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: min(340px, 88vw);
+  max-height: 420px;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  z-index: 60;
+  padding: 8px;
+}
+.notif-dropdown-head { font-weight: 700; font-size: 13px; padding: 8px 8px 4px; color: var(--ink); }
+.notif-push-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px dashed var(--line);
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 12.5px;
+  cursor: pointer;
+  margin-bottom: 6px;
+  text-align: left;
+}
+.notif-push-row:hover { border-color: var(--primary); color: var(--primary); }
+.notif-list { display: flex; flex-direction: column; gap: 6px; }
+.notif-item { display: flex; align-items: flex-start; gap: 8px; padding: 9px 8px; border-radius: var(--radius-sm); }
+.notif-item:hover { background: var(--surface-2); }
+.notif-item-dot { flex-shrink: 0; font-size: 13px; line-height: 1.5; }
+.notif-item-text { margin: 0; font-size: 13px; color: var(--ink); line-height: 1.4; }
+.notif-item-time { margin: 2px 0 0; font-size: 11px; color: var(--ink-faint); }
+.notif-empty { text-align: center; color: var(--ink-faint); font-size: 13px; padding: 20px 8px; margin: 0; }
+
+@media (max-width: 420px) {
+  .notif-dropdown { position: fixed; top: 66px; right: 10px; left: 10px; width: auto; }
+}
+
+/* Состояния кнопки "Включить push-уведомления" внутри Центра уведомлений
+   (см. includes/push_bell_script.php — та же логика запроса разрешения,
+   просто кнопка теперь строкой внутри дропдауна, а не отдельным значком). */
+.notif-push-row.is-granted { border-style: solid; border-color: rgba(52, 199, 123, .4); color: #6fd79a; cursor: default; }
+.notif-push-row.is-denied { opacity: .5; }

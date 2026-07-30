@@ -41,8 +41,27 @@ $__onesignalAppId = getSetting('onesignal_app_id', '');
     </a>
 
     <div class="topbar-actions">
-      <?php if ($__onesignalAppId !== '' && !empty($__siteUser)): ?>
-      <button type="button" class="notify-permission-btn" id="notifyPermBtn" title="<?= e(t('notify_permission_title')) ?>">🔔</button>
+      <?php if (!empty($__siteUser)): ?>
+      <div class="notif-center" id="notifCenter">
+        <button type="button" class="notif-bell-btn" id="notifCenterBtn" aria-label="Уведомления" title="Уведомления">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"></path>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+          </svg>
+          <span class="notif-badge" id="notifBadge" hidden></span>
+        </button>
+        <div class="notif-dropdown" id="notifDropdown" hidden>
+          <div class="notif-dropdown-head">Уведомления</div>
+          <?php if ($__onesignalAppId !== ''): ?>
+          <button type="button" class="notif-push-row" id="notifyPermBtn" title="<?= e(t('notify_permission_title')) ?>">
+            <span>🔔</span><span id="notifyPermBtnText"><?= e(t('notify_permission_title')) ?></span>
+          </button>
+          <?php endif; ?>
+          <div class="notif-list" id="notifList">
+            <p class="notif-empty">Загрузка…</p>
+          </div>
+        </div>
+      </div>
       <?php endif; ?>
       <?php if (!empty($__siteUser)): ?>
       <a href="profile.php" class="profile-widget" aria-label="<?= e($__siteUser['full_name']) ?>">

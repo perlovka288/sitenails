@@ -50,6 +50,8 @@ foreach ($slots as $s) {
 }
 
 $weekdays = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
+$weekdaysShort = ['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'];
+$todayKey = (new DateTime())->format('Y-m-d');
 ?>
 <!DOCTYPE html>
 <html lang="ru">
@@ -65,67 +67,101 @@ $weekdays = ['Понедельник', 'Вторник', 'Среда', 'Четв
   <?php require __DIR__ . '/includes/nav.php'; ?>
 
   <div class="card">
-    <h3>Добавить свободное время</h3>
-    <form method="post" style="display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end;">
+    <h3 style="margin-bottom:10px;">Добавить свободное время</h3>
+    <form method="post" class="slot-quick-add">
       <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
       <input type="hidden" name="action" value="add">
-      <div class="form-field" style="margin:0;">
-        <label>Дата</label>
-        <input type="date" name="slot_date" required value="<?= e($weekStart->format('Y-m-d')) ?>">
-      </div>
-      <div class="form-field" style="margin:0;">
-        <label>Время</label>
-        <input type="time" name="slot_time" required value="10:00">
-      </div>
-      <button type="submit" class="btn">Добавить</button>
+      <input type="date" name="slot_date" required value="<?= e($weekStart->format('Y-m-d')) ?>">
+      <input type="time" name="slot_time" required value="10:00">
+      <button type="submit" class="slot-quick-add-btn" title="Добавить время" aria-label="Добавить время">+</button>
     </form>
-    <p style="color:var(--ink-soft); font-size:13px; margin-bottom:0;">
+    <p class="field-hint">
       Добавленное время сразу появится в календаре записи на сайте — клиент сможет
       выбрать его и написать вам в Instagram / Viber / Telegram / по телефону.
     </p>
   </div>
 
   <div class="card">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-      <a class="btn ghost" style="padding:8px 14px;font-size:13px;" href="?week=<?= e($prevWeek) ?>">← Прошлая неделя</a>
+    <div class="slot-week-nav">
+      <a class="icon-btn" href="?week=<?= e($prevWeek) ?>" aria-label="Прошлая неделя" title="Прошлая неделя">‹</a>
       <strong><?= e($weekStart->format('d.m')) ?> – <?= e($weekEnd->format('d.m.Y')) ?></strong>
-      <a class="btn ghost" style="padding:8px 14px;font-size:13px;" href="?week=<?= e($nextWeek) ?>">Следующая неделя →</a>
+      <a class="icon-btn" href="?week=<?= e($nextWeek) ?>" aria-label="Следующая неделя" title="Следующая неделя">›</a>
     </div>
 
-    <?php for ($i = 0; $i < 7; $i++): ?>
-      <?php
-        $d = (clone $weekStart)->modify("+{$i} day");
-        $dateKey = $d->format('Y-m-d');
-        $daySlots = $byDate[$dateKey] ?? [];
-      ?>
-      <div style="margin-bottom:16px;">
-        <div style="font-weight:700; margin-bottom:6px;"><?= e($weekdays[$i]) ?>, <?= e($d->format('d.m')) ?></div>
-        <?php if (!$daySlots): ?>
-          <div style="color:var(--ink-soft); font-size:13px;">Нет времени на этот день</div>
-        <?php else: ?>
-          <div style="display:flex; gap:8px; flex-wrap:wrap;">
-            <?php foreach ($daySlots as $s): ?>
-              <div style="display:flex; align-items:center; gap:6px; border:1px solid var(--line); border-radius:10px; padding:6px 10px;">
-                <span class="badge <?= $s['is_booked'] ? 'done' : 'new' ?>"><?= e($s['slot_time']) ?> · <?= $s['is_booked'] ? 'занято' : 'свободно' ?></span>
-                <form method="post" style="display:inline;">
-                  <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
-                  <input type="hidden" name="action" value="toggle">
-                  <input type="hidden" name="id" value="<?= (int)$s['id'] ?>">
-                  <button class="btn ghost" style="padding:4px 8px;font-size:11px;" title="Переключить занято/свободно">⇄</button>
-                </form>
-                <form method="post" style="display:inline;" onsubmit="return confirm('Удалить это время?');">
-                  <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
-                  <input type="hidden" name="action" value="delete">
-                  <input type="hidden" name="id" value="<?= (int)$s['id'] ?>">
-                  <button class="btn ghost" style="padding:4px 8px;font-size:11px;" title="Удалить">✕</button>
-                </form>
-              </div>
-            <?php endforeach; ?>
+    <div class="slot-day-list">
+      <?php for ($i = 0; $i < 7; $i++): ?>
+        <?php
+          $d = (clone $weekStart)->modify("+{$i} day");
+          $dateKey = $d->format('Y-m-d');
+          $daySlots = $byDate[$dateKey] ?? [];
+        ?>
+        <div class="slot-day-card<?= $dateKey === $todayKey ? ' is-today' : '' ?>">
+          <div class="slot-day-card-head">
+            <div class="slot-day-card-date">
+              <span class="wd"><?= e($weekdaysShort[$i]) ?></span>
+              <span class="num"><?= e($d->format('d')) ?></span>
+            </div>
+            <div class="slot-day-card-title"><?= e($weekdays[$i]) ?>, <?= e($d->format('d.m')) ?></div>
+            <button type="button" class="icon-btn slot-day-add-btn" data-day-add="<?= e($dateKey) ?>" title="Добавить время на этот день" aria-label="Добавить время">+</button>
           </div>
-        <?php endif; ?>
-      </div>
-    <?php endfor; ?>
+          <div class="slot-day-card-body">
+            <?php if (!$daySlots): ?>
+              <span class="slot-day-empty">Нет времени на этот день</span>
+            <?php else: ?>
+              <?php foreach ($daySlots as $s): ?>
+                <div class="slot-chip">
+                  <span class="badge <?= $s['is_booked'] ? 'done' : 'new' ?>"><?= e($s['slot_time']) ?> · <?= $s['is_booked'] ? 'занято' : 'свободно' ?></span>
+                  <form method="post">
+                    <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+                    <input type="hidden" name="action" value="toggle">
+                    <input type="hidden" name="id" value="<?= (int)$s['id'] ?>">
+                    <button class="icon-btn icon-btn--sm" title="Переключить занято/свободно">⇄</button>
+                  </form>
+                  <form method="post" onsubmit="return confirm('Удалить это время?');">
+                    <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+                    <input type="hidden" name="action" value="delete">
+                    <input type="hidden" name="id" value="<?= (int)$s['id'] ?>">
+                    <button class="icon-btn icon-btn--sm icon-btn--danger" title="Удалить">✕</button>
+                  </form>
+                </div>
+              <?php endforeach; ?>
+            <?php endif; ?>
+            <form method="post" class="slot-inline-add" id="inlineAdd-<?= e($dateKey) ?>" hidden>
+              <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+              <input type="hidden" name="action" value="add">
+              <input type="hidden" name="slot_date" value="<?= e($dateKey) ?>">
+              <input type="time" name="slot_time" required autofocus>
+              <button type="submit" class="icon-btn icon-btn--sm" title="Подтвердить">✓</button>
+              <button type="button" class="icon-btn icon-btn--sm" data-day-add-cancel title="Отмена">✕</button>
+            </form>
+          </div>
+        </div>
+      <?php endfor; ?>
+    </div>
   </div>
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  document.querySelectorAll('[data-day-add]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var row = document.getElementById('inlineAdd-' + btn.dataset.dayAdd);
+      if (!row) return;
+      row.hidden = false;
+      btn.hidden = true;
+      var timeInput = row.querySelector('input[type="time"]');
+      if (timeInput) timeInput.focus();
+    });
+  });
+  document.querySelectorAll('[data-day-add-cancel]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var row = btn.closest('.slot-inline-add');
+      if (!row) return;
+      row.hidden = true;
+      var addBtn = document.querySelector('[data-day-add="' + row.querySelector('[name="slot_date"]').value + '"]');
+      if (addBtn) addBtn.hidden = false;
+    });
+  });
+});
+</script>
 </body>
 </html>

@@ -320,6 +320,13 @@ function migrateSchema(PDO $pdo): void
     if (!in_array('contact_method', $bookingsCols, true)) {
         $pdo->exec("ALTER TABLE bookings ADD COLUMN contact_method TEXT NOT NULL DEFAULT ''");
     }
+    // updated_at — момент последнего изменения статуса заявки (подтверждена/
+    // выполнена). Нужен для Центра уведомлений в шапке сайта (см.
+    // get_notifications.php) — чтобы понимать, какие уведомления новые.
+    if (!in_array('updated_at', $bookingsCols, true)) {
+        $pdo->exec('ALTER TABLE bookings ADD COLUMN updated_at TEXT');
+        $pdo->exec('UPDATE bookings SET updated_at = created_at WHERE updated_at IS NULL');
+    }
 
     // avatar_path в site_users — фото для мини-профиля клиента в шапке сайта.
     // NULL/пусто — показываем аватар-заглушку с первой буквой имени.
@@ -580,7 +587,8 @@ function initDB(PDO $pdo): void
             comment TEXT,
             status TEXT NOT NULL DEFAULT 'new',
             slot_id INTEGER,
-            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT
         )
     ");
 

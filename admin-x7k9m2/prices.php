@@ -46,6 +46,25 @@ if (isset($_GET['edit'])) {
 }
 
 $items = $pdo->query('SELECT * FROM price_items ORDER BY category, sort_order')->fetchAll();
+
+// Группируем позиции по категории для аккордеона на карточках
+// (вкладки «Маникюр» / «Педикюр» / «Дополнительно» и т.д. — состав вкладок
+// определяется тем, какие категории реально есть в прайсе).
+$byCategory = [];
+foreach ($items as $__it) {
+    $byCategory[$__it['category']][] = $__it;
+}
+$categoryOrder = ['Маникюр', 'Педикюр', 'Дополнительно'];
+uksort($byCategory, function ($a, $b) use ($categoryOrder) {
+    $ia = array_search($a, $categoryOrder, true);
+    $ib = array_search($b, $categoryOrder, true);
+    if ($ia === false) $ia = 999;
+    if ($ib === false) $ib = 999;
+    if ($ia === $ib) return strcmp($a, $b);
+    return $ia <=> $ib;
+});
+$knownCategories = array_values(array_unique(array_merge($categoryOrder, array_keys($byCategory))));
+$categoryIcons = ['Маникюр' => '💅', 'Педикюр' => '🦶', 'Дополнительно' => '✨'];
 ?>
 <!DOCTYPE html>
 <html lang="ru">
@@ -62,72 +81,189 @@ $items = $pdo->query('SELECT * FROM price_items ORDER BY category, sort_order')-
 <div class="admin-shell">
   <?php require __DIR__ . '/includes/nav.php'; ?>
 
-  <div class="card">
-    <h3><?= $editItem ? 'Изменить позицию' : 'Добавить позицию' ?></h3>
-    <form method="post">
-      <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
-      <input type="hidden" name="action" value="<?= $editItem ? 'edit' : 'add' ?>">
-      <?php if ($editItem): ?>
-        <input type="hidden" name="id" value="<?= (int)$editItem['id'] ?>">
-      <?php endif; ?>
-      <div class="form-field">
-        <label>Категория, рус. (например, «Маникюр»)</label>
-        <input type="text" id="category" name="category" required value="<?= e($editItem['category'] ?? '') ?>">
+  <button type="button" class="btn full" data-modal-open="priceItemModal">+ Добавить услугу</button>
+
+  <div class="about-accordion" style="margin-top:18px;">
+    <?php foreach ($byCategory as $catName => $catItems): ?>
+      <div class="about-accordion-item price-accordion-item">
+        <div class="about-accordion-header" tabindex="0" role="button">
+          <div class="about-accordion-header-text">
+            <h3><?= e($categoryIcons[$catName] ?? '🏷️') ?> <?= e($catName) ?></h3>
+          </div>
+          <div class="about-accordion-header-right">
+            <span class="about-accordion-count"><?= count($catItems) ?></span>
+            <span class="about-accordion-chevron">›</span>
+          </div>
+        </div>
+        <div class="about-accordion-body">
+          <div class="about-accordion-body-inner">
+            <div class="about-accordion-content">
+              <div class="price-service-list">
+                <?php foreach ($catItems as $item): ?>
+                  <div class="price-service-card">
+                    <div class="price-service-card-info">
+                      <strong><?= e($item['title']) ?></strong>
+                      <?php if ($item['title_ua']): ?>
+                        <span class="price-service-card-ua"><?= e($item['title_ua']) ?></span>
+                      <?php endif; ?>
+                    </div>
+                    <div class="price-service-card-price"><?= e($item['price']) ?></div>
+                    <div class="price-service-card-actions">
+                      <button type="button" class="icon-btn"
+                        data-price-edit
+                        data-id="<?= (int)$item['id'] ?>"
+                        data-category="<?= e($item['category']) ?>"
+                        data-category-ua="<?= e($item['category_ua'] ?? '') ?>"
+                        data-title="<?= e($item['title']) ?>"
+                        data-title-ua="<?= e($item['title_ua'] ?? '') ?>"
+                        data-price="<?= e($item['price']) ?>"
+                        title="Изменить">✏️</button>
+                      <form method="post" onsubmit="return confirm('Удалить позицию?');">
+                        <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+                        <input type="hidden" name="action" value="delete">
+                        <input type="hidden" name="id" value="<?= (int)$item['id'] ?>">
+                        <button type="submit" class="icon-btn" title="Удалить">🗑️</button>
+                      </form>
+                    </div>
+                  </div>
+                <?php endforeach; ?>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="form-field">
-        <label>Категория, укр. (необязательно, например «Манікюр»)
-          <button type="button" class="btn ghost admin-translate-btn" data-translate-from="category" data-translate-to="category_ua">⇄ Перевести с рус.</button>
-        </label>
-        <input type="text" id="category_ua" name="category_ua" value="<?= e($editItem['category_ua'] ?? '') ?>">
-      </div>
-      <div class="form-field">
-        <label>Название услуги, рус.</label>
-        <input type="text" id="price_title" name="title" required value="<?= e($editItem['title'] ?? '') ?>">
-      </div>
-      <div class="form-field">
-        <label>Название услуги, укр. (необязательно)
-          <button type="button" class="btn ghost admin-translate-btn" data-translate-from="price_title" data-translate-to="price_title_ua">⇄ Перевести с рус.</button>
-        </label>
-        <input type="text" id="price_title_ua" name="title_ua" value="<?= e($editItem['title_ua'] ?? '') ?>">
-      </div>
-      <div class="form-field">
-        <label>Цена (например, «450 грн»)</label>
-        <input type="text" name="price" required value="<?= e($editItem['price'] ?? '') ?>">
-      </div>
-      <button type="submit" class="btn full"><?= $editItem ? 'Сохранить' : 'Добавить' ?></button>
-      <?php if ($editItem): ?>
-        <a href="prices.php" class="btn ghost full" style="margin-top:8px; text-align:center;">Отменить</a>
-      <?php endif; ?>
-    </form>
+    <?php endforeach; ?>
+    <?php if (!$items): ?>
+      <p class="rec-empty">Прайс пуст.</p>
+    <?php endif; ?>
   </div>
 
-  <table class="admin-table">
-    <thead><tr><th>Категория</th><th>Услуга</th><th>Укр. перевод</th><th>Цена</th><th></th></tr></thead>
-    <tbody>
-      <?php foreach ($items as $item): ?>
-        <tr>
-          <td><?= e($item['category']) ?></td>
-          <td><?= e($item['title']) ?></td>
-          <td style="color:var(--ink-soft);">
-            <?= e($item['category_ua'] ?: '—') ?> / <?= e($item['title_ua'] ?: '—') ?>
-          </td>
-          <td><?= e($item['price']) ?></td>
-          <td style="white-space:nowrap;">
-            <a href="?edit=<?= (int)$item['id'] ?>" class="btn ghost" style="padding:6px 12px;font-size:12px;">Изменить</a>
-            <form method="post" style="display:inline;" onsubmit="return confirm('Удалить позицию?');">
-              <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
-              <input type="hidden" name="action" value="delete">
-              <input type="hidden" name="id" value="<?= (int)$item['id'] ?>">
-              <button class="btn ghost" style="padding:6px 12px;font-size:12px;">Удалить</button>
-            </form>
-          </td>
-        </tr>
-      <?php endforeach; ?>
-      <?php if (!$items): ?>
-        <tr><td colspan="5">Прайс пуст.</td></tr>
-      <?php endif; ?>
-    </tbody>
-  </table>
+  <!-- Модалка добавления/редактирования услуги -->
+  <div class="modal-overlay<?= $editItem ? ' open' : '' ?>" id="priceItemModal">
+    <div class="modal-box">
+      <h3 id="priceItemModalTitle"><?= $editItem ? 'Изменить услугу' : 'Новая услуга' ?></h3>
+      <form method="post">
+        <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+        <input type="hidden" name="action" id="priceItemAction" value="<?= $editItem ? 'edit' : 'add' ?>">
+        <input type="hidden" name="id" id="priceItemId" value="<?= (int)($editItem['id'] ?? 0) ?>">
+
+        <div class="form-field">
+          <label>Категория</label>
+          <select id="priceItemCategorySelect">
+            <?php foreach ($knownCategories as $cat): ?>
+              <option value="<?= e($cat) ?>" <?= (($editItem['category'] ?? $knownCategories[0]) === $cat) ? 'selected' : '' ?>><?= e($cat) ?></option>
+            <?php endforeach; ?>
+            <option value="__custom__">Своя категория…</option>
+          </select>
+          <input type="text" id="priceItemCategoryCustom" name="category" style="margin-top:8px; display:none;" placeholder="Название категории">
+        </div>
+        <div class="form-field">
+          <label>Категория, укр. (необязательно)
+            <button type="button" class="btn ghost admin-translate-btn" data-translate-from="priceItemCategoryText" data-translate-to="category_ua">⇄ Перевести с рус.</button>
+          </label>
+          <input type="text" id="category_ua" name="category_ua" value="<?= e($editItem['category_ua'] ?? '') ?>">
+        </div>
+        <div class="form-field">
+          <label>Название услуги, рус.</label>
+          <input type="text" id="price_title" name="title" required value="<?= e($editItem['title'] ?? '') ?>">
+        </div>
+        <div class="form-field">
+          <label>Название услуги, укр. (необязательно)
+            <button type="button" class="btn ghost admin-translate-btn" data-translate-from="price_title" data-translate-to="price_title_ua">⇄ Перевести с рус.</button>
+          </label>
+          <input type="text" id="price_title_ua" name="title_ua" value="<?= e($editItem['title_ua'] ?? '') ?>">
+        </div>
+        <div class="form-field">
+          <label>Цена (например, «450 грн»)</label>
+          <input type="text" name="price" id="priceItemPrice" required value="<?= e($editItem['price'] ?? '') ?>">
+        </div>
+        <button type="submit" class="btn full" id="priceItemSubmitBtn"><?= $editItem ? 'Сохранить' : 'Добавить' ?></button>
+        <button type="button" class="btn ghost full" style="margin-top:8px;" data-modal-close>Отменить</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Скрытое поле-дублёр названия категории (рус.), чтобы кнопка перевода
+       "⇄" могла найти текст независимо от того, выбрана категория в
+       выпадающем списке или введена вручную. -->
+  <input type="hidden" id="priceItemCategoryText">
 </div>
+<script>window.ADMIN_CSRF_TOKEN = <?= json_encode(csrfToken()) ?>;</script>
+<script src="assets/admin.js?v=<?= filemtime(__DIR__ . '/assets/admin.js') ?>" defer></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var catSelect = document.getElementById('priceItemCategorySelect');
+  var catCustom = document.getElementById('priceItemCategoryCustom');
+  var catText = document.getElementById('priceItemCategoryText');
+
+  function syncCategory() {
+    if (catSelect.value === '__custom__') {
+      catCustom.style.display = '';
+      catCustom.name = 'category';
+      catText.value = catCustom.value;
+    } else {
+      catCustom.style.display = 'none';
+      catCustom.removeAttribute('name');
+      catText.value = catSelect.value;
+    }
+  }
+  catSelect.addEventListener('change', syncCategory);
+  catCustom.addEventListener('input', function () { catText.value = catCustom.value; });
+
+  var modal = document.getElementById('priceItemModal');
+  var modalTitle = document.getElementById('priceItemModalTitle');
+  var actionField = document.getElementById('priceItemAction');
+  var idField = document.getElementById('priceItemId');
+  var categoryUaField = document.getElementById('category_ua');
+  var titleField = document.getElementById('price_title');
+  var titleUaField = document.getElementById('price_title_ua');
+  var priceField = document.getElementById('priceItemPrice');
+  var submitBtn = document.getElementById('priceItemSubmitBtn');
+
+  document.querySelectorAll('[data-modal-open="priceItemModal"]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      modalTitle.textContent = 'Новая услуга';
+      actionField.value = 'add';
+      idField.value = '';
+      catSelect.value = catSelect.options[0].value;
+      catCustom.value = '';
+      categoryUaField.value = '';
+      titleField.value = '';
+      titleUaField.value = '';
+      priceField.value = '';
+      submitBtn.textContent = 'Добавить';
+      syncCategory();
+    });
+  });
+
+  document.querySelectorAll('[data-price-edit]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      modalTitle.textContent = 'Изменить услугу';
+      actionField.value = 'edit';
+      idField.value = btn.dataset.id;
+      var hasOption = Array.prototype.some.call(catSelect.options, function (o) { return o.value === btn.dataset.category; });
+      if (hasOption) {
+        catSelect.value = btn.dataset.category;
+        catCustom.value = '';
+      } else {
+        catSelect.value = '__custom__';
+        catCustom.value = btn.dataset.category;
+      }
+      categoryUaField.value = btn.dataset.categoryUa || '';
+      titleField.value = btn.dataset.title || '';
+      titleUaField.value = btn.dataset.titleUa || '';
+      priceField.value = btn.dataset.price || '';
+      submitBtn.textContent = 'Сохранить';
+      syncCategory();
+      modal.classList.add('open');
+    });
+  });
+
+  syncCategory();
+  <?php if ($editItem): ?>
+  catText.value = <?= json_encode($editItem['category']) ?>;
+  <?php endif; ?>
+});
+</script>
 </body>
 </html>
