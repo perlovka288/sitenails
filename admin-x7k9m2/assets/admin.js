@@ -293,6 +293,206 @@ document.addEventListener('DOMContentLoaded', function () {
   // Работает для ЛЮБОГО input[type=file] внутри .file-input-styled на
   // странице — не нужно отдельно дописывать разметку под каждую форму
   // (аватар, иконка навыка/соцсети, файл виджета и т.д.).
+  // ===== Вкладка "Запись" (slots.php): активные заявки + календарь-
+  // аккордеон работают через AJAX — любое действие (подтвердить,
+  // отклонить, добавить/переключить/удалить время, сохранить заметку,
+  // переключить неделю) отправляется fetch'ем, а оба блока страницы
+  // мгновенно перерисовываются свежим HTML от сервера, без перезагрузки
+  // и без "прыжка" страницы наверх. =====
+  var slotsActiveBlock = document.getElementById('activeBookingsBlock');
+  var slotsCalendarBlock = document.getElementById('calendarBlock');
+  if (slotsActiveBlock || slotsCalendarBlock) {
+    var slotsCancelModal = document.getElementById('cancelModal');
+    var slotsCancelId = document.getElementById('cancelBookingId');
+    var slotsCancelReason = document.getElementById('cancelReason');
+
+    // Сохраняем, какие дни сейчас раскрыты, чтобы после обновления
+    // блока календаря вернуть их в раскрытом виде (иначе аккордеон
+    // "прыгал" бы обратно в свёрнутое состояние после каждого действия).
+    function slotsApplyBlocks(data) {
+      var openDates = [];
+      if (slotsCalendarBlock) {
+        slotsCalendarBlock.querySelectorAll('[data-day-item].open').forEach(function (el) {
+          openDates.push(el.dataset.date);
+        });
+      }
+      if (slotsActiveBlock && typeof data.active === 'string') {
+        slotsActiveBlock.innerHTML = data.active;
+      }
+      if (slotsCalendarBlock && typeof data.calendar === 'string') {
+        slotsCalendarBlock.innerHTML = data.calendar;
+        openDates.forEach(function (date) {
+          var el = slotsCalendarBlock.querySelector('[data-day-item][data-date="' + date + '"]');
+          if (!el) return;
+          el.classList.add('open');
+          var header = el.querySelector('[data-day-toggle]');
+          if (header) header.setAttribute('aria-expanded', 'true');
+        });
+      }
+    }
+
+    function slotsRefreshBlocks(week) {
+      var url = 'slots.php?ajax_blocks=1' + (week ? '&week=' + encodeURIComponent(week) : '');
+      fetch(url, { headers: { 'X-Requested-With': 'fetch' } })
+        .then(function (res) { return res.json(); })
+        .then(function (data) { if (data && data.success) slotsApplyBlocks(data); })
+        .catch(function () { /* тихо — неделя просто не переключится */ });
+    }
+
+    // Любая форма с data-ajax-form на этой странице отправляется фетчем.
+    document.addEventListener('submit', function (e) {
+      var form = e.target;
+      if (!form.matches || !form.matches('[data-ajax-form]')) return;
+
+      var confirmMsg = form.getAttribute('data-confirm');
+      if (confirmMsg && !window.confirm(confirmMsg)) {
+        e.preventDefault();
+        return;
+      }
+      e.preventDefault();
+
+      var fd = new FormData(form);
+      // Кнопка "Подтвердить" в заявке передаёт action через name="action"
+      // value="confirm" на самой кнопке — FormData(form) без обычного
+      // сабмита это не подхватывает, добавляем вручную.
+      var submitter = e.submitter;
+      if (submitter && submitter.name === 'action' && submitter.value) {
+        fd.set('action', submitter.value);
+      }
+      fd.set('ajax', '1');
+      if (!fd.get('csrf_token')) fd.set('csrf_token', window.ADMIN_CSRF_TOKEN || '');
+
+      var submitBtn = submitter && submitter.tagName === 'BUTTON' ? submitter : null;
+      if (submitBtn) submitBtn.disabled = true;
+
+      fetch('slots.php' + (window.location.search || ''), {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'fetch' },
+        body: fd
+      })
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+          if (data && data.success) {
+            slotsApplyBlocks(data);
+            if (slotsCancelModal) slotsCancelModal.classList.remove('open');
+          } else {
+            alert('Не получилось выполнить действие. Попробуйте ещё раз.');
+          }
+        })
+        .catch(function () {
+          alert('Не получилось выполнить действие (нет связи с сервером).');
+        })
+        .finally(function () {
+          if (submitBtn) submitBtn.disabled = false;
+        });
+    });
+
+    // Enter в поле заметки — сразу сохранить, без отдельного клика на ✓.
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && e.target.matches && e.target.matches('[data-note-form] input[name="note"]')) {
+        e.preventDefault();
+        e.target.closest('form').requestSubmit();
+      }
+    });
+
+    // Делегированные клики — работают и после перерисовки блоков, так как
+    // слушатель висит на document, а не на конкретных элементах.
+    document.addEventListener('click', function (e) {
+      // "Отклонить" (блок 1) / "✕" у записи в календаре — открыть модалку причины
+      var cancelBtn = e.target.closest('[data-cancel-open]');
+      if (cancelBtn && slotsCancelModal) {
+        slotsCancelId.value = cancelBtn.dataset.id;
+        slotsCancelReason.value = '';
+        slotsCancelModal.classList.add('open');
+        return;
+      }
+
+      // "+" на карточке дня — раскрыть день (если свёрнут) и показать
+      // инлайн-форму добавления времени. Отдельная проверка ДО общего
+      // тоггла аккордеона, т.к. кнопка физически лежит внутри заголовка.
+      var dayAddBtn = e.target.closest('[data-day-add]');
+      if (dayAddBtn) {
+        var dayItem = dayAddBtn.closest('[data-day-item]');
+        if (dayItem && !dayItem.classList.contains('open')) {
+          dayItem.classList.add('open');
+          var dayHeader = dayItem.querySelector('[data-day-toggle]');
+          if (dayHeader) dayHeader.setAttribute('aria-expanded', 'true');
+        }
+        var addRow = dayItem ? dayItem.querySelector('[data-inline-add-form="' + dayAddBtn.dataset.dayAdd + '"]') : null;
+        if (addRow) {
+          addRow.hidden = false;
+          dayAddBtn.hidden = true;
+          var timeInput = addRow.querySelector('input[type="time"]');
+          if (timeInput) timeInput.focus();
+        }
+        return;
+      }
+      var dayAddCancelBtn = e.target.closest('[data-day-add-cancel]');
+      if (dayAddCancelBtn) {
+        var addRow2 = dayAddCancelBtn.closest('.slot-inline-add');
+        if (addRow2) {
+          addRow2.hidden = true;
+          var dateVal = addRow2.querySelector('[name="slot_date"]').value;
+          var origAddBtn = addRow2.closest('[data-day-item]').querySelector('[data-day-add="' + dateVal + '"]');
+          if (origAddBtn) origAddBtn.hidden = false;
+        }
+        return;
+      }
+
+      // Карандаш — инлайн-редактирование имени/заметки записи.
+      var noteOpenBtn = e.target.closest('[data-note-edit-open]');
+      if (noteOpenBtn) {
+        var itemWrap = noteOpenBtn.closest('[data-booking-item]');
+        var noteForm = itemWrap ? itemWrap.querySelector('[data-note-form]') : null;
+        if (noteForm) {
+          noteForm.hidden = false;
+          var noteInput = noteForm.querySelector('input[name="note"]');
+          if (noteInput) { noteInput.focus(); noteInput.select(); }
+        }
+        return;
+      }
+      var noteCancelBtn = e.target.closest('[data-note-edit-cancel]');
+      if (noteCancelBtn) {
+        var noteForm2 = noteCancelBtn.closest('[data-note-form]');
+        if (noteForm2) noteForm2.hidden = true;
+        return;
+      }
+
+      // Переключение недели в календаре — без перезагрузки страницы.
+      var weekNavLink = e.target.closest('[data-week-nav]');
+      if (weekNavLink) {
+        e.preventDefault();
+        var linkUrl = new URL(weekNavLink.href, window.location.href);
+        var week = linkUrl.searchParams.get('week') || '';
+        history.replaceState(null, '', 'slots.php' + (week ? '?week=' + encodeURIComponent(week) : ''));
+        window.SLOTS_CURRENT_WEEK = week;
+        slotsRefreshBlocks(week);
+        return;
+      }
+
+      // Клик по самому заголовку дня (не по кнопкам внутри) — раскрыть/
+      // свернуть аккордеон этого дня.
+      var dayToggle = e.target.closest('[data-day-toggle]');
+      if (dayToggle) {
+        var toggleItem = dayToggle.closest('[data-day-item]');
+        if (toggleItem) {
+          var willOpen = !toggleItem.classList.contains('open');
+          toggleItem.classList.toggle('open', willOpen);
+          dayToggle.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+        }
+      }
+    });
+
+    // Открытие/закрытие аккордеона дня клавиатурой (Enter/Space), т.к.
+    // заголовок — это div[role=button], а не нативная кнопка.
+    document.addEventListener('keydown', function (e) {
+      if ((e.key === 'Enter' || e.key === ' ') && e.target.matches && e.target.matches('[data-day-toggle]')) {
+        e.preventDefault();
+        e.target.click();
+      }
+    });
+  }
+
   document.querySelectorAll('.file-input-styled input[type="file"]').forEach(function (input) {
     var wrapper = input.closest('.file-input-styled');
     if (!wrapper) return;

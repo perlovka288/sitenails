@@ -8,8 +8,7 @@
   <a href="about.php" class="<?= in_array($current, ['about.php', 'experience.php', 'widgets.php', 'widget_items.php', 'social.php'], true) ? 'active' : '' ?>">О мне</a>
   <a href="reviews.php" class="<?= $current === 'reviews.php' ? 'active' : '' ?>">Отзывы</a>
   <a href="prices.php" class="<?= $current === 'prices.php' ? 'active' : '' ?>">Прайс</a>
-  <a href="slots.php" class="<?= $current === 'slots.php' ? 'active' : '' ?>">Свободное время</a>
-  <a href="bookings.php" class="<?= $current === 'bookings.php' ? 'active' : '' ?>">Записи</a>
+  <a href="slots.php" class="<?= in_array($current, ['slots.php', 'bookings.php'], true) ? 'active' : '' ?>">Запись</a>
   <a href="settings.php" class="<?= $current === 'settings.php' ? 'active' : '' ?>">Настройки</a>
   <a href="../index.php" target="_blank">Открыть сайт ↗</a>
 </div>

@@ -364,6 +364,14 @@ function migrateSchema(PDO $pdo): void
     if (!in_array('cancel_reason', $bookingCols, true)) {
         $pdo->exec('ALTER TABLE bookings ADD COLUMN cancel_reason TEXT');
     }
+    // admin_note — приватная заметка/кастомное имя клиента для записи,
+    // которую видит только администратор в панели управления (см.
+    // admin-x7k9m2/slots.php, карандаш на карточке записи в календаре).
+    // На клиентском сайте это поле никогда не читается и не показывается —
+    // оригинальное имя (client_name) и логика слотов не меняются.
+    if (!in_array('admin_note', $bookingCols, true)) {
+        $pdo->exec('ALTER TABLE bookings ADD COLUMN admin_note TEXT');
+    }
     // Раньше категория прайса была просто текстом в price_items и
     // существовала, только пока в ней была хотя бы одна услуга. Теперь
     // категории создаются отдельно (кнопка "+ Добавить категорию" в
@@ -638,6 +646,7 @@ function initDB(PDO $pdo): void
             comment TEXT,
             status TEXT NOT NULL DEFAULT 'new',
             slot_id INTEGER,
+            admin_note TEXT,
             created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
             updated_at TEXT
         )
