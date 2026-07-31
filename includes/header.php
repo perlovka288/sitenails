@@ -101,7 +101,8 @@ $__onesignalAppId = getSetting('onesignal_app_id', '');
     none: <?= json_encode(t('booking_none')) ?>,
     selected: <?= json_encode(t('booking_selected')) ?>,
     booked: <?= json_encode(t('booking_slot_booked')) ?>,
-    noSlots: <?= json_encode(t('booking_no_slots')) ?>
+    noSlots: <?= json_encode(t('booking_no_slots')) ?>,
+    addTime: <?= json_encode(t('slot_add_btn')) ?>
   };
   window.SITE_BOOKING_FORM_ERROR = <?= json_encode(t('booking_form_error_generic')) ?>;
   window.SITE_BOOKING_SLOT_TAKEN_ERROR = <?= json_encode(t('booking_form_error_slot_taken')) ?>;

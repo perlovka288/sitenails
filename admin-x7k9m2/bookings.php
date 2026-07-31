@@ -34,44 +34,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrfCheck()) {
         if ($__booking && !empty($__booking['user_id'])) {
             $__phone = getSetting('site_phone', '');
             $__address = getSetting('site_address', '');
-            // Дата/время берутся из wanted_date — это именно то, что клиент
-            // выбрал на сайте (см. select_slot.php), поэтому текст всегда
-            // актуален и меняется автоматически для каждой записи.
             $__msg = 'Чекаємо на вас ' . $__booking['wanted_date'] . '! 💅';
             if ($__phone !== '') $__msg .= ' Майстер: ' . $__phone . '.';
             if ($__address !== '') $__msg .= ' Адреса: ' . $__address;
             sendOneSignalPush((int)$__booking['user_id'], 'Ваш запис підтверджено ✨', $__msg);
         }
-    } elseif ($action === 'done') {
-        $pdo->prepare("UPDATE bookings SET status = 'done', updated_at = CURRENT_TIMESTAMP WHERE id = ?")->execute([$id]);
-    } elseif ($action === 'delete') {
-        // Если запись была отменена/удалена, а слот успел стать "занятым"
-        // (см. авто-занятие выше при подтверждении) — освобождаем его же,
-        // иначе время осталось бы навсегда заблокированным без брони,
-        // видной в этом списке (кнопка "Освободить время" пропала бы вместе
-        // с самой карточкой).
-        $__delStmt = $pdo->prepare('SELECT slot_id FROM bookings WHERE id = ?');
-        $__delStmt->execute([$id]);
-        $__delSlotId = $__delStmt->fetchColumn();
+    } elseif ($action === 'cancel') {
+        // "Отменить" теперь не удаляет заявку, а переводит её в статус
+        // "отменено" вместе с причиной (её обязательно вводит админ в
+        // модалке) — так клиент видит в истории записей и в пуш-уведомлении,
+        // почему запись не приняли/отменили, а не просто теряет заявку.
+        $reason = trim($_POST['reason'] ?? '');
 
-        $pdo->prepare('DELETE FROM bookings WHERE id = ?')->execute([$id]);
+        $__b = $pdo->prepare('SELECT * FROM bookings WHERE id = ?');
+        $__b->execute([$id]);
+        $__booking = $__b->fetch();
 
-        if ($__delSlotId) {
-            $pdo->prepare('UPDATE available_slots SET is_booked = 0 WHERE id = ?')->execute([(int)$__delSlotId]);
-        }
-    } elseif ($action === 'toggle_slot') {
-        $slotId = (int)($_POST['slot_id'] ?? 0);
-        if ($slotId > 0) {
-            $pdo->prepare('UPDATE available_slots SET is_booked = 1 - is_booked WHERE id = ?')->execute([$slotId]);
+        if ($__booking) {
+            $pdo->prepare("UPDATE bookings SET status = 'cancelled', cancel_reason = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?")
+                ->execute([$reason !== '' ? $reason : null, $id]);
+
+            // Если слот успел стать занятым (запись уже была подтверждена
+            // ранее, а потом её всё же отменили) — освобождаем время обратно.
+            if (!empty($__booking['slot_id'])) {
+                $pdo->prepare('UPDATE available_slots SET is_booked = 0 WHERE id = ?')->execute([(int)$__booking['slot_id']]);
+            }
+
+            if (!empty($__booking['user_id'])) {
+                $__msg = 'Ваш запис на ' . $__booking['wanted_date'] . ' не прийнято.';
+                if ($reason !== '') {
+                    $__msg .= ' Причина: ' . $reason;
+                }
+                sendOneSignalPush((int)$__booking['user_id'], 'Запис скасовано', $__msg);
+            }
         }
     }
     redirect('bookings.php');
 }
 
 $bookings = $pdo->query('
-    SELECT b.*, s.is_booked AS slot_is_booked, s.slot_date AS slot_date_fmt, s.slot_time AS slot_time_fmt
+    SELECT b.*, s.is_booked AS slot_is_booked, s.slot_date AS slot_date_fmt, s.slot_time AS slot_time_fmt,
+           u.avatar_path AS client_avatar_path
     FROM bookings b
     LEFT JOIN available_slots s ON s.id = b.slot_id
+    LEFT JOIN site_users u ON u.id = b.user_id
     ORDER BY b.created_at DESC
 ')->fetchAll();
 ?>
@@ -92,15 +98,24 @@ $bookings = $pdo->query('
     <?php foreach ($bookings as $b): ?>
       <div class="rec-card">
         <div class="rec-card-head">
-          <div class="rec-card-head-name">
-            <span class="rec-card-id">#<?= (int)$b['id'] ?></span>
-            <strong><?= e($b['client_name']) ?></strong>
+          <div class="rec-card-head-left">
+            <span class="review-avatar rec-card-avatar" aria-hidden="true">
+              <?php if (!empty($b['client_avatar_path'])): ?>
+                <img src="<?= e(widgetAdminSrc($b['client_avatar_path'])) ?>" alt="" class="review-avatar-img">
+              <?php else: ?>
+                <span class="review-avatar-fallback"><?= e(mb_strtoupper(mb_substr($b['client_name'], 0, 1))) ?></span>
+              <?php endif; ?>
+            </span>
+            <div class="rec-card-head-name">
+              <span class="rec-card-id">#<?= (int)$b['id'] ?></span>
+              <strong><?= e($b['client_name']) ?></strong>
+            </div>
           </div>
           <span class="badge <?= e($b['status']) ?>"><?= e(bookingStatusLabel($b['status'], 'ru')) ?></span>
         </div>
         <div class="rec-card-body">
           <?php if ($b['wanted_date']): ?>
-          <div class="rec-card-row"><span class="rec-card-icon">📅</span><span><?= e($b['wanted_date']) ?></span></div>
+          <div class="rec-card-row"><span class="rec-card-icon">📅</span><span><?= e(formatBookingDateTime($b['wanted_date'])) ?></span></div>
           <?php endif; ?>
           <?php if ($b['service']): ?>
           <div class="rec-card-row"><span class="rec-card-icon">💅</span><span><?= e($b['service']) ?></span></div>
@@ -111,20 +126,14 @@ $bookings = $pdo->query('
           <?php if ($b['comment']): ?>
           <div class="rec-card-row"><span class="rec-card-icon">💬</span><span><?= e($b['comment']) ?></span></div>
           <?php endif; ?>
+          <?php if ($b['status'] === 'cancelled' && $b['cancel_reason']): ?>
+          <div class="rec-card-row"><span class="rec-card-icon">✖️</span><span>Причина отмены: <?= e($b['cancel_reason']) ?></span></div>
+          <?php endif; ?>
           <?php if ($b['slot_id']): ?>
           <div class="rec-card-row"><span class="rec-card-icon">🗓️</span><span class="badge <?= $b['slot_is_booked'] ? 'done' : 'new' ?>"><?= $b['slot_is_booked'] ? 'слот занят' : 'слот свободен' ?></span></div>
           <?php endif; ?>
         </div>
         <div class="rec-card-actions">
-          <?php if ($b['slot_id']): ?>
-          <form method="post" title="Занимается автоматически при подтверждении записи — эта кнопка для ручной правки, если нужно">
-            <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
-            <input type="hidden" name="slot_id" value="<?= (int)$b['slot_id'] ?>">
-            <button name="action" value="toggle_slot" class="btn ghost rec-card-btn">
-              <?= $b['slot_is_booked'] ? 'Освободить время' : 'Отметить занятым' ?>
-            </button>
-          </form>
-          <?php endif; ?>
           <?php if ($b['status'] === 'new'): ?>
           <form method="post">
             <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
@@ -132,18 +141,9 @@ $bookings = $pdo->query('
             <button name="action" value="confirm" class="btn rec-card-btn">Подтвердить</button>
           </form>
           <?php endif; ?>
-          <?php if ($b['status'] !== 'done'): ?>
-          <form method="post">
-            <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
-            <input type="hidden" name="id" value="<?= (int)$b['id'] ?>">
-            <button name="action" value="done" class="btn ghost rec-card-btn">Готово</button>
-          </form>
+          <?php if (in_array($b['status'], ['new', 'confirmed'], true)): ?>
+          <button type="button" class="btn ghost rec-card-btn rec-card-btn-danger" data-cancel-open data-id="<?= (int)$b['id'] ?>">Отменить</button>
           <?php endif; ?>
-          <form method="post" onsubmit="return confirm('Удалить запись?');">
-            <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
-            <input type="hidden" name="id" value="<?= (int)$b['id'] ?>">
-            <button name="action" value="delete" class="btn ghost rec-card-btn rec-card-btn-danger">Отменить</button>
-          </form>
         </div>
       </div>
     <?php endforeach; ?>
@@ -151,6 +151,51 @@ $bookings = $pdo->query('
       <p class="rec-empty">Записей пока нет.</p>
     <?php endif; ?>
   </div>
+
+  <!-- Модалка причины отмены — общая для всех карточек, id записи
+       подставляется в скрытое поле при открытии (см. скрипт ниже). -->
+  <div class="modal-overlay" id="cancelModal">
+    <div class="modal-box">
+      <h3>Причина отмены</h3>
+      <form method="post">
+        <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+        <input type="hidden" name="action" value="cancel">
+        <input type="hidden" name="id" id="cancelBookingId" value="">
+        <div class="form-field">
+          <label>Что написать клиенту (придёт пуш-уведомлением)</label>
+          <textarea name="reason" id="cancelReason" rows="3" placeholder="Например: на это время мастер уже занят, выберите другое время"></textarea>
+        </div>
+        <button type="submit" class="btn full">Отменить запись</button>
+        <button type="button" class="btn ghost full" style="margin-top:8px;" data-modal-close>Назад</button>
+      </form>
+    </div>
+  </div>
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var cancelModal = document.getElementById('cancelModal');
+  var cancelBookingId = document.getElementById('cancelBookingId');
+  var cancelReason = document.getElementById('cancelReason');
+
+  document.querySelectorAll('[data-cancel-open]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      cancelBookingId.value = btn.dataset.id;
+      cancelReason.value = '';
+      cancelModal.classList.add('open');
+    });
+  });
+
+  document.querySelectorAll('[data-modal-close]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var overlay = btn.closest('.modal-overlay');
+      if (overlay) overlay.classList.remove('open');
+    });
+  });
+
+  cancelModal.addEventListener('click', function (e) {
+    if (e.target === cancelModal) cancelModal.classList.remove('open');
+  });
+});
+</script>
 </body>
 </html>

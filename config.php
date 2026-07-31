@@ -357,6 +357,44 @@ function migrateSchema(PDO $pdo): void
         $pdo->exec('ALTER TABLE reviews ADD COLUMN user_id INTEGER');
     }
 
+    // cancel_reason — причина отмены записи, которую вводит админ в панели
+    // (см. admin-x7k9m2/bookings.php) и которую клиент видит в истории своих
+    // записей / получает пуш-уведомлением (см. get_notifications.php).
+    $bookingCols = array_column($pdo->query('PRAGMA table_info(bookings)')->fetchAll(PDO::FETCH_ASSOC), 'name');
+    if (!in_array('cancel_reason', $bookingCols, true)) {
+        $pdo->exec('ALTER TABLE bookings ADD COLUMN cancel_reason TEXT');
+    }
+    // Раньше категория прайса была просто текстом в price_items и
+    // существовала, только пока в ней была хотя бы одна услуга. Теперь
+    // категории создаются отдельно (кнопка "+ Добавить категорию" в
+    // панели управления → «Прайс»), поэтому категория может быть и
+    // пустой — до тех пор, пока в неё не добавят первую услугу через
+    // "+" на карточке категории.
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS price_categories (
+            id         INTEGER PRIMARY KEY AUTOINCREMENT,
+            name       TEXT NOT NULL,
+            name_ua    TEXT,
+            sort_order INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+    ");
+    // Один раз переносим уже существующие названия категорий (которые
+    // раньше жили только внутри price_items.category) в новую таблицу —
+    // чтобы на уже работающем сайте ни одна категория не "потерялась".
+    if ((int)$pdo->query('SELECT COUNT(*) FROM price_categories')->fetchColumn() === 0) {
+        $__existingCats = $pdo->query('SELECT DISTINCT category, category_ua FROM price_items ORDER BY category')->fetchAll(PDO::FETCH_ASSOC);
+        $__insCat = $pdo->prepare('INSERT INTO price_categories (name, name_ua, sort_order) VALUES (?, ?, ?)');
+        $__catOrder = 0;
+        foreach ($__existingCats as $__cat) {
+            if (trim((string)$__cat['category']) === '') {
+                continue;
+            }
+            $__catOrder++;
+            $__insCat->execute([$__cat['category'], $__cat['category_ua'] ?: null, $__catOrder]);
+        }
+    }
+
     // ==== Web Push подписки (уведомления в браузере/на телефоне без бота) ====
     // Каждая запись — это один браузер/устройство, подписавшееся на пуши.
     // У одного клиента может быть несколько подписок (например, телефон и

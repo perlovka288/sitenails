@@ -553,11 +553,44 @@ function deleteWidgetItemFile(array $item): void
 function bookingStatusLabel(string $status, string $lang): string
 {
     $labels = [
-        'ru' => ['new' => 'На рассмотрении', 'confirmed' => 'Вы записаны', 'done' => 'Выполнено'],
-        'ua' => ['new' => 'На розгляді',      'confirmed' => 'Вас записано', 'done' => 'Виконано'],
+        'ru' => ['new' => 'На рассмотрении', 'confirmed' => 'Вы записаны', 'done' => 'Выполнено', 'cancelled' => 'Отменено'],
+        'ua' => ['new' => 'На розгляді',      'confirmed' => 'Вас записано', 'done' => 'Виконано',   'cancelled' => 'Скасовано'],
     ];
     $set = $labels[$lang] ?? $labels['ru'];
     return $set[$status] ?? $set['new'];
+}
+
+// Красиво форматирует wanted_date записи ("2026-07-30 16:30" — как он
+// сохраняется при записи через календарь, см. select_slot.php) для панели
+// администратора: "30 июля, четверг, 16:30". Панель управления всегда на
+// русском, поэтому названия месяцев/дней недели захардкожены здесь же, без
+// привязки к языку сайта (includes/lang.php там не подключается).
+// Если строку не удалось разобрать как дату (например, это старая заявка
+// со свободным текстом из submit_booking.php) — просто возвращает как есть.
+function formatBookingDateTime(string $wantedDate): string
+{
+    $ts = strtotime($wantedDate);
+    if ($ts === false) {
+        return $wantedDate;
+    }
+
+    $months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+    $weekdays = ['воскресенье', 'понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота'];
+
+    $day     = (int)date('j', $ts);
+    $month   = $months[(int)date('n', $ts) - 1] ?? '';
+    $weekday = $weekdays[(int)date('w', $ts)] ?? '';
+    $time    = date('H:i', $ts);
+
+    // Если в исходной строке не было времени (00:00 не значит "полночь",
+    // просто дата без времени) — время в вывод не добавляем.
+    $hasTime = (bool)preg_match('/\d{1,2}:\d{2}/', $wantedDate);
+
+    $result = trim("{$day} {$month}, {$weekday}");
+    if ($hasTime) {
+        $result .= ", {$time}";
+    }
+    return $result;
 }
 
 // Может ли автор отзыва (залогиненный клиент) ещё редактировать/удалить

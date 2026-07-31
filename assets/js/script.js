@@ -459,11 +459,15 @@ document.addEventListener('DOMContentLoaded', function () {
         var slotsWrap = document.createElement('div');
         slotsWrap.className = 'cal-day-slots';
 
+        var isAdminRow = !!window.SITE_IS_ADMIN;
+
         if (!day.slots.length) {
-          var empty = document.createElement('span');
-          empty.className = 'cal-day-empty';
-          empty.textContent = '—';
-          slotsWrap.appendChild(empty);
+          if (!isAdminRow) {
+            var empty = document.createElement('span');
+            empty.className = 'cal-day-empty';
+            empty.textContent = '—';
+            slotsWrap.appendChild(empty);
+          }
         } else {
           day.slots.forEach(function (slot) {
             anySlots = true;
@@ -496,6 +500,29 @@ document.addEventListener('DOMContentLoaded', function () {
 
             slotsWrap.appendChild(btn);
           });
+        }
+
+        // ===== Кнопка "+" в конце строки даты (только в режиме админа) —
+        // открывает модалку "Добавить время" сразу с этой датой, вместо
+        // одной общей кнопки "Добавить время" под календарём. =====
+        if (isAdminRow && slotModalOverlay) {
+          var addBtn = document.createElement('button');
+          addBtn.type = 'button';
+          addBtn.className = 'cal-add-slot-btn';
+          addBtn.title = labels.addTime || 'Добавить время';
+          addBtn.setAttribute('aria-label', labels.addTime || 'Добавить время');
+          addBtn.textContent = '+';
+          addBtn.addEventListener('click', function () {
+            slotModalAction.value = 'slot_add';
+            slotModalId.value = '';
+            slotModalDate.value = day.date;
+            slotModalTime.value = '';
+            slotModalStatusField.style.display = 'none';
+            slotModalBooked.checked = false;
+            slotModalDeleteBtn.style.display = 'none';
+            slotModalOverlay.classList.add('open');
+          });
+          slotsWrap.appendChild(addBtn);
         }
 
         row.appendChild(slotsWrap);

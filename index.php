@@ -519,10 +519,6 @@ require __DIR__ . '/includes/header.php';
         <p class="calendar-empty" id="calendarEmpty" style="display:none;"><?= e(t('booking_no_slots')) ?></p>
       </div>
 
-      <?php if ($__isAdmin): ?>
-        <button type="button" class="btn ghost full open-modal-btn" id="openSlotAddBtn"><?= e(t('slot_add_btn')) ?></button>
-      <?php endif; ?>
-
       <div class="booking-selected">
         <span id="selectedSlotText"><?= e(t('booking_none')) ?></span>
       </div>

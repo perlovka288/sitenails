@@ -149,6 +149,9 @@ $__mapsHref = $masterAddress !== '' ? 'https://www.google.com/maps/search/?api=1
           <?php if (!empty($__b['service'])): ?>
             <div class="booking-card-services"><strong><?= e(t('booking_card_services_label')) ?></strong> <?= e($__b['service']) ?></div>
           <?php endif; ?>
+          <?php if ($__b['status'] === 'cancelled' && !empty($__b['cancel_reason'])): ?>
+            <div class="booking-card-row"><strong>Причина:</strong> <?= e($__b['cancel_reason']) ?></div>
+          <?php endif; ?>
           <div class="booking-card-row" style="margin-top:8px;">
             <strong><?= e(t('booking_card_master_phone')) ?></strong>
             <?php if ($__telHref !== ''): ?>

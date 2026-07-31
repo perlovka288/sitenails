@@ -25,9 +25,9 @@ try {
     $lang = currentLang();
     $pdo = getDB();
     $stmt = $pdo->prepare("
-        SELECT id, status, wanted_date, service, updated_at, created_at
+        SELECT id, status, wanted_date, service, cancel_reason, updated_at, created_at
         FROM bookings
-        WHERE user_id = ? AND status IN ('confirmed', 'done')
+        WHERE user_id = ? AND status IN ('confirmed', 'done', 'cancelled')
         ORDER BY COALESCE(updated_at, created_at) DESC, id DESC
         LIMIT 20
     ");
@@ -41,6 +41,13 @@ try {
             $message = $lang === 'ua'
                 ? 'Ваш запис на ' . $b['wanted_date'] . ' успішно підтверджено! 💅'
                 : 'Ваша запись на ' . $b['wanted_date'] . ' успешно подтверждена! 💅';
+        } elseif ($b['status'] === 'cancelled') {
+            $message = $lang === 'ua'
+                ? 'Ваш запис на ' . $b['wanted_date'] . ' не прийнято.'
+                : 'Ваша запись на ' . $b['wanted_date'] . ' не принята.';
+            if (!empty($b['cancel_reason'])) {
+                $message .= ' Причина: ' . $b['cancel_reason'];
+            }
         } else {
             $message = $lang === 'ua'
                 ? 'Запис на ' . $b['wanted_date'] . ' відмічено як виконаний. Чекаємо на вас знову! ✨'
