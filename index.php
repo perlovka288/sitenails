@@ -228,13 +228,13 @@ require __DIR__ . '/includes/header.php';
         <div class="work-experience reveal-on-scroll">
           <h2 class="section-title" style="font-size:17px;"><?= e(t('experience_title')) ?></h2>
           <div class="experience-list">
-            <?php foreach ($workExperience as $__exp): ?>
+            <?php foreach ($workExperience as $__expI => $__exp): ?>
               <?php
                 $__expPosition = ($lang === 'ua' && !empty($__exp['position_ua'])) ? $__exp['position_ua'] : $__exp['position'];
                 $__expCompany = ($lang === 'ua' && !empty($__exp['company_ua'])) ? $__exp['company_ua'] : ($__exp['company'] ?? '');
                 $__expDesc = ($lang === 'ua' && !empty($__exp['description_ua'])) ? $__exp['description_ua'] : ($__exp['description'] ?? '');
               ?>
-              <div class="experience-card reveal-on-scroll">
+              <div class="experience-card reveal-on-scroll" style="--reveal-i:<?= (int)$__expI ?>;">
                 <div class="experience-period"><?= e($__exp['period']) ?></div>
                 <div class="experience-position"><?= e($__expPosition) ?></div>
                 <?php if ($__expCompany !== ''): ?><div class="experience-company"><?= e($__expCompany) ?></div><?php endif; ?>
@@ -275,6 +275,7 @@ require __DIR__ . '/includes/header.php';
            Раньше эти блоки выводились ПОСЛЕ .panels-track и поэтому были
            видны на всех вкладках (Отзывы/Прайс/Запись) одновременно.
            Теперь они — часть вкладки "О мне" и показываются только на ней. -->
+      <?php $__widgetI = 0; ?>
       <?php foreach ($widgetCategories as $__cat): ?>
         <?php
           $__catItems = $widgetItemsByCategory[(int)$__cat['id']] ?? [];
@@ -284,7 +285,7 @@ require __DIR__ . '/includes/header.php';
           // прижимаем к левому краю (как для полной прокручиваемой ленты).
           $__catFew = count($__catItems) < 3;
         ?>
-        <section class="widget-block reveal-on-scroll" id="widget-<?= (int)$__cat['id'] ?>">
+        <section class="widget-block reveal-on-scroll" id="widget-<?= (int)$__cat['id'] ?>" style="--reveal-i:<?= (int)$__widgetI++ ?>;">
           <h2 class="section-title"><?= e($__catName ?: t('widgets_title_default')) ?></h2>
           <div class="widget-carousel-wrap">
             <?php if (!$__catFew): ?>
@@ -357,9 +358,9 @@ require __DIR__ . '/includes/header.php';
       <p><?= e(t('reviews_empty')) ?></p>
     <?php endif; ?>
 
-    <?php foreach ($reviews as $r): ?>
+    <?php foreach ($reviews as $__revI => $r): ?>
       <?php $__photos = reviewPhotoPaths($r['photo_path']); ?>
-      <div class="card review reveal-on-scroll<?= !$r['is_approved'] ? ' review--hidden' : '' ?>">
+      <div class="card review reveal-on-scroll<?= !$r['is_approved'] ? ' review--hidden' : '' ?>" style="--reveal-i:<?= (int)$__revI ?>;">
         <?php if ($__isAdmin && !$r['is_approved']): ?>
           <span class="badge new admin-hidden-badge"><?= e(t('reviews_hidden')) ?></span>
         <?php endif; ?>
@@ -444,9 +445,10 @@ require __DIR__ . '/includes/header.php';
       <p><?= e(t('price_empty')) ?></p>
     <?php endif; ?>
 
+    <?php $__priceI = 0; ?>
     <?php foreach ($priceByCategory as $catKey => $cat): ?>
       <?php $isFramed = in_array($catKey, ['Наращивание / Коррекция'], true); ?>
-      <div class="price-block reveal-on-scroll<?= $isFramed ? ' price-block--framed' : '' ?>">
+      <div class="price-block reveal-on-scroll<?= $isFramed ? ' price-block--framed' : '' ?>" style="--reveal-i:<?= (int)$__priceI++ ?>;">
         <div class="price-category"><?= e($cat['label']) ?> <span class="heart">♡</span></div>
         <?php foreach ($cat['items'] as $item): ?>
           <?php $title = ($lang === 'ua' && !empty($item['title_ua'])) ? $item['title_ua'] : $item['title']; ?>
@@ -499,7 +501,7 @@ require __DIR__ . '/includes/header.php';
       <div class="alert success"><?= e(t('booking_sent')) ?></div>
     <?php endif; ?>
 
-    <div class="card">
+    <div class="card reveal-on-scroll">
       <p style="color:var(--ink-soft); margin-top:0;"><?= e(t('booking_intro')) ?></p>
 
       <?php if ($__isAdmin): ?>

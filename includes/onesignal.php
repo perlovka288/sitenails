@@ -33,7 +33,10 @@ function pushLog(string $line): void
 
 // Отправляет push конкретному клиенту (по id из site_users — используется
 // как OneSignal External ID, см. OneSignal.login() в assets/js/script.js).
-function sendOneSignalPush(int $userId, string $title, string $message): bool
+// $urlPath — необязательный путь ОТ КОРНЯ САЙТА (например 'profile.php#booking-12'
+// или 'admin-x7k9m2/slots.php'), куда попадёт человек, если нажмёт на само
+// уведомление на телефоне/компьютере — а не просто откроет сайт с главной.
+function sendOneSignalPush(int $userId, string $title, string $message, string $urlPath = ''): bool
 {
     $appId = getSetting('onesignal_app_id', '');
     $apiKey = getSetting('onesignal_api_key', '');
@@ -70,6 +73,12 @@ function sendOneSignalPush(int $userId, string $title, string $message): bool
         // chrome_web_badge — маленький значок в шторке уведомлений Android.
         $payload['chrome_web_icon'] = $__iconUrl;
         $payload['chrome_web_badge'] = $__iconUrl;
+    }
+    if ($urlPath !== '' && $__host !== '') {
+        // 'url' — стандартное поле OneSignal Web Push: куда открыть/переключить
+        // вкладку браузера по клику на само уведомление (а не на кнопку внутри
+        // него). Работает и для установленного на главный экран iPhone сайта.
+        $payload['url'] = $__scheme . '://' . $__host . '/' . ltrim($urlPath, '/');
     }
 
     $ch = curl_init('https://api.onesignal.com/notifications');
@@ -125,6 +134,6 @@ function notifyAdminsNewBooking(PDO $pdo, string $clientName, string $wantedDate
     }
 
     foreach ($admins as $adminUserId) {
-        sendOneSignalPush((int)$adminUserId, $title, $message);
+        sendOneSignalPush((int)$adminUserId, $title, $message, 'admin-x7k9m2/slots.php');
     }
 }

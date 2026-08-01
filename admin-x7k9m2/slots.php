@@ -147,7 +147,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $__msg = 'Чекаємо на вас ' . $__booking['wanted_date'] . '! 💅';
             if ($__phone !== '') $__msg .= ' Майстер: ' . $__phone . '.';
             if ($__address !== '') $__msg .= ' Адреса: ' . $__address;
-            sendOneSignalPush((int)$__booking['user_id'], 'Ваш запис підтверджено ✨', $__msg);
+            sendOneSignalPush((int)$__booking['user_id'], 'Ваш запис підтверджено ✨', $__msg, 'profile.php#booking-' . (int)$__booking['id']);
         }
     } elseif ($action === 'cancel') {
         $id = (int)($_POST['id'] ?? 0);
@@ -170,7 +170,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($reason !== '') {
                     $__msg .= ' Причина: ' . $reason;
                 }
-                sendOneSignalPush((int)$__booking['user_id'], 'Запис скасовано', $__msg);
+                sendOneSignalPush((int)$__booking['user_id'], 'Запис скасовано', $__msg, 'profile.php#booking-' . (int)$__booking['id']);
             }
         }
     } elseif ($action === 'add_slot') {

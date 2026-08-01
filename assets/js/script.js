@@ -62,6 +62,37 @@ document.addEventListener('DOMContentLoaded', function () {
     pageHero.style.display = name === 'about' ? 'none' : '';
   }
 
+  // ===== Скользящая белая плашка под активной вкладкой =====
+  var tabIndicator = document.getElementById('tabIndicator');
+  var navTabsEl = document.querySelector('.nav-tabs');
+
+  function updateTabIndicator(animate) {
+    if (!tabIndicator || !navTabsEl) return;
+    var activeBtn = navTabsEl.querySelector('.tab-btn.active');
+    if (!activeBtn) return;
+    if (!animate) tabIndicator.style.transition = 'none';
+    var navRect = navTabsEl.getBoundingClientRect();
+    var btnRect = activeBtn.getBoundingClientRect();
+    tabIndicator.style.width = btnRect.width + 'px';
+    tabIndicator.style.height = btnRect.height + 'px';
+    tabIndicator.style.top = (btnRect.top - navRect.top) + 'px';
+    tabIndicator.style.transform = 'translateX(' + (btnRect.left - navRect.left) + 'px)';
+    if (!animate) {
+      // Возвращаем transition сразу после мгновенной установки позиции,
+      // чтобы следующие переключения вкладок снова плавно скользили.
+      requestAnimationFrame(function () {
+        tabIndicator.style.transition = '';
+      });
+    }
+  }
+
+  window.addEventListener('resize', function () { updateTabIndicator(false); });
+  // Шрифт Jost может подгрузиться чуть позже первого рендера и сдвинуть
+  // ширину кнопок — пересчитываем плашку, когда шрифты точно готовы.
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(function () { updateTabIndicator(false); });
+  }
+
   function setActiveTab(name, animate) {
     var idx = tabOrder.indexOf(name);
     if (idx === -1) idx = 0;
@@ -80,6 +111,7 @@ document.addEventListener('DOMContentLoaded', function () {
     tabButtons.forEach(function (btn) {
       btn.classList.toggle('active', btn.dataset.tab === name);
     });
+    updateTabIndicator(animate);
 
     // Полностью скрываем неактивные разделы (не только сдвигом за экран),
     // чтобы соседний раздел не был виден и не попадал в фокус/скринридер.

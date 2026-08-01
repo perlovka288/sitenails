@@ -124,6 +124,27 @@ a { color: inherit; }
   gap: 8px;
   padding: 16px 4px 6px;
   overflow: visible;
+  position: relative;
+}
+
+/* Белая "плашка" под активной вкладкой — плавно скользит между
+   кнопками при переключении (см. updateTabIndicator() в script.js),
+   вместо того чтобы фон мгновенно "перескакивал" на новую кнопку. */
+.tab-indicator {
+  position: absolute;
+  left: 0;
+  top: 16px;
+  width: 0;
+  height: 0;
+  border-radius: var(--radius-sm);
+  background: var(--primary);
+  box-shadow: 0 3px 0 rgba(0, 0, 0, .35), 0 14px 26px -8px rgba(0, 0, 0, .6);
+  transition: transform .4s cubic-bezier(.34, 1.56, .64, 1), width .4s cubic-bezier(.34, 1.56, .64, 1);
+  z-index: 1;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tab-indicator { transition: none; }
 }
 
 .user-bar {
@@ -409,23 +430,28 @@ a { color: inherit; }
   color: var(--ink-soft);
   font-family: 'Jost', sans-serif;
   cursor: pointer;
+  position: relative;
+  z-index: 2;
   transform: scale(1);
+  box-shadow: 0 4px 10px -6px rgba(0, 0, 0, .5);
   transition: transform .25s cubic-bezier(.34,1.56,.64,1),
               background-color .2s ease,
               border-color .2s ease,
               color .2s ease,
               box-shadow .2s ease;
 }
+.tab-btn:hover { border-color: var(--line-strong); }
+.tab-btn:active { transform: scale(.96); }
 
 .tab-btn.active {
-  background: var(--primary);
-  border-color: var(--primary);
+  border-color: transparent;
   color: #1a1310;
   font-weight: 600;
-  transform: scale(1.05);
-  box-shadow: var(--shadow);
-  position: relative;
-  z-index: 2;
+  box-shadow: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tab-btn { transition: background-color .2s ease, border-color .2s ease, color .2s ease; }
+  .tab-btn:hover, .tab-btn:active { transform: none; }
 }
 
 /* ===== Hero ===== */
@@ -749,15 +775,25 @@ section.block { padding: 28px 0; }
   text-transform: uppercase;
   text-decoration: none;
   font-family: 'Jost', sans-serif;
-  transition: background .15s ease, transform .1s ease;
+  /* "Объёмная" тень: близкий тёмный слой держит контакт с поверхностью,
+     дальний мягкий слой создаёт ощущение, что кнопка приподнята над
+     фоном. При наведении кнопка чуть "всплывает" (тень становится
+     глубже), при нажатии — "вдавливается" (тень почти пропадает). */
+  box-shadow: 0 2px 0 rgba(0, 0, 0, .35), 0 10px 22px -8px rgba(0, 0, 0, .55);
+  transform: translateY(0);
+  transition: background .15s ease, transform .18s cubic-bezier(.34,1.56,.64,1), box-shadow .18s ease;
 }
 
-.btn:hover { background: #e2e2e2; }
-.btn:active { transform: scale(.98); }
+.btn:hover { background: #e2e2e2; transform: translateY(-2px); box-shadow: 0 4px 0 rgba(0, 0, 0, .35), 0 16px 28px -8px rgba(0, 0, 0, .6); }
+.btn:active { transform: translateY(1px) scale(.98); box-shadow: 0 1px 0 rgba(0, 0, 0, .35), 0 4px 10px -4px rgba(0, 0, 0, .5); }
 .btn.full { width: 100%; text-align: center; }
-.btn.ghost { background: transparent; color: var(--primary); border: 1px solid var(--primary); }
-.btn.ghost:hover { background: var(--primary-soft); }
-.btn[disabled] { opacity: .5; cursor: not-allowed; }
+.btn.ghost { background: transparent; color: var(--primary); border: 1px solid var(--primary); box-shadow: 0 8px 18px -10px rgba(0, 0, 0, .5); }
+.btn.ghost:hover { background: var(--primary-soft); box-shadow: 0 12px 22px -8px rgba(0, 0, 0, .55); }
+.btn[disabled] { opacity: .5; cursor: not-allowed; box-shadow: none; transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  .btn { transition: background .15s ease; }
+  .btn:hover, .btn:active { transform: none; }
+}
 
 .alert {
   padding: 13px 16px;
@@ -1263,10 +1299,13 @@ table.admin-table th { background: var(--surface-2); font-size: 11px; text-trans
   font-size: 18px;
   line-height: 1;
   cursor: pointer;
-  transition: background .15s ease, border-color .15s ease, opacity .15s ease;
+  box-shadow: 0 5px 12px -6px rgba(0, 0, 0, .6);
+  transform: translateY(0);
+  transition: background .15s ease, border-color .15s ease, opacity .15s ease, transform .15s cubic-bezier(.34,1.56,.64,1), box-shadow .15s ease;
 }
-.cal-nav-btn:hover:not(:disabled) { background: var(--primary-soft); border-color: var(--primary); }
-.cal-nav-btn:disabled { opacity: .3; cursor: default; }
+.cal-nav-btn:hover:not(:disabled) { background: var(--primary-soft); border-color: var(--primary); transform: translateY(-1px); box-shadow: 0 8px 16px -6px rgba(0, 0, 0, .65); }
+.cal-nav-btn:active:not(:disabled) { transform: translateY(1px); box-shadow: 0 2px 6px -3px rgba(0, 0, 0, .5); }
+.cal-nav-btn:disabled { opacity: .3; cursor: default; box-shadow: none; }
 .cal-nav-label {
   font-size: 13px;
   color: var(--ink-soft);
@@ -1326,9 +1365,12 @@ table.admin-table th { background: var(--surface-2); font-size: 11px; text-trans
   text-transform: uppercase;
   cursor: pointer;
   font-family: 'Jost', sans-serif;
-  transition: background .15s ease, color .15s ease, border-color .15s ease;
+  box-shadow: 0 6px 14px -8px rgba(0, 0, 0, .55);
+  transform: translateY(0);
+  transition: background .15s ease, color .15s ease, border-color .15s ease, transform .15s cubic-bezier(.34,1.56,.64,1), box-shadow .15s ease;
 }
-.icon-btn:hover { background: var(--primary-soft); color: var(--primary); border-color: var(--primary); }
+.icon-btn:hover { background: var(--primary-soft); color: var(--primary); border-color: var(--primary); transform: translateY(-1px); box-shadow: 0 9px 18px -8px rgba(0, 0, 0, .6); }
+.icon-btn:active { transform: translateY(1px); box-shadow: 0 2px 6px -3px rgba(0, 0, 0, .5); }
 .icon-btn--danger { color: #e4a3a3; border-color: rgba(200,100,100,.35); }
 .icon-btn--danger:hover { background: rgba(200,100,100,.12); color: #e4a3a3; border-color: rgba(200,100,100,.5); }
 
@@ -1790,24 +1832,37 @@ button.admin-widget-item-card:hover { transform: translateY(-2px); }
 .switch input:focus-visible + .switch-slider { outline: 2px solid var(--primary); outline-offset: 2px; }
 
 /* ===== Плавное появление блоков при прокрутке страницы =====
-   Элемент стартует чуть смещённым вниз и прозрачным, а при попадании
-   во вьюпорт (см. IntersectionObserver в script.js) получает класс
-   .is-visible и плавно "проявляется" на экране. */
+   Элемент стартует чуть смещённым вниз, размытым и затемнённым —
+   как будто "проступает из темноты" — а при попадании во вьюпорт
+   (см. IntersectionObserver в script.js) получает класс .is-visible
+   и мягко проявляется на полную яркость и чёткость.
+   --reveal-i (задаётся инлайн из PHP-циклов, например --reveal-i:2)
+   даёт лёгкий каскадный сдвиг по времени для карточек одного списка
+   (отзывы, прайс, опыт работы, виджеты), чтобы они "просыпались" не
+   все одновременно, а друг за другом. Максимум задержки — 0.3с. */
 .reveal-on-scroll {
+  --reveal-i: 0;
   opacity: 0;
-  transform: translateY(28px);
-  transition: opacity .7s cubic-bezier(.22,.61,.36,1), transform .7s cubic-bezier(.22,.61,.36,1);
-  will-change: opacity, transform;
+  transform: translateY(32px) scale(.96);
+  filter: blur(9px) brightness(.35);
+  transition: opacity .85s cubic-bezier(.22,.61,.36,1),
+              transform .85s cubic-bezier(.22,.61,.36,1),
+              filter .85s cubic-bezier(.22,.61,.36,1);
+  transition-delay: min(calc(var(--reveal-i) * .07s), .3s);
+  will-change: opacity, transform, filter;
 }
 .reveal-on-scroll.is-visible {
   opacity: 1;
-  transform: translateY(0);
+  transform: translateY(0) scale(1);
+  filter: blur(0) brightness(1);
 }
 @media (prefers-reduced-motion: reduce) {
   .reveal-on-scroll {
     opacity: 1;
     transform: none;
+    filter: none;
     transition: none;
+    transition-delay: 0s;
   }
 }
 
@@ -1952,10 +2007,17 @@ button.admin-widget-item-card:hover { transform: translateY(-2px); }
   justify-content: center;
   cursor: pointer;
   flex-shrink: 0;
-  transition: border-color .15s ease, color .15s ease, background .15s ease;
+  box-shadow: 0 5px 12px -6px rgba(0, 0, 0, .6);
+  transform: translateY(0);
+  transition: border-color .15s ease, color .15s ease, background .15s ease, transform .15s cubic-bezier(.34,1.56,.64,1), box-shadow .15s ease;
 }
-.icon-btn:hover { border-color: var(--primary); color: var(--primary); }
+.icon-btn:hover { border-color: var(--primary); color: var(--primary); transform: translateY(-1px); box-shadow: 0 8px 16px -6px rgba(0, 0, 0, .65); }
+.icon-btn:active { transform: translateY(1px); box-shadow: 0 2px 6px -3px rgba(0, 0, 0, .5); }
 .icon-btn--sm { width: 28px; height: 28px; font-size: 13px; }
+@media (prefers-reduced-motion: reduce) {
+  .icon-btn { transition: border-color .15s ease, color .15s ease, background .15s ease; }
+  .icon-btn:hover, .icon-btn:active { transform: none; }
+}
 
 /* Плитка "+ Добавить..." — та же идея, что и у виджетов, только как
    кнопка на всю ширину карточки внизу списка. */

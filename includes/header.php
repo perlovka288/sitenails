@@ -75,6 +75,7 @@ $__onesignalAppId = getSetting('onesignal_app_id', '');
     </div>
   </div>
   <div class="container nav-tabs">
+    <span class="tab-indicator" id="tabIndicator" aria-hidden="true"></span>
     <button type="button" class="tab-btn" data-tab="about"><?= e(t('nav_about')) ?></button>
     <button type="button" class="tab-btn" data-tab="reviews"><?= e(t('nav_reviews')) ?></button>
     <button type="button" class="tab-btn" data-tab="price"><?= e(t('nav_price')) ?></button>
