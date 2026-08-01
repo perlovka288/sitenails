@@ -174,6 +174,28 @@ function migrateSchema(PDO $pdo): void
         $pdo->exec('ALTER TABLE admin_users ADD COLUMN remember_expires TEXT');
     }
 
+    // password_display — пароль в обратимо-зашифрованном виде (НЕ хэш).
+    // Нужен исключительно для кнопки-глазка в профиле панели управления
+    // ("Главная"), чтобы пароль был виден в любой момент — в том числе
+    // после входа по долгой cookie "запомнить меня", когда открытый
+    // пароль не вводился и в сессии его нет. Хранится отдельно от
+    // password_hash (тот остаётся необратимым, как и положено) — см.
+    // encryptAdminPassword()/decryptAdminPassword() в includes/functions.php.
+    if (!in_array('password_display', $adminColNames, true)) {
+        $pdo->exec('ALTER TABLE admin_users ADD COLUMN password_display TEXT');
+        // Бэкфилл для уже существующих записей — сохраняем зашифрованный
+        // вид дефолтного пароля, которым админ создаётся ниже (60667543),
+        // чтобы глазок сработал сразу, без необходимости перелогиниваться.
+        require_once __DIR__ . '/includes/functions.php';
+        $__existingAdmins = $pdo->query('SELECT id, password_hash FROM admin_users')->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($__existingAdmins as $__a) {
+            if (password_verify('60667543', $__a['password_hash'])) {
+                $pdo->prepare('UPDATE admin_users SET password_display = ? WHERE id = ?')
+                    ->execute([encryptAdminPassword('60667543'), $__a['id']]);
+            }
+        }
+    }
+
     // ==== Раздел «О мне» + виджеты + опыт работы + соцсети (добавляются
     // на уже работающем сайте автоматически, без ручного SQL) ====
 

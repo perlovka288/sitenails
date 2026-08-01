@@ -6,6 +6,25 @@
 //     на лету по мере ввода текста, ещё до нажатия "Сохранить").
 
 document.addEventListener('DOMContentLoaded', function () {
+  // ===== Запоминаем позицию скролла перед уходом со страницы (переход по
+  // ссылке внутри панели или отправка формы) — восстанавливается в самом
+  // начале includes/nav.php на той же странице после перезагрузки, чтобы
+  // сохранение настроек / переход между разделами не кидало наверх. =====
+  function saveAdminScroll() {
+    try {
+      sessionStorage.setItem('admin_scroll::' + location.pathname, String(window.scrollY));
+    } catch (e) {}
+  }
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest && e.target.closest('a[href]');
+    if (!a) return;
+    // Только для обычных переходов внутри панели (не новая вкладка, не modifier-клик).
+    if (a.target === '_blank' || e.metaKey || e.ctrlKey || e.shiftKey || a.hasAttribute('download')) return;
+    saveAdminScroll();
+  }, true);
+  document.addEventListener('submit', saveAdminScroll, true);
+  window.addEventListener('pagehide', saveAdminScroll);
+
   // ===== Автоперевод РУС -> УКР =====
   document.querySelectorAll('[data-translate-from]').forEach(function (btn) {
     var fromField = document.getElementById(btn.dataset.translateFrom);

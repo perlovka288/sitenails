@@ -56,12 +56,12 @@ if ($alreadyRegistered) {
         $firstAdmin = $pdo->query('SELECT id FROM admin_users ORDER BY id ASC LIMIT 1')->fetch();
 
         if ($firstAdmin) {
-            $pdo->prepare('UPDATE admin_users SET username = ?, password_hash = ? WHERE id = ?')
-                ->execute([$username, password_hash($password, PASSWORD_DEFAULT), $firstAdmin['id']]);
+            $pdo->prepare('UPDATE admin_users SET username = ?, password_hash = ?, password_display = ? WHERE id = ?')
+                ->execute([$username, password_hash($password, PASSWORD_DEFAULT), encryptAdminPassword($password), $firstAdmin['id']]);
             $adminId = (int)$firstAdmin['id'];
         } else {
-            $pdo->prepare('INSERT INTO admin_users (username, password_hash) VALUES (?, ?)')
-                ->execute([$username, password_hash($password, PASSWORD_DEFAULT)]);
+            $pdo->prepare('INSERT INTO admin_users (username, password_hash, password_display) VALUES (?, ?, ?)')
+                ->execute([$username, password_hash($password, PASSWORD_DEFAULT), encryptAdminPassword($password)]);
             $adminId = (int)$pdo->lastInsertId();
         }
 

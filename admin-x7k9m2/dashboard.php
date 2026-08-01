@@ -17,14 +17,15 @@ $__adminLogin     = $__adminSiteUser['login'] ?? '';
 $__adminAvatarRel = $__adminSiteUser ? siteUserAvatarPath($__adminSiteUser) : null;
 $__adminAvatarSrc = $__adminAvatarRel ? '../' . ltrim($__adminAvatarRel, '/') : null;
 // Если логин в site_users почему-то не заведён — берём логин из admin_users.
+$__stmt = $pdo->prepare('SELECT username, password_display FROM admin_users WHERE id = ?');
+$__stmt->execute([$_SESSION['admin_id'] ?? 0]);
+$__adminRow = $__stmt->fetch();
 if ($__adminLogin === '') {
-    $__stmt = $pdo->prepare('SELECT username FROM admin_users WHERE id = ?');
-    $__stmt->execute([$_SESSION['admin_id'] ?? 0]);
-    $__adminLogin = (string)($__stmt->fetchColumn() ?: '');
+    $__adminLogin = (string)($__adminRow['username'] ?? '');
 }
-// Пароль в открытом виде доступен только в текущей сессии (см. login.php) —
-// в базе хранится исключительно хэш, поэтому глазок работает до выхода.
-$__adminPlainPassword = $_SESSION['admin_plain_password'] ?? '';
+// Пароль хранится в обратимо-зашифрованном виде в БД (не хэш) — поэтому
+// глазок работает всегда, а не только сразу после ручного входа.
+$__adminPlainPassword = $__adminRow ? decryptAdminPassword($__adminRow['password_display'] ?? null) : '';
 ?>
 <!DOCTYPE html>
 <html lang="ru">
@@ -39,9 +40,10 @@ $__adminPlainPassword = $_SESSION['admin_plain_password'] ?? '';
 <div class="admin-shell">
   <?php require __DIR__ . '/includes/nav.php'; ?>
 
-  <!-- ===== Профиль по центру — как в iCloud: аватар, имя, приветствие,
-       логин и пароль (скрыт, открывается глазком). ===== -->
-  <div class="admin-profile-card">
+  <!-- ===== Профиль по центру — минималистично, без карточки-плашки:
+       просто аватар → имя → приветствие → логин → пароль с глазком,
+       друг под другом, с мягкой тенью. ===== -->
+  <div class="admin-profile-mini">
     <div class="admin-profile-avatar">
       <?php if ($__adminAvatarSrc): ?>
         <img src="<?= e($__adminAvatarSrc) ?>" alt="">
@@ -50,36 +52,30 @@ $__adminPlainPassword = $_SESSION['admin_plain_password'] ?? '';
       <?php endif; ?>
     </div>
     <p class="admin-profile-name"><?= e($__adminFullName) ?></p>
-    <p class="admin-profile-greeting">Здравствуйте, <?= e($__adminFullName) ?>! Вы в панели администратора.</p>
+    <p class="admin-profile-greeting">Здравствуйте, <?= e($__adminFullName) ?>!</p>
 
-    <div class="admin-profile-fields">
-      <div class="admin-profile-field">
-        <div>
-          <span class="admin-profile-field-label">Логин</span>
-          <span class="admin-profile-field-value"><?= e($__adminLogin) ?></span>
-        </div>
-      </div>
-      <div class="admin-profile-field">
-        <div>
-          <span class="admin-profile-field-label">Пароль</span>
-          <span class="admin-profile-field-value is-masked" id="adminProfilePasswordValue">••••••••</span>
-        </div>
-        <button type="button"
-          class="admin-profile-eye-btn"
-          id="adminProfileEyeBtn"
-          data-password="<?= e($__adminPlainPassword) ?>"
-          title="Показать/скрыть пароль"
-          aria-label="Показать/скрыть пароль">
-          <svg data-eye-show viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"></path>
-            <circle cx="12" cy="12" r="3"></circle>
-          </svg>
-          <svg data-eye-hide viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
-            <path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a18.5 18.5 0 0 1 5.06-5.94M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 7 11 7a18.5 18.5 0 0 1-2.16 3.19M14.12 14.12a3 3 0 1 1-4.24-4.24"></path>
-            <path d="M1 1l22 22"></path>
-          </svg>
-        </button>
-      </div>
+    <div class="admin-profile-line">
+      <span class="admin-profile-line-label">Логин</span>
+      <span class="admin-profile-line-value"><?= e($__adminLogin) ?></span>
+    </div>
+    <div class="admin-profile-line">
+      <span class="admin-profile-line-label">Пароль</span>
+      <span class="admin-profile-line-value is-masked" id="adminProfilePasswordValue">••••••••</span>
+      <button type="button"
+        class="admin-profile-eye-btn"
+        id="adminProfileEyeBtn"
+        data-password="<?= e($__adminPlainPassword) ?>"
+        title="Показать/скрыть пароль"
+        aria-label="Показать/скрыть пароль">
+        <svg data-eye-show viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"></path>
+          <circle cx="12" cy="12" r="3"></circle>
+        </svg>
+        <svg data-eye-hide viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+          <path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a18.5 18.5 0 0 1 5.06-5.94M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 7 11 7a18.5 18.5 0 0 1-2.16 3.19M14.12 14.12a3 3 0 1 1-4.24-4.24"></path>
+          <path d="M1 1l22 22"></path>
+        </svg>
+      </button>
     </div>
   </div>
 

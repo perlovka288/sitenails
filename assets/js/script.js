@@ -24,6 +24,13 @@ document.addEventListener('DOMContentLoaded', function () {
     panels.forEach(function (panel) { panelsResizeObserver.observe(panel); });
   }
   window.addEventListener('resize', updateViewportHeight);
+  // Фото в отзывах/виджетах могут подгрузиться чуть позже первого замера
+  // высоты — пересчитываем ещё раз, когда все картинки точно готовы.
+  window.addEventListener('load', updateViewportHeight);
+  document.querySelectorAll('.panel img').forEach(function (img) {
+    if (img.complete) return;
+    img.addEventListener('load', updateViewportHeight);
+  });
 
   var pageHero = document.getElementById('pageHero');
 
@@ -59,7 +66,22 @@ document.addEventListener('DOMContentLoaded', function () {
     // Приветствие скрываем только на вкладке "О мне" — там уже есть своё
     // приветствие внутри карточки. На остальных вкладках (Отзывы/Прайс/
     // Запись) оно остаётся видимым, как и раньше.
-    pageHero.style.display = name === 'about' ? 'none' : '';
+    var willHide = name === 'about';
+    var wasHidden = pageHero.style.display === 'none';
+    if (willHide === wasHidden) return;
+
+    // Блок hero стоит НАД вкладками — когда он резко появляется или
+    // исчезает, весь контент под ним сдвигается на его высоту, и если
+    // страница была прокручена, это ощущается как "кидает вверх/вниз".
+    // Компенсируем сдвиг прокруткой ровно на ту же величину, чтобы то,
+    // что было перед глазами, там и осталось.
+    var heightBefore = wasHidden ? 0 : pageHero.offsetHeight;
+    pageHero.style.display = willHide ? 'none' : '';
+    var heightAfter = willHide ? 0 : pageHero.offsetHeight;
+    var delta = heightAfter - heightBefore;
+    if (delta !== 0 && window.scrollY > 0) {
+      window.scrollBy(0, delta);
+    }
   }
 
   // ===== Скользящая белая плашка под активной вкладкой =====

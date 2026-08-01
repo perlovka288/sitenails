@@ -543,7 +543,8 @@ a { color: inherit; }
 
 /* ===== Слайдящиеся панели (Отзывы / Прайс / Запись) ===== */
 .panels-viewport {
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: visible;
   margin: 0 -20px;
   padding: 0 20px;
   transition: height .35s cubic-bezier(.65,0,.35,1);
@@ -1339,7 +1340,9 @@ footer .admin-dot {
   z-index: 0;
 }
 .admin-nav-return {
-  margin-bottom: 24px;
+  display: flex;
+  justify-content: center;
+  margin: 4px 0 24px;
 }
 .admin-nav-return a {
   display: inline-flex;
@@ -1361,102 +1364,86 @@ footer .admin-dot {
   .admin-nav-indicator { transition: none; }
 }
 
-/* ---- Профиль-карточка на "Главной" — по центру, как в iCloud:
-   аватар, имя, приветствие, логин и скрытый пароль с глазком. ---- */
-.admin-profile-card {
+/* ---- Профиль на "Главной" — минималистично, без карточки-плашки:
+   аватар → имя → приветствие → логин → пароль с глазком, всё по
+   центру друг под другом, с мягкой тенью вместо рамки/фона. ---- */
+.admin-profile-mini {
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: 6px;
-  padding: 32px 20px 28px;
-  margin-bottom: 24px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius, 16px);
-  box-shadow: var(--shadow), inset 0 1px 0 var(--card-rim);
+  gap: 4px;
+  padding: 8px 20px 20px;
+  margin-bottom: 20px;
 }
 .admin-profile-avatar {
-  width: 88px;
-  height: 88px;
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
   overflow: hidden;
-  border: 1px solid var(--line);
   background: var(--surface-2);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow);
 }
 .admin-profile-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .admin-profile-avatar-fallback {
   font-family: 'Playfair Display', Georgia, serif;
   font-weight: 700;
-  font-size: 34px;
+  font-size: 24px;
   color: var(--ink-soft);
 }
 .admin-profile-name {
   font-family: 'Manrope', sans-serif;
   font-weight: 800;
-  font-size: 20px;
+  font-size: 17px;
   color: var(--ink);
   margin: 0;
+  text-shadow: 0 1px 0 rgba(0,0,0,.2);
 }
 .admin-profile-greeting {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--ink-soft);
-  margin: 2px 0 18px;
+  margin: 2px 0 16px;
 }
-.admin-profile-fields {
-  width: 100%;
-  max-width: 320px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.admin-profile-field {
+.admin-profile-line {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 12px 14px;
-  border-radius: 12px;
-  background: var(--surface-2);
-  border: 1px solid var(--line);
+  justify-content: center;
+  gap: 8px;
+  font-size: 13.5px;
+  padding: 3px 0;
 }
-.admin-profile-field-label {
-  font-size: 11px;
+.admin-profile-line-label {
+  color: var(--ink-faint);
   text-transform: uppercase;
   letter-spacing: .05em;
-  color: var(--ink-faint);
-  display: block;
-  margin-bottom: 2px;
+  font-size: 11px;
 }
-.admin-profile-field-value {
-  font-size: 14px;
+.admin-profile-line-value {
   color: var(--ink);
   font-weight: 600;
   letter-spacing: .02em;
-  word-break: break-all;
-  text-align: left;
 }
-.admin-profile-field-value.is-masked { letter-spacing: .12em; }
+.admin-profile-line-value.is-masked { letter-spacing: .12em; }
 .admin-profile-eye-btn {
   flex-shrink: 0;
-  width: 32px;
-  height: 32px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
-  border: 1px solid var(--line);
+  border: none;
   background: transparent;
   color: var(--ink-soft);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: color .15s ease, border-color .15s ease;
+  transition: color .15s ease;
 }
-.admin-profile-eye-btn:hover { color: var(--ink); border-color: var(--primary); }
-.admin-profile-eye-btn svg { width: 18px; height: 18px; }
+.admin-profile-eye-btn:hover { color: var(--primary); }
+.admin-profile-eye-btn svg { width: 16px; height: 16px; }
 
 /* ---- Большая кнопка "Выйти" внизу панели (только на Главной) ---- */
 .admin-logout-block { margin-top: 32px; padding-top: 20px; border-top: 1px solid var(--line); }
@@ -1745,16 +1732,42 @@ table.admin-table th { background: var(--surface-2); font-size: 11px; text-trans
   border-bottom: 1px solid var(--line);
 }
 .about-me-photo {
-  flex: 0 0 220px;
-  width: 220px;
-  height: 220px;
-  border-radius: var(--radius);
+  position: relative;
+  flex: 0 0 240px;
+  width: 240px;
+  aspect-ratio: 3 / 4;
+  height: auto;
+  border-radius: 28px;
   overflow: hidden;
   background: var(--surface);
-  box-shadow: var(--shadow), inset 0 1px 0 var(--card-rim);
   margin: 0 auto;
 }
-.about-me-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.about-me-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 20%;
+  display: block;
+}
+/* Растворяем края фото в фоне страницы вместо жёсткой рамки — эффект
+   "фото проступает из темноты". Используем var(--bg), поэтому в светлой
+   теме растворение уходит в светлый фон, а в тёмной — в чёрный: эффект
+   сам подстраивается под тему, а не завязан на конкретный цвет. */
+.about-me-photo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(125% 100% at 50% 32%, transparent 38%, var(--bg) 92%),
+    linear-gradient(180deg, transparent 40%, var(--bg) 100%);
+  pointer-events: none;
+}
+@media (min-width: 560px) {
+  .about-me-photo { flex: 0 0 260px; width: 260px; }
+}
+@media (max-width: 559px) {
+  .about-me-photo { width: min(78vw, 320px); }
+}
 .about-me-photo-placeholder {
   width: 100%; height: 100%;
   display: flex; align-items: center; justify-content: center;

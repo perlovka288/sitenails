@@ -3,9 +3,25 @@ $current = basename($_SERVER['SCRIPT_NAME']);
 $__aboutPages = ['about.php', 'experience.php', 'widgets.php', 'widget_items.php', 'social.php'];
 $__clientsBookingPages = ['slots.php', 'bookings.php'];
 ?>
-<div class="admin-nav-return">
-  <a href="../index.php">← Вернуться на сайт</a>
-</div>
+<!-- ===== Восстановление позиции скролла: панель управления — это набор
+     обычных PHP-страниц (полная перезагрузка при переходах/сохранениях),
+     поэтому без этого браузер каждый раз кидает наверх. Перед уходом со
+     страницы (клик по ссылке/отправка формы) admin.js запоминает текущий
+     scrollY в sessionStorage под ключом с адресом страницы, а здесь —
+     максимально рано, ещё до отрисовки — мы её тут же восстанавливаем,
+     если она сохранена именно для этой страницы. ===== -->
+<script>
+(function () {
+  try {
+    var k = 'admin_scroll::' + location.pathname;
+    var y = sessionStorage.getItem(k);
+    if (y !== null) {
+      sessionStorage.removeItem(k);
+      window.scrollTo(0, parseInt(y, 10) || 0);
+    }
+  } catch (e) {}
+})();
+</script>
 
 <div class="admin-nav-groups">
   <div class="admin-nav-group">
@@ -34,4 +50,8 @@ $__clientsBookingPages = ['slots.php', 'bookings.php'];
       <a href="slots.php" class="<?= in_array($current, $__clientsBookingPages, true) ? 'active' : '' ?>">Запись</a>
     </div>
   </div>
+</div>
+
+<div class="admin-nav-return">
+  <a href="../index.php">← Вернуться на сайт</a>
 </div>

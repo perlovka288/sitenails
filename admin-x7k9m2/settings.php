@@ -89,9 +89,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrfCheck()) {
         } elseif ($new !== $repeat) {
             $error = 'Пароли не совпадают.';
         } else {
-            $pdo->prepare('UPDATE admin_users SET password_hash = ? WHERE id = ?')
-                ->execute([password_hash($new, PASSWORD_DEFAULT), $user['id']]);
-            $_SESSION['admin_plain_password'] = $new;
+            $pdo->prepare('UPDATE admin_users SET password_hash = ?, password_display = ? WHERE id = ?')
+                ->execute([password_hash($new, PASSWORD_DEFAULT), encryptAdminPassword($new), $user['id']]);
             $message = 'Пароль успешно изменён.';
         }
     }

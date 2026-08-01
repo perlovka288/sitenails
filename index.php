@@ -153,8 +153,8 @@ require __DIR__ . '/includes/header.php';
   <!-- ===== О МНЕ ===== -->
   <section class="panel" id="about" data-panel="about">
     <?php if ($aboutHasContent): ?>
-      <div class="about-me reveal-on-scroll">
-        <div class="about-me-photo">
+      <div class="about-me">
+        <div class="about-me-photo reveal-on-scroll" style="--reveal-i:0;">
           <?php if (!empty($about['photo_path'])): ?>
             <img src="<?= e($about['photo_path']) ?>" alt="<?= e($about['title'] ?? '') ?>">
           <?php else: ?>
@@ -163,7 +163,7 @@ require __DIR__ . '/includes/header.php';
             </div>
           <?php endif; ?>
         </div>
-        <div class="about-me-content">
+        <div class="about-me-content reveal-on-scroll" style="--reveal-i:2;">
           <?php
             $__aboutGreeting = ($lang === 'ua' && !empty($about['greeting_ua'])) ? $about['greeting_ua'] : ($about['greeting'] ?? '');
             $__aboutTitle    = ($lang === 'ua' && !empty($about['title_ua']))    ? $about['title_ua']    : ($about['title'] ?? '');

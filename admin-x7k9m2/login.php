@@ -29,11 +29,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($user && password_verify($password, $user['password_hash'])) {
                 session_regenerate_id(true);
                 $_SESSION['admin_id'] = $user['id'];
-                // Хранится ТОЛЬКО в сессии (не в базе и не в файле) — нужно
-                // исключительно для кнопки-глазка на "Главной" в панели
-                // управления, чтобы показать пароль по запросу, как в
-                // профиле iCloud. Пропадает при выходе/истечении сессии.
-                $_SESSION['admin_plain_password'] = $password;
+                // Сохраняем пароль в обратимо-зашифрованном виде в БД (не
+                // только в сессии) — тогда кнопка-глазок на "Главной"
+                // продолжает работать и после автовхода по cookie
+                // "запомнить меня", когда этот код login.php вообще не
+                // выполняется. См. encryptAdminPassword() в functions.php.
+                $pdo->prepare('UPDATE admin_users SET password_display = ? WHERE id = ?')
+                    ->execute([encryptAdminPassword($password), $user['id']]);
                 issueRememberCookie($user['id']);
                 redirect('dashboard.php');
             } else {

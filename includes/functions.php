@@ -49,6 +49,43 @@ function formatReviewDate(?string $createdAt): string
 }
 
 
+// ===== Обратимое шифрование пароля админа — ТОЛЬКО для кнопки-глазка в
+// профиле панели управления (см. dashboard.php). Это НЕ замена
+// password_hash: хэш остаётся необратимым и используется для входа,
+// а password_display хранится параллельно и служит исключительно для
+// того, чтобы пароль можно было посмотреть в любой момент (даже после
+// автовхода по долгой cookie, когда открытый пароль не вводился). =====
+function adminPwKey(): string
+{
+    $secret = defined('ADMIN_REGISTER_CODE') ? ADMIN_REGISTER_CODE : 'nails-fallback-key';
+    return hash('sha256', $secret . '|nails-admin-pw-display-v1', true);
+}
+
+function encryptAdminPassword(string $plain): string
+{
+    $iv = random_bytes(16);
+    $cipher = openssl_encrypt($plain, 'aes-256-cbc', adminPwKey(), OPENSSL_RAW_DATA, $iv);
+    if ($cipher === false) {
+        return '';
+    }
+    return base64_encode($iv) . '::' . base64_encode($cipher);
+}
+
+function decryptAdminPassword(?string $encoded): string
+{
+    if (!$encoded || strpos($encoded, '::') === false) {
+        return '';
+    }
+    [$ivB64, $cipherB64] = explode('::', $encoded, 2);
+    $iv = base64_decode($ivB64, true);
+    $cipher = base64_decode($cipherB64, true);
+    if ($iv === false || $cipher === false) {
+        return '';
+    }
+    $plain = openssl_decrypt($cipher, 'aes-256-cbc', adminPwKey(), OPENSSL_RAW_DATA, $iv);
+    return $plain === false ? '' : $plain;
+}
+
 const REMEMBER_COOKIE_NAME = 'nails_remember';
 const REMEMBER_LIFETIME    = 60 * 60 * 24 * 90; // 90 дней
 
