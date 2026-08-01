@@ -94,6 +94,12 @@ const REMEMBER_LIFETIME    = 60 * 60 * 24 * 90; // 90 дней
 // хостинге), пробуем восстановить вход по долгоживущей куке.
 function isAdmin(): bool
 {
+    // Режим предпросмотра "глазами посетителя" — см. index.php. Только
+    // выключает отображение admin-режима, реальную сессию не трогает.
+    if (defined('PREVIEW_AS_VISITOR') && PREVIEW_AS_VISITOR) {
+        return false;
+    }
+
     if (!empty($_SESSION['admin_id'])) {
         return true;
     }

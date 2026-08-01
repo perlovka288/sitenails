@@ -83,5 +83,6 @@ $reviews = $pdo->query('SELECT * FROM reviews ORDER BY is_approved ASC, created_
     <?php endif; ?>
   </div>
 </div>
+<script src="assets/admin.js?v=<?= filemtime(__DIR__ . '/assets/admin.js') ?>" defer></script>
 </body>
 </html>

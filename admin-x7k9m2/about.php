@@ -48,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrfCheck()) {
             trim($_POST['subtitle'] ?? ''), trim($_POST['subtitle_ua'] ?? '') ?: null,
             trim($_POST['bio'] ?? ''), trim($_POST['bio_ua'] ?? '') ?: null,
         ]);
-        redirect('about.php');
+        redirect('about.php#about-acc-info');
     }
 
     // ===== Кнопки: добавить или изменить =====
@@ -70,7 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrfCheck()) {
                     ->execute([$text, $textUa ?: null, $type, $url ?: null, $iconText ?: null, $maxOrder + 1]);
             }
         }
-        redirect('about.php');
+        redirect('about.php#about-acc-buttons');
     }
 
     // ===== Кнопки: вкл/выкл тумблером прямо из списка =====
@@ -78,13 +78,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrfCheck()) {
         $id = (int)($_POST['id'] ?? 0);
         $pdo->prepare('UPDATE about_buttons SET enabled = ? WHERE id = ?')
             ->execute([isset($_POST['enabled']) ? 1 : 0, $id]);
-        redirect('about.php');
+        // Раньше редирект шёл без #about-acc-buttons, поэтому после
+        // переключения тумблера аккордеон "Кнопки" резко "схлопывался"
+        // обратно (страница перезагружалась в свёрнутом виде) — со
+        // стороны это выглядело так, будто сайт "закрывает вкладку".
+        redirect('about.php#about-acc-buttons');
     }
 
     // ===== Кнопки: удалить =====
     if ($form === 'btn_delete') {
         $pdo->prepare('DELETE FROM about_buttons WHERE id = ?')->execute([(int)($_POST['id'] ?? 0)]);
-        redirect('about.php');
+        redirect('about.php#about-acc-buttons');
     }
 
     // ===== Статистика: добавить =====
@@ -97,13 +101,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrfCheck()) {
             $pdo->prepare('INSERT INTO about_stats (value, label, label_ua, sort_order) VALUES (?, ?, ?, ?)')
                 ->execute([$value, $label, $labelUa ?: null, $maxOrder + 1]);
         }
-        redirect('about.php');
+        redirect('about.php#about-acc-stats');
     }
 
     // ===== Статистика: удалить =====
     if ($form === 'stat_delete') {
         $pdo->prepare('DELETE FROM about_stats WHERE id = ?')->execute([(int)($_POST['id'] ?? 0)]);
-        redirect('about.php');
+        redirect('about.php#about-acc-stats');
     }
 
     // ===== Навык: добавить =====
@@ -123,7 +127,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrfCheck()) {
             $pdo->prepare('INSERT INTO about_skills (name, name_ua, icon_text, icon_image, sort_order) VALUES (?, ?, ?, ?, ?)')
                 ->execute([$name, $nameUa ?: null, $iconText ?: null, $iconImage, $maxOrder + 1]);
         }
-        redirect('about.php');
+        redirect('about.php#about-acc-skills');
     }
 
     // ===== Навык: удалить =====
@@ -136,7 +140,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrfCheck()) {
             deleteUploadedFile($row['icon_image']);
         }
         $pdo->prepare('DELETE FROM about_skills WHERE id = ?')->execute([$id]);
-        redirect('about.php');
+        redirect('about.php#about-acc-skills');
     }
 
     // ===== Опыт работы: добавить / изменить =====

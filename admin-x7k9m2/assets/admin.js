@@ -625,4 +625,63 @@ document.addEventListener('DOMContentLoaded', function () {
       nameEl.classList.add('has-file');
     });
   });
+
+  // ===== Глазок пароля в профиле (карточка "Логин / Пароль" на главной
+  // панели) — раньше кнопка была только визуальной, без обработчика,
+  // поэтому клик ничего не делал и всегда были видны точки. =====
+  var eyeBtn = document.getElementById('adminProfileEyeBtn');
+  var passwordValueEl = document.getElementById('adminProfilePasswordValue');
+  if (eyeBtn && passwordValueEl) {
+    var realPassword = eyeBtn.dataset.password || '';
+    var showIcon = eyeBtn.querySelector('[data-eye-show]');
+    var hideIcon = eyeBtn.querySelector('[data-eye-hide]');
+    var revealed = false;
+    eyeBtn.addEventListener('click', function () {
+      revealed = !revealed;
+      passwordValueEl.textContent = revealed ? (realPassword || '—') : '••••••••';
+      passwordValueEl.classList.toggle('is-masked', !revealed);
+      if (showIcon) showIcon.style.display = revealed ? 'none' : '';
+      if (hideIcon) hideIcon.style.display = revealed ? '' : 'none';
+      eyeBtn.setAttribute('aria-label', revealed ? 'Скрыть пароль' : 'Показать пароль');
+    });
+  }
+
+  // ===== "Посмотреть как посетитель" — открывает сайт в полноэкранном
+  // окне ТАК, как его видит обычный посетитель (без админских элементов
+  // управления), не выходя при этом из аккаунта админки. Закрывается
+  // крестиком внизу — возвращает обратно на текущую страницу панели. =====
+  var visitorPreviewBtn = document.getElementById('adminVisitorPreviewBtn');
+  var visitorPreviewOverlay = document.getElementById('adminVisitorPreviewOverlay');
+  if (visitorPreviewBtn && visitorPreviewOverlay) {
+    var visitorPreviewFrame = document.getElementById('adminVisitorPreviewFrame');
+    var visitorPreviewCloseBtn = document.getElementById('adminVisitorPreviewCloseBtn');
+    var visitorPreviewSrc = visitorPreviewBtn.dataset.previewSrc || '../index.php?preview_visitor=1';
+
+    visitorPreviewBtn.addEventListener('click', function () {
+      // Кадр создаём заново при каждом открытии — так предпросмотр всегда
+      // стартует со свежим состоянием сайта (без кэша прошлого открытия).
+      if (visitorPreviewFrame) {
+        visitorPreviewFrame.src = visitorPreviewSrc;
+      }
+      visitorPreviewOverlay.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    });
+
+    function closeVisitorPreview() {
+      visitorPreviewOverlay.classList.remove('open');
+      document.body.style.overflow = '';
+      if (visitorPreviewFrame) {
+        visitorPreviewFrame.src = 'about:blank';
+      }
+    }
+
+    if (visitorPreviewCloseBtn) {
+      visitorPreviewCloseBtn.addEventListener('click', closeVisitorPreview);
+    }
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && visitorPreviewOverlay.classList.contains('open')) {
+        closeVisitorPreview();
+      }
+    });
+  }
 });

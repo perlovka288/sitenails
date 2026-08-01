@@ -54,4 +54,20 @@ $__clientsBookingPages = ['slots.php', 'bookings.php'];
 
 <div class="admin-nav-return">
   <a href="../index.php">← Вернуться на сайт</a>
+  <button type="button" id="adminVisitorPreviewBtn" class="admin-nav-preview-btn" data-preview-src="../index.php?preview_visitor=1">
+    👁 Посмотреть как посетитель
+  </button>
+</div>
+
+<!-- ===== Полноэкранный предпросмотр "глазами посетителя" =====
+     Открывает сайт в iframe с ?preview_visitor=1 — на этот параметр
+     index.php временно перестаёт показывать админские элементы
+     (кнопки редактирования, бейджи и т.д.), даже если сессия
+     администратора активна. Сама сессия при этом не трогается —
+     это только про то, ЧТО отображается на странице. ===== -->
+<div class="admin-visitor-preview-overlay" id="adminVisitorPreviewOverlay">
+  <iframe id="adminVisitorPreviewFrame" class="admin-visitor-preview-frame" title="Предпросмотр сайта глазами посетителя" src="about:blank"></iframe>
+  <button type="button" id="adminVisitorPreviewCloseBtn" class="admin-visitor-preview-close">
+    ✕ Завершить просмотр
+  </button>
 </div>

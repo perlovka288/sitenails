@@ -3,6 +3,18 @@ require __DIR__ . '/config.php';
 require __DIR__ . '/includes/functions.php';
 require __DIR__ . '/includes/lang.php';
 
+// ==== Режим предпросмотра "глазами посетителя" (кнопка в админ-панели,
+// admin-x7k9m2/includes/nav.php, открывается в отдельном iframe с
+// ?preview_visitor=1). Флаг выставляем максимально рано и учитываем
+// его ВНУТРИ самой isAdmin() (см. includes/functions.php) — иначе шапка,
+// подвал и гейт входа, которые вызывают isAdmin() напрямую, а не через
+// $__isAdmin ниже, продолжили бы считать администратора авторизованным.
+// Само значение только ВЫКЛЮЧАЕТ admin-режим отображения — реальная
+// сессия администратора нигде не трогается и не сбрасывается.
+if (($_GET['preview_visitor'] ?? '') === '1') {
+    define('PREVIEW_AS_VISITOR', true);
+}
+
 $pdo = getDB();
 $lang = currentLang();
 $__isAdmin = isAdmin();
@@ -400,19 +412,19 @@ require __DIR__ . '/includes/header.php';
             <input type="hidden" name="action" value="review_toggle">
             <input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
             <input type="hidden" name="back_tab" value="reviews">
-            <button type="submit" class="icon-btn" title="<?= $r['is_approved'] ? ($lang === 'ua' ? 'Приховати' : 'Скрыть') : ($lang === 'ua' ? 'Опублікувати' : 'Опубликовать') ?>"><?= $r['is_approved'] ? e(t('reviews_hide')) : e(t('reviews_show')) ?></button>
+            <button type="submit" class="review-action-btn" title="<?= $r['is_approved'] ? ($lang === 'ua' ? 'Приховати' : 'Скрыть') : ($lang === 'ua' ? 'Опублікувати' : 'Опубликовать') ?>"><?= $r['is_approved'] ? e(t('reviews_hide')) : e(t('reviews_show')) ?></button>
           </form>
           <form method="post" action="admin_quick_action.php" onsubmit="return confirm(<?= json_encode(t('reviews_confirm_delete')) ?>);">
             <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
             <input type="hidden" name="action" value="review_delete">
             <input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
             <input type="hidden" name="back_tab" value="reviews">
-            <button type="submit" class="icon-btn icon-btn--danger" title="<?= $lang === 'ua' ? 'Видалити' : 'Удалить' ?>"><?= e(t('reviews_delete')) ?></button>
+            <button type="submit" class="review-action-btn review-action-btn--danger" title="<?= $lang === 'ua' ? 'Видалити' : 'Удалить' ?>"><?= e(t('reviews_delete')) ?></button>
           </form>
         </div>
         <?php elseif (reviewOwnedByCurrentUser($r, $__siteUser)): ?>
         <div class="admin-inline-actions">
-          <button type="button" class="icon-btn review-edit-btn"
+          <button type="button" class="review-action-btn review-edit-btn"
             title="<?= $lang === 'ua' ? 'Редагувати' : 'Редактировать' ?>"
             data-id="<?= (int)$r['id'] ?>"
             data-name="<?= e($r['author_name']) ?>"
@@ -422,7 +434,7 @@ require __DIR__ . '/includes/header.php';
           <form method="post" action="delete_own_review.php" onsubmit="return confirm(<?= json_encode(t('reviews_confirm_delete')) ?>);">
             <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
             <input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
-            <button type="submit" class="icon-btn icon-btn--danger" title="<?= $lang === 'ua' ? 'Видалити' : 'Удалить' ?>">🗑️</button>
+            <button type="submit" class="review-action-btn review-action-btn--danger" title="<?= $lang === 'ua' ? 'Видалити' : 'Удалить' ?>">🗑️</button>
           </form>
         </div>
         <?php endif; ?>

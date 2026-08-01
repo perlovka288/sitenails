@@ -160,6 +160,11 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     updateViewportHeight();
+    // Повторный пересчёт чуть позже — догоняет случаи, когда высота
+    // контента ещё меняется (анимация появления/скрытия hero, аккордеоны,
+    // догружающиеся превью виджетов), а не только момент самого клика.
+    window.setTimeout(updateViewportHeight, 60);
+    window.setTimeout(updateViewportHeight, 400);
 
     // На всякий случай сразу проявляем блоки внутри только что открытой
     // вкладки — она наезжает сдвигом transform, и IntersectionObserver

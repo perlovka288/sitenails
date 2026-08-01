@@ -544,7 +544,18 @@ a { color: inherit; }
 /* ===== Слайдящиеся панели (Отзывы / Прайс / Запись) ===== */
 .panels-viewport {
   overflow-x: hidden;
-  overflow-y: visible;
+  /* Раньше здесь стояло overflow-y: visible — сочетание overflow-x:hidden
+     и overflow-y:visible на одном элементе разные браузеры трактуют
+     по-разному (спецификой CSS это разрешено превращать "visible" в
+     фактическое "auto"), из-за чего скрытая (visibility:hidden) вкладка
+     "О мне" — самая высокая из четырёх — иногда "продавливала" высоту
+     блока и сдвигала/перекрывала соседний контент (кнопку "Оставить
+     отзыв" и приветственный текст), а также мешала докрутить страницу
+     до подвала (соцсети/телефон/адрес). Высоту блока и так всегда
+     точно выставляет JS (updateViewportHeight) под контент активной
+     вкладки, поэтому hidden здесь безопасен и убирает разнобой между
+     браузерами. */
+  overflow-y: hidden;
   margin: 0 -20px;
   padding: 0 20px;
   transition: height .35s cubic-bezier(.65,0,.35,1);
@@ -1341,10 +1352,13 @@ footer .admin-dot {
 }
 .admin-nav-return {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
+  gap: 10px;
   margin: 4px 0 24px;
 }
-.admin-nav-return a {
+.admin-nav-return a,
+.admin-nav-preview-btn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -1356,9 +1370,50 @@ footer .admin-dot {
   font-size: 13px;
   font-weight: 600;
   color: var(--ink-soft);
+  font-family: inherit;
+  cursor: pointer;
   transition: border-color .15s ease, color .15s ease;
 }
-.admin-nav-return a:hover { border-color: var(--primary); color: var(--ink); }
+.admin-nav-return a:hover,
+.admin-nav-preview-btn:hover { border-color: var(--primary); color: var(--ink); }
+
+/* ---- Полноэкранный предпросмотр "глазами посетителя" ---- */
+.admin-visitor-preview-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  display: none;
+  flex-direction: column;
+  background: var(--bg);
+}
+.admin-visitor-preview-overlay.open { display: flex; }
+.admin-visitor-preview-frame {
+  flex: 1;
+  width: 100%;
+  border: none;
+  background: var(--bg);
+}
+.admin-visitor-preview-close {
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  z-index: 501;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 22px;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  background: var(--surface-2);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 10px 26px rgba(0,0,0,.45);
+}
+.admin-visitor-preview-close:hover { border-color: var(--primary); }
 
 @media (prefers-reduced-motion: reduce) {
   .admin-nav-indicator { transition: none; }
@@ -1657,7 +1712,7 @@ table.admin-table th { background: var(--surface-2); font-size: 11px; text-trans
   margin-top: 12px;
   flex-wrap: wrap;
 }
-.icon-btn {
+.review-action-btn {
   border: 1px solid var(--line-strong);
   background: transparent;
   color: var(--ink-soft);
@@ -1673,10 +1728,10 @@ table.admin-table th { background: var(--surface-2); font-size: 11px; text-trans
   transform: translateY(0);
   transition: background .15s ease, color .15s ease, border-color .15s ease, transform .15s cubic-bezier(.34,1.56,.64,1), box-shadow .15s ease;
 }
-.icon-btn:hover { background: var(--primary-soft); color: var(--primary); border-color: var(--primary); transform: translateY(-1px); box-shadow: 0 9px 18px -8px rgba(0, 0, 0, .6), var(--btn-glow); }
-.icon-btn:active { transform: translateY(1px); box-shadow: 0 2px 6px -3px rgba(0, 0, 0, .5); }
-.icon-btn--danger { color: #e4a3a3; border-color: rgba(200,100,100,.35); }
-.icon-btn--danger:hover { background: rgba(200,100,100,.12); color: #e4a3a3; border-color: rgba(200,100,100,.5); }
+.review-action-btn:hover { background: var(--primary-soft); color: var(--primary); border-color: var(--primary); transform: translateY(-1px); box-shadow: 0 9px 18px -8px rgba(0, 0, 0, .6), var(--btn-glow); }
+.review-action-btn:active { transform: translateY(1px); box-shadow: 0 2px 6px -3px rgba(0, 0, 0, .5); }
+.review-action-btn--danger { color: #e4a3a3; border-color: rgba(200,100,100,.35); }
+.review-action-btn--danger:hover { background: rgba(200,100,100,.12); color: #e4a3a3; border-color: rgba(200,100,100,.5); }
 
 .review--hidden { opacity: .55; }
 .admin-hidden-badge { display: inline-block; margin-bottom: 10px; }
