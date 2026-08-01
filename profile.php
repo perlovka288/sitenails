@@ -48,6 +48,16 @@ $__mapsHref = $masterAddress !== '' ? 'https://www.google.com/maps/search/?api=1
 <meta name="theme-color" content="#12121a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem('site_theme');
+    if (saved === 'light' || saved === 'dark') {
+      document.documentElement.setAttribute('data-theme', saved);
+    }
+  } catch (e) {}
+})();
+</script>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Manrope:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/css/style.css?v=<?= filemtime(__DIR__ . '/assets/css/style.css') ?>">
 </head>
@@ -62,6 +72,15 @@ $__mapsHref = $masterAddress !== '' ? 'https://www.google.com/maps/search/?api=1
       <img src="assets/img/social/nails.png" alt="">
     </a>
     <div class="topbar-actions">
+      <button type="button" class="theme-toggle-btn" id="themeToggleBtn" aria-label="Переключить тему оформления" title="Светлая / тёмная тема">
+        <svg class="theme-toggle-icon theme-toggle-icon--sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="4"></circle>
+          <path d="M12 2v2.5M12 19.5V22M4.22 4.22l1.77 1.77M17.99 17.99l1.77 1.77M2 12h2.5M19.5 12H22M4.22 19.78l1.77-1.77M17.99 6.01l1.77-1.77"></path>
+        </svg>
+        <svg class="theme-toggle-icon theme-toggle-icon--moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+      </button>
       <?php if ($__siteUser): ?>
       <div class="notif-center" id="notifCenter">
         <button type="button" class="notif-bell-btn" id="notifCenterBtn" aria-label="Уведомления" title="Уведомления">
@@ -205,6 +224,24 @@ $__mapsHref = $masterAddress !== '' ? 'https://www.google.com/maps/search/?api=1
       target.classList.remove('booking-card-highlight');
     }, 2600);
   }, 150);
+})();
+</script>
+<script>
+// Переключатель светлой/тёмной темы — тот же принцип, что в assets/js/script.js
+// на главной, но отдельно тут, чтобы не тащить весь script.js на страницу профиля.
+(function () {
+  var btn = document.getElementById('themeToggleBtn');
+  var themeColorMeta = document.querySelector('meta[name="theme-color"]');
+  if (!btn) return;
+  btn.addEventListener('click', function () {
+    var isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    var next = isLight ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', next);
+    try { localStorage.setItem('site_theme', next); } catch (e) {}
+    if (themeColorMeta) {
+      themeColorMeta.setAttribute('content', next === 'light' ? '#f3f2f0' : '#12121a');
+    }
+  });
 })();
 </script>
 <?php require __DIR__ . '/includes/push_bell_script.php'; ?>

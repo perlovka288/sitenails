@@ -93,6 +93,24 @@ document.addEventListener('DOMContentLoaded', function () {
     document.fonts.ready.then(function () { updateTabIndicator(false); });
   }
 
+  // ===== Переключатель светлой/тёмной темы =====
+  var themeToggleBtn = document.getElementById('themeToggleBtn');
+  var themeColorMeta = document.querySelector('meta[name="theme-color"]');
+  if (themeToggleBtn) {
+    themeToggleBtn.addEventListener('click', function () {
+      var isLight = document.documentElement.getAttribute('data-theme') === 'light';
+      var next = isLight ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', next);
+      try { localStorage.setItem('site_theme', next); } catch (e) {}
+      if (themeColorMeta) {
+        themeColorMeta.setAttribute('content', next === 'light' ? '#f3f2f0' : '#12121a');
+      }
+      // Плашка вкладок и её размеры не зависят от темы, но раз уж кнопки
+      // могли чуть изменить метрики шрифта — на всякий случай пересчитаем.
+      updateTabIndicator(false);
+    });
+  }
+
   function setActiveTab(name, animate) {
     var idx = tabOrder.indexOf(name);
     if (idx === -1) idx = 0;

@@ -13,12 +13,44 @@
   --primary: #ffffff;       /* белый акцент вместо золота */
   --primary-soft: rgba(255, 255, 255, .12);
   --primary-dark: #d6d6d6;
+  --btn-ink: #1a1310;        /* цвет текста НА кнопке/акценте (var(--primary)) */
   --star-gold: #ffc94d;     /* отдельный жёлтый цвет — только для звёзд рейтинга */
   --line: rgba(245, 245, 245, .14);
   --line-strong: rgba(245, 245, 245, .28);
   --radius: 16px;
   --radius-sm: 10px;
   --shadow: 0 16px 40px rgba(0, 0, 0, .5);
+  --glow-1: rgba(255, 255, 255, .06);
+  --glow-2: rgba(255, 255, 255, .04);
+  --topbar-bg: rgba(13, 11, 11, .92);
+}
+
+/* ===== Светлая тема =====
+   Переключается через data-theme="light" на <html> (см. themeToggleBtn
+   в script.js, сохраняется в localStorage под ключом "site_theme").
+   Чёрно-белая монохромность сохраняется — просто инвертируем яркость:
+   в тёмной теме кнопки (var(--primary)) белые, в светлой — чёрные.
+   Применяется ТОЛЬКО на клиентском сайте (index.php/profile.php/
+   login.php/register.php) — админ-панель переключатель темы не
+   подключает и всегда остаётся в исходной тёмной палитре. */
+:root[data-theme="light"] {
+  --bg: #f3f2f0;
+  --bg-soft: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #f7f6f4;
+  --ink: #17140f;
+  --ink-soft: #5c5850;
+  --ink-faint: #8f8a80;
+  --primary: #17140f;       /* в светлой теме кнопки чёрные */
+  --primary-soft: rgba(23, 20, 15, .07);
+  --primary-dark: #000000;
+  --btn-ink: #f7f6f4;        /* текст на чёрной кнопке — светлый */
+  --line: rgba(23, 20, 15, .12);
+  --line-strong: rgba(23, 20, 15, .24);
+  --shadow: 0 16px 34px rgba(23, 20, 15, .14);
+  --glow-1: rgba(23, 20, 15, .035);
+  --glow-2: rgba(23, 20, 15, .025);
+  --topbar-bg: rgba(255, 255, 255, .86);
 }
 
 * { box-sizing: border-box; }
@@ -29,13 +61,14 @@ body {
   margin: 0;
   background: var(--bg);
   background-image:
-    radial-gradient(circle at 15% 0%, rgba(255, 255, 255, .06), transparent 45%),
-    radial-gradient(circle at 100% 20%, rgba(255, 255, 255, .04), transparent 40%);
+    radial-gradient(circle at 15% 0%, var(--glow-1), transparent 45%),
+    radial-gradient(circle at 100% 20%, var(--glow-2), transparent 40%);
   color: var(--ink);
   font-family: 'Jost', -apple-system, sans-serif;
   font-weight: 300;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+  transition: background-color .3s ease, color .3s ease;
 }
 
 h1, h2, h3, .display {
@@ -59,10 +92,11 @@ a { color: inherit; }
   position: sticky;
   top: 0;
   z-index: 20;
-  background: rgba(13, 11, 11, .92);
+  background: var(--topbar-bg);
   backdrop-filter: blur(10px);
   padding: 18px 0 10px;
   border-bottom: 1px solid var(--line);
+  transition: background-color .3s ease;
 }
 
 .topbar-row {
@@ -116,7 +150,7 @@ a { color: inherit; }
 
 .lang-switch a.active {
   background: var(--primary);
-  color: #1a1310;
+  color: var(--btn-ink);
 }
 
 .nav-tabs {
@@ -325,7 +359,7 @@ a { color: inherit; }
   height: 26px;
   border-radius: 50%;
   background: var(--primary);
-  color: #fff;
+  color: var(--btn-ink);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -445,7 +479,7 @@ a { color: inherit; }
 
 .tab-btn.active {
   border-color: transparent;
-  color: #1a1310;
+  color: var(--btn-ink);
   font-weight: 600;
   box-shadow: none;
 }
@@ -768,7 +802,7 @@ section.block { padding: 28px 0; }
   padding: 14px 22px;
   border-radius: var(--radius-sm);
   background: var(--primary);
-  color: #1a1310;
+  color: var(--btn-ink);
   font-weight: 600;
   font-size: 13.5px;
   letter-spacing: .05em;
@@ -784,7 +818,7 @@ section.block { padding: 28px 0; }
   transition: background .15s ease, transform .18s cubic-bezier(.34,1.56,.64,1), box-shadow .18s ease;
 }
 
-.btn:hover { background: #e2e2e2; transform: translateY(-2px); box-shadow: 0 4px 0 rgba(0, 0, 0, .35), 0 16px 28px -8px rgba(0, 0, 0, .6); }
+.btn:hover { background: var(--primary-dark); transform: translateY(-2px); box-shadow: 0 4px 0 rgba(0, 0, 0, .35), 0 16px 28px -8px rgba(0, 0, 0, .6); }
 .btn:active { transform: translateY(1px) scale(.98); box-shadow: 0 1px 0 rgba(0, 0, 0, .35), 0 4px 10px -4px rgba(0, 0, 0, .5); }
 .btn.full { width: 100%; text-align: center; }
 .btn.ghost { background: transparent; color: var(--primary); border: 1px solid var(--primary); box-shadow: 0 8px 18px -10px rgba(0, 0, 0, .5); }
@@ -876,7 +910,7 @@ footer .admin-dot {
   height: 56px;
   border-radius: 50%;
   background: var(--primary);
-  color: #1a1310;
+  color: var(--btn-ink);
   border: none;
   font-size: 24px;
   display: flex;
@@ -1049,7 +1083,7 @@ footer .admin-dot {
 .cal-slot.selected {
   background: var(--primary);
   border-color: var(--primary);
-  color: #1a1310;
+  color: var(--btn-ink);
   font-weight: 600;
 }
 
@@ -1223,7 +1257,7 @@ footer .admin-dot {
 .admin-header { display:flex; align-items:center; justify-content:space-between; margin-bottom: 20px;}
 .admin-nav { display:flex; gap:8px; flex-wrap: wrap; margin-bottom: 24px; }
 .admin-nav a { padding:10px 16px; border-radius:10px; background:var(--surface); border:1px solid var(--line); text-decoration:none; font-size:13px; font-weight:600; color: var(--ink-soft);}
-.admin-nav a.active { background: var(--primary); color:#1a1310; border-color: var(--primary);}
+.admin-nav a.active { background: var(--primary); color:var(--btn-ink); border-color: var(--primary);}
 table.admin-table { width: 100%; border-collapse: collapse; background: var(--surface); border-radius: 14px; overflow:hidden; box-shadow: var(--shadow); }
 table.admin-table th, table.admin-table td { padding: 12px 14px; border-bottom: 1px solid var(--line); text-align:left; font-size:14px; vertical-align: top;}
 table.admin-table th { background: var(--surface-2); font-size: 11px; text-transform:uppercase; letter-spacing:.05em; color: var(--ink-soft);}
@@ -1404,7 +1438,7 @@ table.admin-table th { background: var(--surface-2); font-size: 11px; text-trans
   padding: 10px 20px;
   border-radius: 999px;
   background: var(--primary);
-  color: #1a1310;
+  color: var(--btn-ink);
   font-weight: 700;
   font-size: 12.5px;
   letter-spacing: .04em;
@@ -1629,7 +1663,7 @@ table.admin-table th { background: var(--surface-2); font-size: 11px; text-trans
 }
 .widget-carousel-arrow--prev { left: -6px; }
 .widget-carousel-arrow--next { right: -6px; }
-.widget-carousel-arrow:hover { background: var(--primary); color: #1a1310; }
+.widget-carousel-arrow:hover { background: var(--primary); color: var(--btn-ink); }
 .widget-carousel-arrow:disabled { opacity: .3; cursor: default; }
 .widget-carousel-arrow:disabled:hover { background: var(--surface-2); color: var(--ink); }
 .widget-video-thumb { border: 0; padding: 0; background: none; cursor: pointer; width: 100%; position: relative; }
@@ -1828,7 +1862,7 @@ button.admin-widget-item-card:hover { transform: translateY(-2px); }
   transition: transform .2s ease, background .2s ease;
 }
 .switch input:checked + .switch-slider { background: var(--primary); border-color: var(--primary); }
-.switch input:checked + .switch-slider::before { transform: translateX(20px); background: #1a1310; }
+.switch input:checked + .switch-slider::before { transform: translateX(20px); background: var(--btn-ink); }
 .switch input:focus-visible + .switch-slider { outline: 2px solid var(--primary); outline-offset: 2px; }
 
 /* ===== Плавное появление блоков при прокрутке страницы =====
@@ -2045,7 +2079,7 @@ button.admin-widget-item-card:hover { transform: translateY(-2px); }
   padding: 9px 16px;
   border-radius: 999px;
   background: var(--primary);
-  color: #1a1310;
+  color: var(--btn-ink);
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
@@ -2304,7 +2338,7 @@ button.admin-widget-item-card:hover { transform: translateY(-2px); }
   border-radius: 50%;
   border: 1px solid var(--primary);
   background: var(--primary);
-  color: #1a1310;
+  color: var(--btn-ink);
   font-size: 22px;
   line-height: 1;
   cursor: pointer;
@@ -2478,6 +2512,56 @@ button.admin-widget-item-card:hover { transform: translateY(-2px); }
 }
 .notif-bell-btn:hover { border-color: var(--primary); color: var(--primary); }
 .notif-bell-btn svg { width: 18px; height: 18px; display: block; }
+
+/* ===== Переключатель светлой/тёмной темы (шапка) =====
+   Показывает иконку ТЕКУЩЕЙ активной темы (солнце — светлая, луна —
+   тёмная). При клике иконки красиво "проворачиваются" друг в друга
+   (см. updateThemeToggleIcon() в script.js — просто переключает класс
+   .is-light на <html>/кнопке, остальное делает CSS-переход). */
+.theme-toggle-btn {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  box-shadow: 0 5px 12px -6px rgba(0, 0, 0, .5);
+  transition: border-color .15s ease, color .15s ease, background .15s ease, transform .15s cubic-bezier(.34,1.56,.64,1), box-shadow .15s ease;
+}
+.theme-toggle-btn:hover { border-color: var(--primary); color: var(--primary); transform: translateY(-1px); box-shadow: 0 8px 16px -6px rgba(0, 0, 0, .55); }
+.theme-toggle-btn:active { transform: translateY(1px); box-shadow: 0 2px 6px -3px rgba(0, 0, 0, .45); }
+.theme-toggle-icon {
+  position: absolute;
+  width: 19px;
+  height: 19px;
+  transition: opacity .35s ease, transform .5s cubic-bezier(.34,1.56,.64,1);
+}
+.theme-toggle-icon--sun {
+  opacity: 0;
+  transform: rotate(-90deg) scale(.4);
+}
+.theme-toggle-icon--moon {
+  opacity: 1;
+  transform: rotate(0deg) scale(1);
+}
+:root[data-theme="light"] .theme-toggle-icon--sun {
+  opacity: 1;
+  transform: rotate(0deg) scale(1);
+}
+:root[data-theme="light"] .theme-toggle-icon--moon {
+  opacity: 0;
+  transform: rotate(90deg) scale(.4);
+}
+@media (prefers-reduced-motion: reduce) {
+  .theme-toggle-btn, .theme-toggle-icon { transition: opacity .2s ease; }
+  .theme-toggle-btn:hover, .theme-toggle-btn:active { transform: none; }
+}
 .notif-badge {
   position: absolute;
   top: 4px;

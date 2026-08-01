@@ -24,6 +24,18 @@ $__onesignalAppId = getSetting('onesignal_app_id', '');
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="<?= e($__siteTitle) ?>">
+<!-- Ставим сохранённую тему ДО загрузки CSS — иначе на долю секунды
+     мелькнёт тёмная тема по умолчанию, даже если человек выбрал светлую. -->
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem('site_theme');
+    if (saved === 'light' || saved === 'dark') {
+      document.documentElement.setAttribute('data-theme', saved);
+    }
+  } catch (e) {}
+})();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,500&family=Jost:wght@300;400;500;600&family=Tangerine:wght@700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/css/style.css?v=<?= filemtime(__DIR__ . '/../assets/css/style.css') ?>">
@@ -41,6 +53,15 @@ $__onesignalAppId = getSetting('onesignal_app_id', '');
     </a>
 
     <div class="topbar-actions">
+      <button type="button" class="theme-toggle-btn" id="themeToggleBtn" aria-label="Переключить тему оформления" title="Светлая / тёмная тема">
+        <svg class="theme-toggle-icon theme-toggle-icon--sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="4"></circle>
+          <path d="M12 2v2.5M12 19.5V22M4.22 4.22l1.77 1.77M17.99 17.99l1.77 1.77M2 12h2.5M19.5 12H22M4.22 19.78l1.77-1.77M17.99 6.01l1.77-1.77"></path>
+        </svg>
+        <svg class="theme-toggle-icon theme-toggle-icon--moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+      </button>
       <?php if (!empty($__siteUser)): ?>
       <div class="notif-center" id="notifCenter">
         <button type="button" class="notif-bell-btn" id="notifCenterBtn" aria-label="Уведомления" title="Уведомления">
