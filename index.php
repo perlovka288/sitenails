@@ -437,10 +437,6 @@ require __DIR__ . '/includes/header.php';
     <h2 class="section-title"><?= e(t('price_title')) ?></h2>
     <div class="section-sub"><?= e(t('price_subtitle')) ?></div>
 
-    <?php if ($__isAdmin): ?>
-      <button type="button" class="btn full open-modal-btn price-add-open-btn" data-price-add-open>+ <?= e(t('price_add_btn')) ?></button>
-    <?php endif; ?>
-
     <?php if (!$priceByCategory): ?>
       <p><?= e(t('price_empty')) ?></p>
     <?php endif; ?>
@@ -458,26 +454,6 @@ require __DIR__ . '/includes/header.php';
               <span class="leader"></span>
               <span class="amount"><?= e($item['price']) ?></span>
             </div>
-            <?php if ($__isAdmin): ?>
-            <div class="price-row-admin-actions">
-              <button type="button" class="icon-btn icon-btn--sm price-edit-btn"
-                title="<?= $lang === 'ua' ? 'Змінити' : 'Изменить' ?>"
-                data-id="<?= (int)$item['id'] ?>"
-                data-category="<?= e($item['category']) ?>"
-                data-category-ua="<?= e($item['category_ua'] ?? '') ?>"
-                data-title="<?= e($item['title']) ?>"
-                data-title-ua="<?= e($item['title_ua'] ?? '') ?>"
-                data-price="<?= e($item['price']) ?>"
-              ><?= e(t('price_edit')) ?></button>
-              <form method="post" action="admin_quick_action.php" onsubmit="return confirm(<?= json_encode(t('price_confirm_delete')) ?>);">
-                <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
-                <input type="hidden" name="action" value="price_delete">
-                <input type="hidden" name="id" value="<?= (int)$item['id'] ?>">
-                <input type="hidden" name="back_tab" value="price">
-                <button type="submit" class="icon-btn icon-btn--sm icon-btn--danger" title="<?= $lang === 'ua' ? 'Видалити' : 'Удалить' ?>"><?= e(t('price_delete')) ?></button>
-              </form>
-            </div>
-            <?php endif; ?>
           </div>
         <?php endforeach; ?>
       </div>
@@ -488,9 +464,6 @@ require __DIR__ . '/includes/header.php';
       <p class="price-note-location">📍 <?= e(t('price_location')) ?></p>
     </div>
 
-    <?php if ($__isAdmin): ?>
-      <button type="button" class="btn full open-modal-btn" data-price-add-open><?= e(t('price_add_btn')) ?></button>
-    <?php endif; ?>
   </section>
 
   <!-- ===== ЗАПИСЬ ===== -->
@@ -609,41 +582,6 @@ require __DIR__ . '/includes/header.php';
   </div>
 
   <?php if ($__isAdmin): ?>
-  <!-- ===== Модалка "Позиция прайса" (добавить/изменить) — только для админа ===== -->
-  <div class="modal-overlay" id="priceModalOverlay">
-    <div class="modal-box">
-      <h3 id="priceModalTitle"><?= e(t('price_form_title')) ?></h3>
-      <form action="admin_quick_action.php" method="post" id="priceModalForm">
-        <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
-        <input type="hidden" name="action" value="price_add" id="priceModalAction">
-        <input type="hidden" name="id" value="" id="priceModalId">
-        <input type="hidden" name="back_tab" value="price">
-        <div class="form-field">
-          <label><?= e(t('price_category_ru')) ?></label>
-          <input type="text" name="category" id="priceModalCategory" required>
-        </div>
-        <div class="form-field">
-          <label><?= e(t('price_category_ua')) ?></label>
-          <input type="text" name="category_ua" id="priceModalCategoryUa">
-        </div>
-        <div class="form-field">
-          <label><?= e(t('price_title_ru')) ?></label>
-          <input type="text" name="title" id="priceModalTitleField" required>
-        </div>
-        <div class="form-field">
-          <label><?= e(t('price_title_ua')) ?></label>
-          <input type="text" name="title_ua" id="priceModalTitleUa">
-        </div>
-        <div class="form-field">
-          <label><?= e(t('price_amount')) ?></label>
-          <input type="text" name="price" id="priceModalPrice" required placeholder="450 грн">
-        </div>
-        <button type="submit" class="btn full"><?= e(t('save')) ?></button>
-      </form>
-      <button type="button" class="modal-close" id="closePriceModalBtn"><?= e(t('cancel')) ?></button>
-    </div>
-  </div>
-
   <!-- ===== Модалка "Свободное время" (добавить/изменить/удалить) — только для админа ===== -->
   <div class="modal-overlay" id="slotModalOverlay">
     <div class="modal-box">

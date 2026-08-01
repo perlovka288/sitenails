@@ -139,6 +139,7 @@ a { color: inherit; }
 
 .lang-switch {
   display: inline-flex;
+  position: relative;
   background: var(--surface);
   border-radius: 999px;
   padding: 4px;
@@ -146,7 +147,27 @@ a { color: inherit; }
   justify-self: start;
 }
 
+/* Белая "капсула", плавно скользящая между РУС/УКР — тот же приём,
+   что и у .tab-indicator в шапке (пружинистый iOS-переход), только
+   ограничена рамками .lang-switch. Позиция/ширина считаются в JS
+   (см. updateLangThumb() в script.js). */
+.lang-switch-thumb {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  bottom: 4px;
+  width: 0;
+  border-radius: 999px;
+  background: var(--primary);
+  box-shadow: 0 3px 10px -3px rgba(0, 0, 0, .35);
+  transition: transform .4s cubic-bezier(.34, 1.56, .64, 1), width .4s cubic-bezier(.34, 1.56, .64, 1);
+  pointer-events: none;
+  z-index: 0;
+}
+
 .lang-switch a {
+  position: relative;
+  z-index: 1;
   padding: 8px 15px;
   border-radius: 999px;
   font-size: 12px;
@@ -154,12 +175,15 @@ a { color: inherit; }
   letter-spacing: .04em;
   text-decoration: none;
   color: var(--ink-soft);
-  transition: background .2s ease, color .2s ease;
+  transition: color .2s ease;
 }
 
 .lang-switch a.active {
-  background: var(--primary);
   color: var(--btn-ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lang-switch-thumb { transition: none; }
 }
 
 .nav-tabs {
@@ -1265,10 +1289,258 @@ footer .admin-dot {
 
 /* ===== Админка ===== */
 .admin-shell { max-width: 880px; margin: 0 auto; padding: 24px 20px 60px; }
+
 .admin-header { display:flex; align-items:center; justify-content:space-between; margin-bottom: 20px;}
-.admin-nav { display:flex; gap:8px; flex-wrap: wrap; margin-bottom: 24px; }
-.admin-nav a { padding:10px 16px; border-radius:10px; background:var(--surface); border:1px solid var(--line); text-decoration:none; font-size:13px; font-weight:600; color: var(--ink-soft);}
-.admin-nav a.active { background: var(--primary); color:var(--btn-ink); border-color: var(--primary);}
+
+/* ---- Навигация по разделам, сгруппированная по категориям (Статистика /
+   Кастомизация сайта / Клиенты). Внутри каждой группы работает та же
+   скользящая плашка-индикатор, что и у вкладок на главном сайте — см.
+   updateAdminNavIndicator() в admin.js. ---- */
+.admin-nav-groups { display:flex; flex-direction:column; gap:16px; margin-bottom: 24px; }
+.admin-nav-group-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--ink-faint);
+  margin: 0 0 8px 2px;
+}
+.admin-nav {
+  position: relative;
+  display:flex;
+  gap:8px;
+  flex-wrap: wrap;
+}
+.admin-nav a {
+  position: relative;
+  z-index: 1;
+  padding:10px 16px;
+  border-radius:10px;
+  background:transparent;
+  border:1px solid var(--line);
+  text-decoration:none;
+  font-size:13px;
+  font-weight:600;
+  color: var(--ink-soft);
+  transition: color .25s ease;
+}
+.admin-nav a.active { color:var(--btn-ink); border-color: transparent; }
+.admin-nav-indicator {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  border-radius: 10px;
+  background: var(--primary);
+  box-shadow: 0 3px 0 rgba(0,0,0,.35), 0 16px 30px -8px rgba(0,0,0,.6), var(--btn-glow);
+  transition: transform .4s cubic-bezier(.34,1.56,.64,1), width .4s cubic-bezier(.34,1.56,.64,1), height .4s cubic-bezier(.34,1.56,.64,1);
+  pointer-events: none;
+  z-index: 0;
+}
+.admin-nav-return {
+  margin-bottom: 24px;
+}
+.admin-nav-return a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  transition: border-color .15s ease, color .15s ease;
+}
+.admin-nav-return a:hover { border-color: var(--primary); color: var(--ink); }
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-nav-indicator { transition: none; }
+}
+
+/* ---- Профиль-карточка на "Главной" — по центру, как в iCloud:
+   аватар, имя, приветствие, логин и скрытый пароль с глазком. ---- */
+.admin-profile-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+  padding: 32px 20px 28px;
+  margin-bottom: 24px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius, 16px);
+  box-shadow: var(--shadow), inset 0 1px 0 var(--card-rim);
+}
+.admin-profile-avatar {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+.admin-profile-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.admin-profile-avatar-fallback {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 700;
+  font-size: 34px;
+  color: var(--ink-soft);
+}
+.admin-profile-name {
+  font-family: 'Manrope', sans-serif;
+  font-weight: 800;
+  font-size: 20px;
+  color: var(--ink);
+  margin: 0;
+}
+.admin-profile-greeting {
+  font-size: 14px;
+  color: var(--ink-soft);
+  margin: 2px 0 18px;
+}
+.admin-profile-fields {
+  width: 100%;
+  max-width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.admin-profile-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+}
+.admin-profile-field-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--ink-faint);
+  display: block;
+  margin-bottom: 2px;
+}
+.admin-profile-field-value {
+  font-size: 14px;
+  color: var(--ink);
+  font-weight: 600;
+  letter-spacing: .02em;
+  word-break: break-all;
+  text-align: left;
+}
+.admin-profile-field-value.is-masked { letter-spacing: .12em; }
+.admin-profile-eye-btn {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: color .15s ease, border-color .15s ease;
+}
+.admin-profile-eye-btn:hover { color: var(--ink); border-color: var(--primary); }
+.admin-profile-eye-btn svg { width: 18px; height: 18px; }
+
+/* ---- Большая кнопка "Выйти" внизу панели (только на Главной) ---- */
+.admin-logout-block { margin-top: 32px; padding-top: 20px; border-top: 1px solid var(--line); }
+.admin-logout-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(200,100,100,.4);
+  background: transparent;
+  color: #e4a3a3;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background .15s ease, border-color .15s ease;
+}
+.admin-logout-btn:hover { background: rgba(200,100,100,.08); border-color: rgba(200,100,100,.7); }
+
+/* ---- Переключатель "Информация / Функционал" на странице Настроек —
+   тот же скользящий сегмент-контрол, что и язык/вкладки. ---- */
+.settings-segment {
+  position: relative;
+  display: flex;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 4px;
+  margin-bottom: 22px;
+  max-width: 420px;
+}
+.settings-segment-thumb {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  bottom: 4px;
+  width: 0;
+  border-radius: 999px;
+  background: var(--primary);
+  box-shadow: 0 3px 10px -3px rgba(0,0,0,.35);
+  transition: transform .4s cubic-bezier(.34,1.56,.64,1), width .4s cubic-bezier(.34,1.56,.64,1);
+  pointer-events: none;
+  z-index: 0;
+}
+.settings-segment button {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 9px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: color .2s ease;
+  font-family: inherit;
+}
+.settings-segment button.active { color: var(--btn-ink); }
+@media (prefers-reduced-motion: reduce) { .settings-segment-thumb { transition: none; } }
+
+.settings-pane { display: none; }
+.settings-pane.is-active { display: block; }
+
+.settings-link-cards { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+.settings-link-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  text-decoration: none;
+  transition: border-color .15s ease;
+}
+.settings-link-card:hover { border-color: var(--primary); }
+.settings-link-card-text h4 { margin: 0 0 2px; font-size: 14px; color: var(--ink); }
+.settings-link-card-text p { margin: 0; font-size: 12px; color: var(--ink-soft); }
+.settings-link-card-arrow { color: var(--ink-faint); font-size: 18px; }
 table.admin-table { width: 100%; border-collapse: collapse; background: var(--surface); border-radius: 14px; overflow:hidden; box-shadow: var(--shadow), inset 0 1px 0 var(--card-rim); }
 table.admin-table th, table.admin-table td { padding: 12px 14px; border-bottom: 1px solid var(--line); text-align:left; font-size:14px; vertical-align: top;}
 table.admin-table th { background: var(--surface-2); font-size: 11px; text-transform:uppercase; letter-spacing:.05em; color: var(--ink-soft);}

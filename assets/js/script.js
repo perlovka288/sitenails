@@ -163,12 +163,53 @@ document.addEventListener('DOMContentLoaded', function () {
     setActiveTab(track.dataset.active || 'reviews', false);
   }
 
+  // ===== Плавная "капсула" переключателя языка (РУС/УКР) — скользит
+  // между кнопками так же, как плашка вкладок выше (пружинистая анимация
+  // в стиле iOS-тумблера). Переход на новый язык происходит СРАЗУ после
+  // (короткой) анимации, а не мгновенно — иначе переключение выглядело бы
+  // как обычная резкая смена фона, а не как "тумблер". =====
+  var langSwitchEl = document.getElementById('langSwitch');
+  var langSwitchThumb = document.getElementById('langSwitchThumb');
+
+  function updateLangThumb(animate) {
+    if (!langSwitchThumb || !langSwitchEl) return;
+    var activeA = langSwitchEl.querySelector('a.active');
+    if (!activeA) return;
+    if (!animate) langSwitchThumb.style.transition = 'none';
+    var wrapRect = langSwitchEl.getBoundingClientRect();
+    var aRect = activeA.getBoundingClientRect();
+    langSwitchThumb.style.width = aRect.width + 'px';
+    langSwitchThumb.style.transform = 'translateX(' + (aRect.left - wrapRect.left - 4) + 'px)';
+    if (!animate) {
+      requestAnimationFrame(function () { langSwitchThumb.style.transition = ''; });
+    }
+  }
+
+  updateLangThumb(false);
+  window.addEventListener('resize', function () { updateLangThumb(false); });
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(function () { updateLangThumb(false); });
+  }
+
   // Ручное переключение языка (кнопки РУС/УКР в шапке) тоже запоминаем,
   // чтобы модалка выбора языка больше не всплывала при следующих визитах.
   document.querySelectorAll('.lang-switch a[href]').forEach(function (a) {
-    a.addEventListener('click', function () {
+    a.addEventListener('click', function (ev) {
       var m = a.getAttribute('href').match(/[?&]lang=(ru|ua)/);
       if (m) localStorage.setItem('visitor_lang', m[1]);
+
+      // Если кликнули по уже активному языку — переходить некуда,
+      // пусть ссылка сработает как обычно (по сути no-op).
+      if (a.classList.contains('active')) return;
+
+      ev.preventDefault();
+      var targetHref = a.getAttribute('href');
+      langSwitchEl.querySelectorAll('a').forEach(function (x) { x.classList.remove('active'); });
+      a.classList.add('active');
+      updateLangThumb(true);
+      // Даём капсуле "доехать" (совпадает с длительностью transition в CSS),
+      // и только потом реально переходим на страницу с новым языком.
+      window.setTimeout(function () { window.location.href = targetHref; }, 320);
     });
   });
 

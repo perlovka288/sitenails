@@ -91,6 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrfCheck()) {
         } else {
             $pdo->prepare('UPDATE admin_users SET password_hash = ? WHERE id = ?')
                 ->execute([password_hash($new, PASSWORD_DEFAULT), $user['id']]);
+            $_SESSION['admin_plain_password'] = $new;
             $message = 'Пароль успешно изменён.';
         }
     }
@@ -138,6 +139,13 @@ if (is_file($__logFile)) {
 <div class="admin-shell">
   <?php require __DIR__ . '/includes/nav.php'; ?>
 
+  <div class="settings-segment" id="settingsSegment">
+    <span class="settings-segment-thumb" id="settingsSegmentThumb" aria-hidden="true"></span>
+    <button type="button" class="active" data-pane="info">Настройки информации</button>
+    <button type="button" data-pane="functional">Настройки функционала</button>
+  </div>
+
+  <div class="settings-pane is-active" data-pane="info">
   <div class="about-accordion">
 
     <div class="about-accordion-item open" id="settings-acc-site">
@@ -185,6 +193,36 @@ if (is_file($__logFile)) {
         </div>
       </div>
     </div>
+
+    <div class="settings-link-cards">
+      <a href="about.php" class="settings-link-card">
+        <div class="settings-link-card-text">
+          <h4>💁 О мне</h4>
+          <p>Фото, приветствие, текст о себе, кнопки и виджеты</p>
+        </div>
+        <span class="settings-link-card-arrow">›</span>
+      </a>
+      <a href="prices.php" class="settings-link-card">
+        <div class="settings-link-card-text">
+          <h4>💰 Прайс</h4>
+          <p>Категории и цены услуг</p>
+        </div>
+        <span class="settings-link-card-arrow">›</span>
+      </a>
+      <a href="reviews.php" class="settings-link-card">
+        <div class="settings-link-card-text">
+          <h4>⭐ Отзывы</h4>
+          <p>Модерация и публикация отзывов клиентов</p>
+        </div>
+        <span class="settings-link-card-arrow">›</span>
+      </a>
+    </div>
+  </div>
+  </div>
+  <!-- /.settings-pane[info] -->
+
+  <div class="settings-pane" data-pane="functional">
+  <div class="about-accordion">
 
     <div class="about-accordion-item" id="settings-acc-push">
       <div class="about-accordion-header" tabindex="0" role="button">
@@ -429,6 +467,8 @@ if (is_file($__logFile)) {
     </div>
 
   </div>
+  </div>
+  <!-- /.settings-pane[functional] -->
 </div>
 <script>window.ADMIN_CSRF_TOKEN = <?= json_encode(csrfToken()) ?>;</script>
 <script src="assets/admin.js?v=<?= filemtime(__DIR__ . '/assets/admin.js') ?>" defer></script>

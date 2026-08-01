@@ -4,10 +4,27 @@ require __DIR__ . '/../includes/functions.php';
 require __DIR__ . '/includes/auth_check.php';
 
 $pdo = getDB();
-$newBookings   = $pdo->query("SELECT COUNT(*) FROM bookings WHERE status = 'new'")->fetchColumn();
+$newBookings    = $pdo->query("SELECT COUNT(*) FROM bookings WHERE status = 'new'")->fetchColumn();
 $pendingReviews = $pdo->query("SELECT COUNT(*) FROM reviews WHERE is_approved = 0")->fetchColumn();
-$priceCount    = $pdo->query("SELECT COUNT(*) FROM price_items")->fetchColumn();
-$freeSlots     = $pdo->query("SELECT COUNT(*) FROM available_slots WHERE is_booked = 0 AND slot_date >= date('now')")->fetchColumn();
+$priceCount     = $pdo->query("SELECT COUNT(*) FROM price_items")->fetchColumn();
+$freeSlots      = $pdo->query("SELECT COUNT(*) FROM available_slots WHERE is_booked = 0 AND slot_date >= date('now')")->fetchColumn();
+
+// Профиль владелицы сайта — та же учётная запись, что и в шапке клиентской
+// части сайта (аватар, имя), см. currentSiteUser() в includes/functions.php.
+$__adminSiteUser  = currentSiteUser();
+$__adminFullName  = $__adminSiteUser['full_name'] ?? 'Администратор';
+$__adminLogin     = $__adminSiteUser['login'] ?? '';
+$__adminAvatarRel = $__adminSiteUser ? siteUserAvatarPath($__adminSiteUser) : null;
+$__adminAvatarSrc = $__adminAvatarRel ? '../' . ltrim($__adminAvatarRel, '/') : null;
+// Если логин в site_users почему-то не заведён — берём логин из admin_users.
+if ($__adminLogin === '') {
+    $__stmt = $pdo->prepare('SELECT username FROM admin_users WHERE id = ?');
+    $__stmt->execute([$_SESSION['admin_id'] ?? 0]);
+    $__adminLogin = (string)($__stmt->fetchColumn() ?: '');
+}
+// Пароль в открытом виде доступен только в текущей сессии (см. login.php) —
+// в базе хранится исключительно хэш, поэтому глазок работает до выхода.
+$__adminPlainPassword = $_SESSION['admin_plain_password'] ?? '';
 ?>
 <!DOCTYPE html>
 <html lang="ru">
@@ -21,6 +38,50 @@ $freeSlots     = $pdo->query("SELECT COUNT(*) FROM available_slots WHERE is_book
 <body>
 <div class="admin-shell">
   <?php require __DIR__ . '/includes/nav.php'; ?>
+
+  <!-- ===== Профиль по центру — как в iCloud: аватар, имя, приветствие,
+       логин и пароль (скрыт, открывается глазком). ===== -->
+  <div class="admin-profile-card">
+    <div class="admin-profile-avatar">
+      <?php if ($__adminAvatarSrc): ?>
+        <img src="<?= e($__adminAvatarSrc) ?>" alt="">
+      <?php else: ?>
+        <span class="admin-profile-avatar-fallback"><?= e(mb_strtoupper(mb_substr($__adminFullName, 0, 1))) ?></span>
+      <?php endif; ?>
+    </div>
+    <p class="admin-profile-name"><?= e($__adminFullName) ?></p>
+    <p class="admin-profile-greeting">Здравствуйте, <?= e($__adminFullName) ?>! Вы в панели администратора.</p>
+
+    <div class="admin-profile-fields">
+      <div class="admin-profile-field">
+        <div>
+          <span class="admin-profile-field-label">Логин</span>
+          <span class="admin-profile-field-value"><?= e($__adminLogin) ?></span>
+        </div>
+      </div>
+      <div class="admin-profile-field">
+        <div>
+          <span class="admin-profile-field-label">Пароль</span>
+          <span class="admin-profile-field-value is-masked" id="adminProfilePasswordValue">••••••••</span>
+        </div>
+        <button type="button"
+          class="admin-profile-eye-btn"
+          id="adminProfileEyeBtn"
+          data-password="<?= e($__adminPlainPassword) ?>"
+          title="Показать/скрыть пароль"
+          aria-label="Показать/скрыть пароль">
+          <svg data-eye-show viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+          </svg>
+          <svg data-eye-hide viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+            <path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a18.5 18.5 0 0 1 5.06-5.94M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 7 11 7a18.5 18.5 0 0 1-2.16 3.19M14.12 14.12a3 3 0 1 1-4.24-4.24"></path>
+            <path d="M1 1l22 22"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
 
   <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:14px;">
     <div class="card">
@@ -44,6 +105,20 @@ $freeSlots     = $pdo->query("SELECT COUNT(*) FROM available_slots WHERE is_book
       <a href="slots.php">Настроить →</a>
     </div>
   </div>
+
+  <!-- ===== Большая кнопка "Выйти" — только здесь, на "Главной", в самом
+       низу панели, как и просили (не на каждой странице). ===== -->
+  <div class="admin-logout-block">
+    <a href="logout.php" class="admin-logout-btn">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+        <polyline points="16 17 21 12 16 7"></polyline>
+        <line x1="21" y1="12" x2="9" y2="12"></line>
+      </svg>
+      Выйти из панели управления
+    </a>
+  </div>
 </div>
+<script src="assets/admin.js?v=<?= filemtime(__DIR__ . '/assets/admin.js') ?>" defer></script>
 </body>
 </html>

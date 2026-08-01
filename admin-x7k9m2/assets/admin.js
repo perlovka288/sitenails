@@ -493,6 +493,101 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  // ===== Скользящая плашка-индикатор под активным пунктом навигации
+  // панели управления — визуально тот же приём, что и у вкладок на
+  // главном сайте (см. updateTabIndicator() в assets/js/script.js).
+  // Переходы между разделами админки — это переходы между отдельными
+  // PHP-страницами (полная перезагрузка), поэтому "скользить" плашка
+  // может только при отрисовке уже открытой страницы — здесь она
+  // плавно "наезжает" на активную кнопку сразу после загрузки. =====
+  document.querySelectorAll('.admin-nav').forEach(function (navEl) {
+    var indicator = navEl.querySelector('.admin-nav-indicator');
+    var activeBtn = navEl.querySelector('a.active');
+    if (!indicator || !activeBtn) return;
+
+    function place(animate) {
+      var navRect = navEl.getBoundingClientRect();
+      var btnRect = activeBtn.getBoundingClientRect();
+      if (!animate) indicator.style.transition = 'none';
+      indicator.style.width = btnRect.width + 'px';
+      indicator.style.height = btnRect.height + 'px';
+      indicator.style.transform = 'translate(' + (btnRect.left - navRect.left) + 'px,' + (btnRect.top - navRect.top) + 'px)';
+      if (!animate) {
+        requestAnimationFrame(function () { indicator.style.transition = ''; });
+      }
+    }
+
+    // Стартуем с нулевой ширины и сразу "выезжаем" на активную кнопку —
+    // получается лёгкая анимация появления, а не жёсткий моментальный блок.
+    place(false);
+    requestAnimationFrame(function () { place(true); });
+    window.addEventListener('resize', function () { place(false); });
+  });
+
+  // ===== Кнопка-глазок для показа/скрытия пароля в профиль-карточке
+  // на "Главной" странице панели управления (см. dashboard.php). =====
+  var profileEyeBtn = document.getElementById('adminProfileEyeBtn');
+  if (profileEyeBtn) {
+    var profileEyeValue = document.getElementById('adminProfilePasswordValue');
+    var profileEyeIconShow = profileEyeBtn.querySelector('[data-eye-show]');
+    var profileEyeIconHide = profileEyeBtn.querySelector('[data-eye-hide]');
+    var realPassword = profileEyeBtn.dataset.password || '';
+    var maskedPassword = '••••••••';
+    var isRevealed = false;
+
+    profileEyeBtn.addEventListener('click', function () {
+      isRevealed = !isRevealed;
+      if (profileEyeValue) {
+        profileEyeValue.textContent = isRevealed ? (realPassword || maskedPassword) : maskedPassword;
+        profileEyeValue.classList.toggle('is-masked', !isRevealed);
+      }
+      if (profileEyeIconShow) profileEyeIconShow.style.display = isRevealed ? 'none' : '';
+      if (profileEyeIconHide) profileEyeIconHide.style.display = isRevealed ? '' : 'none';
+    });
+  }
+
+  // ===== Переключатель "Информация / Функционал" на странице Настроек —
+  // тот же скользящий сегмент-контрол, что и язык/вкладки на сайте. =====
+  var settingsSegment = document.getElementById('settingsSegment');
+  if (settingsSegment) {
+    var segThumb = document.getElementById('settingsSegmentThumb');
+    var segButtons = settingsSegment.querySelectorAll('button[data-pane]');
+    var panes = document.querySelectorAll('.settings-pane');
+
+    function placeSegThumb(animate) {
+      var activeBtn = settingsSegment.querySelector('button.active');
+      if (!activeBtn || !segThumb) return;
+      if (!animate) segThumb.style.transition = 'none';
+      var wrapRect = settingsSegment.getBoundingClientRect();
+      var btnRect = activeBtn.getBoundingClientRect();
+      segThumb.style.width = btnRect.width + 'px';
+      segThumb.style.transform = 'translateX(' + (btnRect.left - wrapRect.left - 4) + 'px)';
+      if (!animate) {
+        requestAnimationFrame(function () { segThumb.style.transition = ''; });
+      }
+    }
+
+    function activatePane(name) {
+      segButtons.forEach(function (b) { b.classList.toggle('active', b.dataset.pane === name); });
+      panes.forEach(function (p) { p.classList.toggle('is-active', p.dataset.pane === name); });
+      placeSegThumb(true);
+      try { localStorage.setItem('admin_settings_pane', name); } catch (e) {}
+    }
+
+    segButtons.forEach(function (btn) {
+      btn.addEventListener('click', function () { activatePane(btn.dataset.pane); });
+    });
+
+    var savedPane = null;
+    try { savedPane = localStorage.getItem('admin_settings_pane'); } catch (e) {}
+    if (savedPane && settingsSegment.querySelector('button[data-pane="' + savedPane + '"]')) {
+      segButtons.forEach(function (b) { b.classList.toggle('active', b.dataset.pane === savedPane); });
+      panes.forEach(function (p) { p.classList.toggle('is-active', p.dataset.pane === savedPane); });
+    }
+    placeSegThumb(false);
+    window.addEventListener('resize', function () { placeSegThumb(false); });
+  }
+
   document.querySelectorAll('.file-input-styled input[type="file"]').forEach(function (input) {
     var wrapper = input.closest('.file-input-styled');
     if (!wrapper) return;

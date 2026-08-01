@@ -44,9 +44,10 @@ $__onesignalAppId = getSetting('onesignal_app_id', '');
 
 <header class="topbar">
   <div class="container topbar-row">
-    <div class="lang-switch">
-      <a href="?lang=ru<?= $__tabParam ?>" class="<?= $__lang === 'ru' ? 'active' : '' ?>">РУС</a>
-      <a href="?lang=ua<?= $__tabParam ?>" class="<?= $__lang === 'ua' ? 'active' : '' ?>">УКР</a>
+    <div class="lang-switch" id="langSwitch">
+      <span class="lang-switch-thumb" id="langSwitchThumb" aria-hidden="true"></span>
+      <a href="?lang=ru<?= $__tabParam ?>" data-lang="ru" class="<?= $__lang === 'ru' ? 'active' : '' ?>">РУС</a>
+      <a href="?lang=ua<?= $__tabParam ?>" data-lang="ua" class="<?= $__lang === 'ua' ? 'active' : '' ?>">УКР</a>
     </div>
     <a href="index.php" class="site-logo" aria-hidden="true" tabindex="-1">
       <img src="assets/img/social/nails.png" alt="<?= e($__siteTitle) ?>">
