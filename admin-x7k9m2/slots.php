@@ -190,6 +190,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($action === 'delete_slot') {
         $id = (int)($_POST['id'] ?? 0);
         $pdo->prepare('DELETE FROM available_slots WHERE id = ?')->execute([$id]);
+    } elseif ($action === 'booking_done') {
+        $id = (int)($_POST['id'] ?? 0);
+
+        $__b = $pdo->prepare('SELECT * FROM bookings WHERE id = ?');
+        $__b->execute([$id]);
+        $__booking = $__b->fetch();
+
+        if ($__booking) {
+            // Статус 'done' убирает запись из календаря (там показываются
+            // только status = 'confirmed') — визуально это и есть "вычеркнуть"
+            // клиента из списка записи, при этом сама запись не удаляется из
+            // базы и остаётся в истории.
+            $pdo->prepare("UPDATE bookings SET status = 'done', updated_at = CURRENT_TIMESTAMP WHERE id = ?")
+                ->execute([$id]);
+
+            // Пуш клиенту: спасибо + просьба оставить отзыв (только если он
+            // был залогинен на сайте своим аккаунтом — иначе просто некому
+            // слать уведомление).
+            if (!empty($__booking['user_id'])) {
+                notifyClientBookingDone((int)$__booking['user_id']);
+            }
+        }
     } elseif ($action === 'save_note') {
         $id = (int)($_POST['id'] ?? 0);
         $note = trim((string)($_POST['note'] ?? ''));

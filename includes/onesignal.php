@@ -38,6 +38,25 @@ function pushLog(string $line): void
 // уведомление на телефоне/компьютере — а не просто откроет сайт с главной.
 function sendOneSignalPush(int $userId, string $title, string $message, string $urlPath = ''): bool
 {
+    return sendOneSignalPushLocalized(
+        $userId,
+        ['ru' => $title, 'uk' => $title, 'en' => $title],
+        ['ru' => $message, 'uk' => $message, 'en' => $message],
+        $urlPath
+    );
+}
+
+// То же самое, но заголовок/текст можно задать ОТДЕЛЬНО для каждого языка —
+// OneSignal сам подставит нужный вариант по языку устройства получателя
+// (используется там, где хочется живого текста на укр., а не просто того
+// же текста на русском под видом украинского, как раньше в sendOneSignalPush).
+// $headings/$contents — массивы вида ['ru' => '...', 'uk' => '...'], ключ
+// 'en' можно не указывать — если его нет, используется 'ru' как запасной.
+function sendOneSignalPushLocalized(int $userId, array $headings, array $contents, string $urlPath = ''): bool
+{
+    if (!isset($headings['en'])) $headings['en'] = $headings['ru'] ?? reset($headings);
+    if (!isset($contents['en'])) $contents['en'] = $contents['ru'] ?? reset($contents);
+
     $appId = getSetting('onesignal_app_id', '');
     $apiKey = getSetting('onesignal_api_key', '');
 
@@ -63,8 +82,8 @@ function sendOneSignalPush(int $userId, string $title, string $message, string $
 
     $payload = [
         'app_id'          => $appId,
-        'headings'        => ['ru' => $title, 'uk' => $title, 'en' => $title],
-        'contents'        => ['ru' => $message, 'uk' => $message, 'en' => $message],
+        'headings'        => $headings,
+        'contents'        => $contents,
         'include_aliases' => ['external_id' => [(string)$userId]],
         'target_channel'  => 'push',
     ];
@@ -109,7 +128,7 @@ function sendOneSignalPush(int $userId, string $title, string $message, string $
         return false;
     }
 
-    pushLog("отправлено успешно (userId=$userId, title=\"$title\") — HTTP $httpCode — $response");
+    pushLog("отправлено успешно (userId=$userId, title=\"{$headings['ru']}\") — HTTP $httpCode — $response");
     return true;
 }
 
@@ -136,4 +155,42 @@ function notifyAdminsNewBooking(PDO $pdo, string $clientName, string $wantedDate
     foreach ($admins as $adminUserId) {
         sendOneSignalPush((int)$adminUserId, $title, $message, 'admin-x7k9m2/slots.php');
     }
+}
+
+// Пуш всем администраторам о новом отзыве — как и с новой записью, приходит
+// сразу на телефон, не дожидаясь захода в панель управления. Клик по
+// уведомлению открывает список отзывов в панели.
+function notifyAdminsNewReview(PDO $pdo, string $authorName, int $rating): void
+{
+    $admins = $pdo->query('SELECT id FROM site_users WHERE is_admin = 1')->fetchAll(PDO::FETCH_COLUMN);
+    if (!$admins) {
+        return;
+    }
+
+    $stars = str_repeat('★', max(0, min(5, $rating)));
+    $title = 'Новый отзыв ✨';
+    $message = $authorName . ($stars !== '' ? ' — ' . $stars : '');
+
+    foreach ($admins as $adminUserId) {
+        sendOneSignalPush((int)$adminUserId, $title, $message, 'admin-x7k9m2/reviews.php');
+    }
+}
+
+// Пуш клиенту сразу после того, как мама отметила его запись выполненной
+// ("✓ Готово" в календаре, см. admin-x7k9m2/slots.php) — благодарность и
+// приглашение оставить отзыв. Текст сразу на двух языках (не просто
+// продублированный на "укр." русский, а отдельный украинский вариант) —
+// OneSignal сам покажет получателю нужный по языку его устройства/браузера.
+// Клик по уведомлению ведёт прямо на вкладку "Отзывы" на сайте.
+function notifyClientBookingDone(int $userId): void
+{
+    $headings = [
+        'ru' => 'Спасибо, что были у нас! 💅',
+        'uk' => 'Дякуємо, що завітали! 💅',
+    ];
+    $contents = [
+        'ru' => 'Если вам не сложно — оставьте, пожалуйста, отзыв, нажав на это сообщение.',
+        'uk' => 'Якщо вам не важко — залиште, будь ласка, відгук, натиснувши на це повідомлення.',
+    ];
+    sendOneSignalPushLocalized($userId, $headings, $contents, 'index.php?tab=reviews');
 }

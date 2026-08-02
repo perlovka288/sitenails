@@ -1,6 +1,7 @@
 <?php
 require __DIR__ . '/config.php';
 require __DIR__ . '/includes/functions.php';
+require __DIR__ . '/includes/onesignal.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !csrfCheck()) {
     redirect('index.php');
@@ -109,5 +110,9 @@ if ($editId > 0) {
 // сайте, если она вошла в браузере как администратор.
 $stmt = $pdo->prepare("INSERT INTO reviews (author_name, rating, message, photo_path, is_approved, user_id) VALUES (?, ?, ?, ?, 1, ?)");
 $stmt->execute([$name, $rating, $message, $photoPath, $__reviewUserId]);
+
+// Пуш админам, что пришёл новый отзыв — не дожидаясь, пока кто-то сам
+// откроет панель управления и заметит его в списке.
+notifyAdminsNewReview($pdo, $name, $rating);
 
 redirect('index.php?tab=reviews&review_sent=1');

@@ -64,9 +64,10 @@ $__mapsHref = $masterAddress !== '' ? 'https://www.google.com/maps/search/?api=1
 <body>
 <header class="topbar">
   <div class="container topbar-row">
-    <div class="lang-switch">
-      <a href="?lang=ru" class="<?= $lang === 'ru' ? 'active' : '' ?>">РУС</a>
-      <a href="?lang=ua" class="<?= $lang === 'ua' ? 'active' : '' ?>">УКР</a>
+    <div class="lang-switch" id="langSwitch">
+      <span class="lang-switch-thumb" id="langSwitchThumb" aria-hidden="true"></span>
+      <a href="?lang=ru" data-lang="ru" class="<?= $lang === 'ru' ? 'active' : '' ?>">РУС</a>
+      <a href="?lang=ua" data-lang="ua" class="<?= $lang === 'ua' ? 'active' : '' ?>">УКР</a>
     </div>
     <a href="index.php" class="site-logo" aria-hidden="true" tabindex="-1">
       <img src="assets/img/social/nails.png" alt="">
@@ -241,6 +242,52 @@ $__mapsHref = $masterAddress !== '' ? 'https://www.google.com/maps/search/?api=1
     if (themeColorMeta) {
       themeColorMeta.setAttribute('content', next === 'light' ? '#f3f2f0' : '#12121a');
     }
+  });
+})();
+</script>
+<script>
+// Ползунок переключателя языка (РУС/УКР) — та же логика, что в
+// updateLangThumb() из assets/js/script.js на главной, продублирована
+// тут отдельно (см. комментарий у переключателя темы выше). Без этого
+// скрипта капсула-подложка остаётся шириной 0 (см. .lang-switch-thumb
+// в style.css) и визуально "пропадает" — именно это и было на этой
+// странице раньше, потому что весь script.js сюда не подключается.
+(function () {
+  var wrap = document.getElementById('langSwitch');
+  var thumb = document.getElementById('langSwitchThumb');
+  if (!wrap || !thumb) return;
+
+  function updateThumb(animate) {
+    var activeA = wrap.querySelector('a.active');
+    if (!activeA) return;
+    if (!animate) thumb.style.transition = 'none';
+    var wrapRect = wrap.getBoundingClientRect();
+    var aRect = activeA.getBoundingClientRect();
+    thumb.style.width = aRect.width + 'px';
+    thumb.style.transform = 'translateX(' + (aRect.left - wrapRect.left - 4) + 'px)';
+    if (!animate) {
+      requestAnimationFrame(function () { thumb.style.transition = ''; });
+    }
+  }
+
+  updateThumb(false);
+  window.addEventListener('resize', function () { updateThumb(false); });
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(function () { updateThumb(false); });
+  }
+
+  wrap.querySelectorAll('a[href]').forEach(function (a) {
+    a.addEventListener('click', function (ev) {
+      var m = a.getAttribute('href').match(/[?&]lang=(ru|ua)/);
+      if (m) { try { localStorage.setItem('visitor_lang', m[1]); } catch (e) {} }
+      if (a.classList.contains('active')) return;
+      ev.preventDefault();
+      var targetHref = a.getAttribute('href');
+      wrap.querySelectorAll('a').forEach(function (x) { x.classList.remove('active'); });
+      a.classList.add('active');
+      updateThumb(true);
+      window.setTimeout(function () { window.location.href = targetHref; }, 320);
+    });
   });
 })();
 </script>

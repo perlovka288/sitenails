@@ -2829,6 +2829,23 @@ button.admin-widget-item-card:hover { transform: translateY(-2px); }
 .rec-slot-name { font-size: 13.5px; color: var(--ink); min-width: 0; }
 .rec-slot-service { font-size: 12px; color: var(--ink-faint); flex: 1 1 auto; min-width: 0; }
 
+/* Кнопка "Готово" у записи в календаре — отмечает визит выполненным,
+   убирает клиента из списка и запускает клиенту пуш с просьбой оставить
+   отзыв. Зелёная и с лёгким "пружинящим" эффектом при наведении/клике —
+   чтобы было приятно и понятно нажимать её после каждого клиента. */
+.rec-slot-done-btn {
+  border-color: rgba(112, 181, 132, .4);
+  color: #7cc492;
+  font-weight: 700;
+}
+.rec-slot-done-btn:hover {
+  background: rgba(112, 181, 132, .16);
+  border-color: rgba(112, 181, 132, .7);
+  color: #8fdba8;
+  transform: translateY(-1px) scale(1.06);
+}
+.rec-slot-done-btn:active { transform: scale(.94); }
+
 /* Инлайн-форма редактирования заметки/имени (карандаш) */
 .note-edit-form { display: flex; align-items: center; gap: 6px; flex: 1 1 100%; margin-top: 4px; }
 .note-edit-form input[type="text"] {

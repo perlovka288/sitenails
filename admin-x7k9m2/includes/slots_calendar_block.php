@@ -69,6 +69,12 @@
                       <span class="rec-slot-name" data-name-display><?= e($displayName) ?></span>
                       <?php if ($b['service']): ?><span class="rec-slot-service"><?= e($b['service']) ?></span><?php endif; ?>
                       <button type="button" class="icon-btn icon-btn--sm" data-note-edit-open data-id="<?= (int)$b['id'] ?>" data-current="<?= e($displayName) ?>" title="Заметка / переименовать">✎</button>
+                      <form method="post" data-ajax-form data-confirm="Отметить визит выполненным? Клиент пропадёт из списка записи, а ему придёт пуш с просьбой оставить отзыв.">
+                        <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+                        <input type="hidden" name="action" value="booking_done">
+                        <input type="hidden" name="id" value="<?= (int)$b['id'] ?>">
+                        <button type="submit" class="icon-btn icon-btn--sm rec-slot-done-btn" title="Отметить выполненным (клиент получит пуш с просьбой оставить отзыв)" aria-label="Готово">✓</button>
+                      </form>
                       <button type="button" class="icon-btn icon-btn--sm icon-btn--danger" data-cancel-open data-id="<?= (int)$b['id'] ?>" title="Отменить запись">✕</button>
                       <form class="note-edit-form" data-note-form data-ajax-form hidden>
                         <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
