@@ -92,23 +92,21 @@ h1, h2, h3, .display {
    держится за кадром (z-index -1), не мешает кликам (pointer-events none)
    и остаётся на месте при скролле (position: fixed), как лёгкое "пятно"
    в углу экрана, а не полноэкранная картинка поверх всего контента.
-   Раньше был background-blend-mode: multiply — на тёмной теме тёмное
-   фото "умножалось" на тёмный фон и пропадало в ноль. Теперь вместо
-   умножения — radial-gradient-виньетка ВТОРЫМ слоем background-image
-   (сама плавно уходит в var(--bg) к краям пятна), а видимость фото
-   под тему регулируется через --bg-decor-opacity/--bg-decor-filter:
-   на тёмной теме фото осветляем фильтром, на светлой — осветляем ещё
-   сильнее и делаем менее плотным, чтобы тёмные ногти не превращались
-   в сплошное чёрное пятно на белом фоне. Пока файл assets/img/social/
-   bg-nails.jpg не добавлен, background-image просто ничего не
-   показывает (в отличие от <img>, тут не будет "битой" иконки). */
+   Исходное фото bg-nails.jpg само по себе очень тёмное и плоское
+   (диапазон яркости примерно 12-107 из 255) — никакие CSS-фильтры
+   поверх него не вытянут детали, получается просто размытое пятно.
+   Поэтому вместо одного файла + фильтров используем ДВЕ заранее
+   обработанные (растянутые по контрасту) версии самой картинки:
+   bg-nails-dark.jpg — для тёмной темы, bg-nails-light.jpg — её же
+   инверсия (тёмный фон становится светлым, блики на ногтях — тёмными
+   штрихами), чтобы на белом фоне тоже было видно форму, а не серое
+   пятно. Края мягко скрываются через mask-image (а не заливку цветом
+   фона, как раньше) — так реальные детали фото не перекрываются. */
 :root {
-  --bg-decor-opacity: .5;
-  --bg-decor-filter: grayscale(1) brightness(1.55) contrast(1.12) blur(9px);
+  --bg-decor-opacity: .7;
 }
 :root[data-theme="light"] {
-  --bg-decor-opacity: .32;
-  --bg-decor-filter: grayscale(1) brightness(2.15) contrast(.92) blur(9px);
+  --bg-decor-opacity: .55;
 }
 .page-bg-decor {
   position: fixed;
@@ -118,17 +116,18 @@ h1, h2, h3, .display {
   height: min(62vw, 680px);
   z-index: -1;
   pointer-events: none;
-  border-radius: 46% 54% 58% 42% / 50% 45% 55% 50%;
-  background-color: var(--bg);
-  background-image:
-    radial-gradient(circle at center, transparent 30%, var(--bg) 78%),
-    url('../img/social/bg-nails.jpg');
-  background-size: cover, cover;
-  background-position: center, center;
-  background-repeat: no-repeat, no-repeat;
-  filter: var(--bg-decor-filter);
+  background-image: url('../img/social/bg-nails-dark.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  filter: blur(3px);
   opacity: var(--bg-decor-opacity);
-  transition: opacity .3s ease;
+  -webkit-mask-image: radial-gradient(circle at center, #000 42%, transparent 76%);
+  mask-image: radial-gradient(circle at center, #000 42%, transparent 76%);
+  transition: opacity .3s ease, background-image .3s ease;
+}
+:root[data-theme="light"] .page-bg-decor {
+  background-image: url('../img/social/bg-nails-light.jpg');
 }
 @media (max-width: 720px) {
   .page-bg-decor { width: 80vw; height: 80vw; right: -20%; bottom: -14%; }
