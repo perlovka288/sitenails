@@ -143,7 +143,7 @@ function notifyAdminsNewBooking(PDO $pdo, string $clientName, string $wantedDate
         return;
     }
 
-    $title = 'Новая запись 💅';
+    $title = 'Новий запис 💅';
     $message = $clientName;
     if ($wantedDate !== '') {
         $message .= ' — ' . $wantedDate;
@@ -168,7 +168,7 @@ function notifyAdminsNewReview(PDO $pdo, string $authorName, int $rating): void
     }
 
     $stars = str_repeat('★', max(0, min(5, $rating)));
-    $title = 'Новый отзыв ✨';
+    $title = 'Новий відгук ✨';
     $message = $authorName . ($stars !== '' ? ' — ' . $stars : '');
 
     foreach ($admins as $adminUserId) {
@@ -178,19 +178,14 @@ function notifyAdminsNewReview(PDO $pdo, string $authorName, int $rating): void
 
 // Пуш клиенту сразу после того, как мама отметила его запись выполненной
 // ("✓ Готово" в календаре, см. admin-x7k9m2/slots.php) — благодарность и
-// приглашение оставить отзыв. Текст сразу на двух языках (не просто
-// продублированный на "укр." русский, а отдельный украинский вариант) —
-// OneSignal сам покажет получателю нужный по языку его устройства/браузера.
-// Клик по уведомлению ведёт прямо на вкладку "Отзывы" на сайте.
+// приглашение оставить отзыв. Клик по уведомлению ведёт прямо на вкладку
+// "Отзывы" на сайте.
 function notifyClientBookingDone(int $userId): void
 {
-    $headings = [
-        'ru' => 'Спасибо, что были у нас! 💅',
-        'uk' => 'Дякуємо, що завітали! 💅',
-    ];
-    $contents = [
-        'ru' => 'Если вам не сложно — оставьте, пожалуйста, отзыв, нажав на это сообщение.',
-        'uk' => 'Якщо вам не важко — залиште, будь ласка, відгук, натиснувши на це повідомлення.',
-    ];
-    sendOneSignalPushLocalized($userId, $headings, $contents, 'index.php?tab=reviews');
+    sendOneSignalPush(
+        $userId,
+        'Дякуємо, що завітали! 💅',
+        'Якщо вам не важко — залиште, будь ласка, відгук, натиснувши на це повідомлення.',
+        'index.php?tab=reviews'
+    );
 }

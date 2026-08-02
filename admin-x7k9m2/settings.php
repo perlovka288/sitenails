@@ -147,7 +147,7 @@ if (is_file($__logFile)) {
   <div class="settings-pane is-active" data-pane="info">
   <div class="about-accordion">
 
-    <div class="about-accordion-item open" id="settings-acc-site">
+    <div class="about-accordion-item" id="settings-acc-site">
       <div class="about-accordion-header" tabindex="0" role="button">
         <div class="about-accordion-header-text">
           <h3>🏠 Настройки сайта</h3>
