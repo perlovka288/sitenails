@@ -110,27 +110,28 @@ h1, h2, h3, .display {
 }
 .page-bg-decor {
   position: fixed;
-  right: -6%;
-  bottom: -8%;
-  width: min(46vw, 520px);
-  height: min(46vw, 520px);
+  right: -60px;
+  bottom: -60px;
+  width: clamp(260px, 40vw, 460px);
+  height: clamp(260px, 40vw, 460px);
   z-index: -1;
   pointer-events: none;
+  border-radius: 50%;
+  overflow: hidden;
   background-image: url('../img/social/bg-nails-dark.jpg');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
   filter: blur(2px);
   opacity: var(--bg-decor-opacity);
-  -webkit-mask-image: radial-gradient(circle at center, #000 55%, transparent 88%);
-  mask-image: radial-gradient(circle at center, #000 55%, transparent 88%);
+  box-shadow: 0 0 70px 40px var(--bg);
   transition: opacity .3s ease, background-image .3s ease;
 }
 :root[data-theme="light"] .page-bg-decor {
   background-image: url('../img/social/bg-nails-light.jpg');
 }
 @media (max-width: 720px) {
-  .page-bg-decor { width: 68vw; height: 68vw; right: -16%; bottom: -12%; }
+  .page-bg-decor { width: clamp(200px, 55vw, 320px); height: clamp(200px, 55vw, 320px); right: -50px; bottom: -50px; }
 }
 
 a { color: inherit; }
