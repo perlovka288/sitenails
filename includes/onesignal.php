@@ -79,6 +79,15 @@ function sendOneSignalPushLocalized(int $userId, array $headings, array $content
     $__scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
     $__host = $_SERVER['HTTP_HOST'] ?? '';
     $__iconUrl = $__host !== '' ? $__scheme . '://' . $__host . '/assets/img/social/nails.png' : '';
+    // Отдельная картинка для chrome_web_badge — Android рисует бейдж как
+    // ЧИСТЫЙ силуэт (берёт альфа-канал, красит всё видимое сплошным белым,
+    // цвет/градиенты игнорирует). Если отдать туда тот же градиентный
+    // логотип, получается смазанное бесформенное пятно — та самая причина,
+    // почему уведомление выглядит "как реклама": пользователи привыкли,
+    // что именно так выглядят спам-пуши с сомнительных сайтов. Поэтому тут
+    // заранее подготовленный настоящий бело-прозрачный силуэт (см.
+    // assets/img/social/nails-badge.png).
+    $__badgeUrl = $__host !== '' ? $__scheme . '://' . $__host . '/assets/img/social/nails-badge.png' : '';
 
     $payload = [
         'app_id'          => $appId,
@@ -89,9 +98,11 @@ function sendOneSignalPushLocalized(int $userId, array $headings, array $content
     ];
     if ($__iconUrl !== '') {
         // chrome_web_icon — большая иконка в самом уведомлении (десктоп/Android).
-        // chrome_web_badge — маленький значок в шторке уведомлений Android.
         $payload['chrome_web_icon'] = $__iconUrl;
-        $payload['chrome_web_badge'] = $__iconUrl;
+    }
+    if ($__badgeUrl !== '') {
+        // chrome_web_badge — маленький силуэт-значок в шторке уведомлений Android.
+        $payload['chrome_web_badge'] = $__badgeUrl;
     }
     if ($urlPath !== '' && $__host !== '') {
         // 'url' — стандартное поле OneSignal Web Push: куда открыть/переключить

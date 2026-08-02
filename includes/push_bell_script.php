@@ -171,6 +171,37 @@ if (!isset($__onesignalAppId)) {
     return;
   }
 
+  // ===== Android: технически push работает и без установки на главный
+  // экран (в отличие от iOS), НО если сайт открыт просто вкладкой в
+  // Chrome, под текстом уведомления Android показывает домен сайта, а
+  // маленький значок — это иконка самого Chrome, а не сайта. Именно так
+  // выглядят типичные спам-пуши с рекламных сайтов, поэтому уведомления
+  // воспринимаются как реклама, даже если содержание нормальное.
+  // Если сайт установлен на главный экран (PWA), уведомление приходит от
+  // "приложения" — с его иконкой и названием, без URL — и выглядит как
+  // обычное системное уведомление. Поэтому один раз мягко предлагаем
+  // установку прямо перед запросом разрешения (не блокируем, просто
+  // подсказываем — сам пуш всё равно настроится, даже если откажутся).
+  var isAndroid = /Android/.test(ua);
+  var deferredInstallPrompt = null;
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+  });
+  var ANDROID_INSTALL_HINT_KEY = 'sitenails_android_install_hint_shown';
+  function maybeSuggestAndroidInstall() {
+    if (!isAndroid || isStandalone) return Promise.resolve();
+    if (localStorage.getItem(ANDROID_INSTALL_HINT_KEY)) return Promise.resolve();
+    localStorage.setItem(ANDROID_INSTALL_HINT_KEY, '1');
+    if (!deferredInstallPrompt) return Promise.resolve();
+    var wantsInstall = confirm('Совет: установите сайт как приложение (это займёт секунду) — тогда уведомления будут выглядеть как от обычного приложения, а не от вкладки браузера. Установить сейчас?');
+    if (!wantsInstall) return Promise.resolve();
+    deferredInstallPrompt.prompt();
+    return deferredInstallPrompt.userChoice.then(function () {
+      deferredInstallPrompt = null;
+    });
+  }
+
   if (!window.Notification) {
     // Браузер вообще не поддерживает Web Push API (редко, но бывает на
     // очень старых версиях/встроенных in-app браузерах вроде Instagram).
@@ -222,6 +253,9 @@ if (!isset($__onesignalAppId)) {
     if (!oneSignalReady) oneSignalFailed = true;
   }, 6000);
 
+  function requestPushPermission() {
+    OneSignalRef.Notifications.requestPermission().then(updateNotifyBtnState);
+  }
   notifyBtn.addEventListener('click', function (e) {
     e.stopPropagation();
     if (Notification.permission === 'denied') {
@@ -239,7 +273,7 @@ if (!isset($__onesignalAppId)) {
       }
       return;
     }
-    OneSignalRef.Notifications.requestPermission().then(updateNotifyBtnState);
+    maybeSuggestAndroidInstall().then(requestPushPermission);
   });
 })();
 </script>
