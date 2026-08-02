@@ -103,34 +103,34 @@ h1, h2, h3, .display {
    пятно. Края мягко скрываются через mask-image (а не заливку цветом
    фона, как раньше) — так реальные детали фото не перекрываются. */
 :root {
-  --bg-decor-opacity: .7;
+  --bg-decor-opacity: .85;
 }
 :root[data-theme="light"] {
-  --bg-decor-opacity: .55;
+  --bg-decor-opacity: .6;
 }
 .page-bg-decor {
   position: fixed;
-  right: -8%;
-  bottom: -10%;
-  width: min(62vw, 680px);
-  height: min(62vw, 680px);
+  right: -6%;
+  bottom: -8%;
+  width: min(46vw, 520px);
+  height: min(46vw, 520px);
   z-index: -1;
   pointer-events: none;
   background-image: url('../img/social/bg-nails-dark.jpg');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  filter: blur(3px);
+  filter: blur(2px);
   opacity: var(--bg-decor-opacity);
-  -webkit-mask-image: radial-gradient(circle at center, #000 42%, transparent 76%);
-  mask-image: radial-gradient(circle at center, #000 42%, transparent 76%);
+  -webkit-mask-image: radial-gradient(circle at center, #000 55%, transparent 88%);
+  mask-image: radial-gradient(circle at center, #000 55%, transparent 88%);
   transition: opacity .3s ease, background-image .3s ease;
 }
 :root[data-theme="light"] .page-bg-decor {
   background-image: url('../img/social/bg-nails-light.jpg');
 }
 @media (max-width: 720px) {
-  .page-bg-decor { width: 80vw; height: 80vw; right: -20%; bottom: -14%; }
+  .page-bg-decor { width: 68vw; height: 68vw; right: -16%; bottom: -12%; }
 }
 
 a { color: inherit; }
