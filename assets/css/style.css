@@ -88,6 +88,36 @@ h1, h2, h3, .display {
   margin: 0 0 .4em;
 }
 
+/* ===== Декоративное фоновое фото (см. комментарий в includes/header.php) —
+   держится за кадром (z-index -1), не мешает кликам (pointer-events none)
+   и остаётся на месте при скролле (position: fixed), как лёгкое "пятно"
+   в углу экрана, а не полноэкранная картинка поверх всего контента.
+   background-blend-mode: multiply с var(--bg) в качестве подложки даёт
+   затемнение, которое само подстраивается под тёмную/светлую тему —
+   не нужно вручную подбирать прозрачность под каждую из них. Пока файл
+   assets/img/social/bg-nails.jpg не добавлен, background-image просто
+   ничего не показывает (в отличие от <img>, тут не будет "битой" иконки). */
+.page-bg-decor {
+  position: fixed;
+  right: -8%;
+  bottom: -10%;
+  width: min(62vw, 680px);
+  height: min(62vw, 680px);
+  z-index: -1;
+  pointer-events: none;
+  border-radius: 46% 54% 58% 42% / 50% 45% 55% 50%;
+  background-color: var(--bg);
+  background-image: url('../img/social/bg-nails.jpg');
+  background-size: cover;
+  background-position: center;
+  background-blend-mode: multiply;
+  filter: blur(26px);
+  opacity: .6;
+}
+@media (max-width: 720px) {
+  .page-bg-decor { width: 80vw; height: 80vw; right: -20%; bottom: -14%; }
+}
+
 a { color: inherit; }
 
 .container {
@@ -2064,8 +2094,9 @@ table.admin-table th { background: var(--surface-2); font-size: 11px; text-trans
 /* ===== Соцсети (виджет) ===== */
 .social-widget { margin-bottom: 40px; }
 .social-widget-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 10px;
   margin-top: 14px;
 }
@@ -2082,6 +2113,7 @@ table.admin-table th { background: var(--surface-2); font-size: 11px; text-trans
   text-decoration: none;
   font-size: 12.5px;
   text-align: center;
+  flex: 0 1 110px;
 }
 .social-widget-tile:hover { border-color: var(--primary); }
 .social-widget-icon { font-size: 24px; }

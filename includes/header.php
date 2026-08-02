@@ -42,6 +42,14 @@ $__onesignalAppId = getSetting('onesignal_app_id', '');
 </head>
 <body>
 
+<!-- ===== Декоративный фон сайта: приглушённое/размытое фото на заднем
+     плане (сейчас файла ещё нет — просто положите картинку с типсами/
+     маникюром в assets/img/social/bg-nails.jpg, той же папке, где лежат
+     иконки соцсетей, и она подхватится сама, без правки кода). Через
+     background-blend-mode затемнение подстраивается под текущую тему
+     (тёмную/светлую) автоматически, а не завязано на конкретный цвет. ===== -->
+<div class="page-bg-decor" aria-hidden="true"></div>
+
 <header class="topbar">
   <div class="container topbar-row">
     <div class="lang-switch" id="langSwitch">
