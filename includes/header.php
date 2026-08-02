@@ -15,8 +15,9 @@ $__onesignalAppId = getSetting('onesignal_app_id', '');
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title><?= e($__siteTitle) ?></title>
-<link rel="icon" type="image/png" href="assets/img/social/nails.png">
-<link rel="apple-touch-icon" href="assets/img/social/nails.png">
+<?php $__logoVer = filemtime(__DIR__ . '/../assets/img/social/nails.png'); ?>
+<link rel="icon" type="image/png" href="assets/img/social/nails.png?v=<?= $__logoVer ?>">
+<link rel="apple-touch-icon" href="assets/img/social/nails.png?v=<?= $__logoVer ?>">
 <!-- Манифест + apple-теги — БЕЗ этого iOS Safari не даёт Web Push вообще,
      даже если пользователь сохранил ярлык на рабочий стол (см. manifest.php). -->
 <link rel="manifest" href="manifest.php">
@@ -58,7 +59,7 @@ $__onesignalAppId = getSetting('onesignal_app_id', '');
       <a href="?lang=ua<?= $__tabParam ?>" data-lang="ua" class="<?= $__lang === 'ua' ? 'active' : '' ?>">УКР</a>
     </div>
     <a href="index.php" class="site-logo" aria-hidden="true" tabindex="-1">
-      <img src="assets/img/social/nails.png" alt="<?= e($__siteTitle) ?>">
+      <img src="assets/img/social/nails.png?v=<?= $__logoVer ?>" alt="<?= e($__siteTitle) ?>">
     </a>
 
     <div class="topbar-actions">
