@@ -142,3 +142,6 @@ $__onesignalAppId = getSetting('onesignal_app_id', '');
   window.SITE_REVIEW_EDIT_SUBMIT = <?= json_encode(t('reviews_edit_submit')) ?>;
 </script>
 <?php require __DIR__ . '/push_bell_script.php'; ?>
+<?php if (!empty($__siteUser)): ?>
+<?php require __DIR__ . '/onboarding_script.php'; ?>
+<?php endif; ?>

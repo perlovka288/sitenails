@@ -16,6 +16,39 @@ if (!isset($__onesignalAppId)) {
     $__onesignalAppId = getSetting('onesignal_app_id', '');
 }
 ?>
+<!-- ===== Перехват события установки на рабочий стол/главный экран (PWA) —
+     ловим ОДИН РАЗ на всю страницу, независимо от того, настроен ли
+     OneSignal, чтобы им могли пользоваться и колокольчик в шапке, и
+     приветственный онбординг после входа/регистрации (см.
+     includes/onboarding_script.php). Chrome/Edge на Android и десктопе
+     присылают это событие сами; iOS Safari его не поддерживает вообще
+     (там установка — только вручную через "Поделиться → На экран Домой",
+     см. отдельную обработку isIOS ниже и в onboarding_script.php). ===== -->
+<script>
+(function () {
+  var deferredPrompt = null;
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault();
+    deferredPrompt = e;
+  });
+  window.addEventListener('appinstalled', function () {
+    deferredPrompt = null;
+  });
+  // Возвращает true/false (принял ли человек установку) через Promise;
+  // если браузер ещё не прислал beforeinstallprompt (или уже установлено/
+  // не поддерживается), сразу резолвится в false — ничего не ломаем.
+  window.__siteTriggerInstall = function () {
+    if (!deferredPrompt) return Promise.resolve(false);
+    var p = deferredPrompt;
+    deferredPrompt = null;
+    p.prompt();
+    return p.userChoice.then(function (choice) {
+      return !!(choice && choice.outcome === 'accepted');
+    });
+  };
+  window.__siteCanInstall = function () { return !!deferredPrompt; };
+})();
+</script>
 <script>
 (function () {
   var bellBtn = document.getElementById('notifCenterBtn');
@@ -183,23 +216,15 @@ if (!isset($__onesignalAppId)) {
   // установку прямо перед запросом разрешения (не блокируем, просто
   // подсказываем — сам пуш всё равно настроится, даже если откажутся).
   var isAndroid = /Android/.test(ua);
-  var deferredInstallPrompt = null;
-  window.addEventListener('beforeinstallprompt', function (e) {
-    e.preventDefault();
-    deferredInstallPrompt = e;
-  });
   var ANDROID_INSTALL_HINT_KEY = 'sitenails_android_install_hint_shown';
   function maybeSuggestAndroidInstall() {
     if (!isAndroid || isStandalone) return Promise.resolve();
     if (localStorage.getItem(ANDROID_INSTALL_HINT_KEY)) return Promise.resolve();
     localStorage.setItem(ANDROID_INSTALL_HINT_KEY, '1');
-    if (!deferredInstallPrompt) return Promise.resolve();
+    if (!window.__siteCanInstall || !window.__siteCanInstall()) return Promise.resolve();
     var wantsInstall = confirm('Совет: установите сайт как приложение (это займёт секунду) — тогда уведомления будут выглядеть как от обычного приложения, а не от вкладки браузера. Установить сейчас?');
     if (!wantsInstall) return Promise.resolve();
-    deferredInstallPrompt.prompt();
-    return deferredInstallPrompt.userChoice.then(function () {
-      deferredInstallPrompt = null;
-    });
+    return window.__siteTriggerInstall();
   }
 
   if (!window.Notification) {
@@ -256,6 +281,33 @@ if (!isset($__onesignalAppId)) {
   function requestPushPermission() {
     OneSignalRef.Notifications.requestPermission().then(updateNotifyBtnState);
   }
+
+  // ===== Хук для приветственного онбординга после входа/регистрации
+  // (см. includes/onboarding_script.php) — запрашивает РЕАЛЬНОЕ системное
+  // разрешение браузера на уведомления сразу, а не только внутренний
+  // флаг сайта. Ждёт готовности SDK (с тем же таймаутом 6с, что и выше),
+  // чтобы клик "Да" в онбординге не терялся, если OneSignal ещё грузится.
+  window.__siteRequestNotificationPermission = function () {
+    return new Promise(function (resolve) {
+      if (Notification.permission !== 'default') {
+        resolve(Notification.permission);
+        return;
+      }
+      (function attempt(triesLeft) {
+        if (oneSignalReady) {
+          OneSignalRef.Notifications.requestPermission().then(function () {
+            updateNotifyBtnState();
+            resolve(Notification.permission);
+          });
+        } else if (oneSignalFailed || triesLeft <= 0) {
+          resolve('unavailable');
+        } else {
+          setTimeout(function () { attempt(triesLeft - 1); }, 300);
+        }
+      })(20);
+    });
+  };
+
   notifyBtn.addEventListener('click', function (e) {
     e.stopPropagation();
     if (Notification.permission === 'denied') {
