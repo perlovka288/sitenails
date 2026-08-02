@@ -111,14 +111,19 @@ h1, h2, h3, .display {
    оставался читаемым. Само фото переключается между bg-nails-dark.jpg
    и bg-nails-light.jpg через :root[data-theme="light"] ниже. */
 :root {
-  --bg-decor-scrim: linear-gradient(180deg, rgba(11, 11, 11, .62), rgba(11, 11, 11, .84));
+  --bg-decor-scrim: linear-gradient(180deg, rgba(11, 11, 11, .55), rgba(11, 11, 11, .78));
 }
 :root[data-theme="light"] {
-  --bg-decor-scrim: linear-gradient(180deg, rgba(255, 255, 255, .8), rgba(255, 255, 255, .92));
+  --bg-decor-scrim: linear-gradient(180deg, rgba(255, 255, 255, .38), rgba(255, 255, 255, .58));
 }
 .page-bg-decor {
   position: fixed;
   inset: -40px;
+  /* На iOS Safari адресная строка то скрывается, то появляется, из-за
+     чего 100vh "прыгает" и снизу может мелькнуть пустая полоса без
+     фото. min-height через большой фиксированный запас (а не только
+     inset) подстраховывает от этого на телефонах. */
+  min-height: calc(100% + 200px);
   z-index: -1;
   pointer-events: none;
   background-image: var(--bg-decor-scrim), url('../img/social/bg-nails-dark.jpg');
