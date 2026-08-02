@@ -1795,7 +1795,7 @@ table.admin-table th { background: var(--surface-2); font-size: 11px; text-trans
   border-radius: 28px;
   overflow: hidden;
   background: var(--surface);
-  margin: 0 auto;
+  margin: 8px auto;
 }
 .about-me-photo img {
   width: 100%;

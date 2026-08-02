@@ -78,19 +78,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrfCheck()) {
         $new     = $_POST['new_password'] ?? '';
         $repeat  = $_POST['new_password_repeat'] ?? '';
 
-        $stmt = $pdo->prepare('SELECT * FROM admin_users WHERE id = ?');
-        $stmt->execute([$_SESSION['admin_id']]);
-        $user = $stmt->fetch();
+        // Раньше проверяли/меняли пароль только в admin_users (там же, где
+        // раньше был обязательный отдельный вход через admin-x7k9m2/login.php).
+        // Теперь панель открывается и просто по флагу "администратор" у
+        // обычного аккаунта сайта (site_users), поэтому источник правды —
+        // именно он: сверяем текущий пароль и сохраняем новый в site_users,
+        // а admin_users (если такая запись есть) обновляем следом же —
+        // только чтобы продолжала работать кнопка-глазок на "Главной"
+        // (там пароль хранится ещё и в обратимо-зашифрованном виде).
+        $__pwUser = currentSiteUser();
 
-        if (!$user || !password_verify($current, $user['password_hash'])) {
+        if (!$__pwUser || !password_verify($current, $__pwUser['password_hash'])) {
             $error = 'Текущий пароль указан неверно.';
         } elseif (strlen($new) < 6) {
             $error = 'Новый пароль должен быть не короче 6 символов.';
         } elseif ($new !== $repeat) {
             $error = 'Пароли не совпадают.';
         } else {
-            $pdo->prepare('UPDATE admin_users SET password_hash = ?, password_display = ? WHERE id = ?')
-                ->execute([password_hash($new, PASSWORD_DEFAULT), encryptAdminPassword($new), $user['id']]);
+            $pdo->prepare('UPDATE site_users SET password_hash = ? WHERE id = ?')
+                ->execute([password_hash($new, PASSWORD_DEFAULT), $__pwUser['id']]);
+
+            $__adminStmt = $pdo->prepare('SELECT id FROM admin_users WHERE LOWER(username) = LOWER(?)');
+            $__adminStmt->execute([$__pwUser['login']]);
+            $__adminId = $__adminStmt->fetchColumn();
+            if ($__adminId !== false) {
+                $pdo->prepare('UPDATE admin_users SET password_hash = ?, password_display = ? WHERE id = ?')
+                    ->execute([password_hash($new, PASSWORD_DEFAULT), encryptAdminPassword($new), $__adminId]);
+            }
+
             $message = 'Пароль успешно изменён.';
         }
     }

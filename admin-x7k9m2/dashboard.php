@@ -16,10 +16,24 @@ $__adminFullName  = $__adminSiteUser['full_name'] ?? 'Администратор
 $__adminLogin     = $__adminSiteUser['login'] ?? '';
 $__adminAvatarRel = $__adminSiteUser ? siteUserAvatarPath($__adminSiteUser) : null;
 $__adminAvatarSrc = $__adminAvatarRel ? '../' . ltrim($__adminAvatarRel, '/') : null;
-// Если логин в site_users почему-то не заведён — берём логин из admin_users.
-$__stmt = $pdo->prepare('SELECT username, password_display FROM admin_users WHERE id = ?');
-$__stmt->execute([$_SESSION['admin_id'] ?? 0]);
-$__adminRow = $__stmt->fetch();
+// Строка из admin_users нужна только для одного — показать реальный пароль
+// по кнопке-глазку (там он хранится в обратимо-зашифрованном виде, см.
+// password_display / encryptAdminPassword()). Раньше искали её по
+// $_SESSION['admin_id'], но панель теперь открывается и без отдельного
+// входа в admin-x7k9m2/login.php (просто по флагу "администратор" у
+// обычного аккаунта на сайте) — тогда admin_id в сессии не выставляется.
+// Поэтому ищем ту же запись по логину текущего аккаунта.
+$__adminRow = null;
+if ($__adminLogin !== '') {
+    $__stmt = $pdo->prepare('SELECT username, password_display FROM admin_users WHERE LOWER(username) = LOWER(?)');
+    $__stmt->execute([$__adminLogin]);
+    $__adminRow = $__stmt->fetch();
+}
+if ($__adminLogin === '' && $__adminRow === null) {
+    $__stmt = $pdo->prepare('SELECT username, password_display FROM admin_users WHERE id = ?');
+    $__stmt->execute([$_SESSION['admin_id'] ?? 0]);
+    $__adminRow = $__stmt->fetch();
+}
 if ($__adminLogin === '') {
     $__adminLogin = (string)($__adminRow['username'] ?? '');
 }
@@ -38,7 +52,6 @@ $__adminPlainPassword = $__adminRow ? decryptAdminPassword($__adminRow['password
 </head>
 <body>
 <div class="admin-shell">
-  <?php require __DIR__ . '/includes/nav.php'; ?>
 
   <!-- ===== Профиль по центру — минималистично, без карточки-плашки:
        просто аватар → имя → приветствие → логин → пароль с глазком,
@@ -78,6 +91,8 @@ $__adminPlainPassword = $__adminRow ? decryptAdminPassword($__adminRow['password
       </button>
     </div>
   </div>
+
+  <?php require __DIR__ . '/includes/nav.php'; ?>
 
   <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:14px;">
     <div class="card">
